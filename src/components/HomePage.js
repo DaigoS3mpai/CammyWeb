@@ -14,14 +14,13 @@ const HomePage = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
       style={{
-        backgroundImage: "url('https://img.freepik.com/free-vector/green-field-landscape-background_1308-60310.jpg')", // Fondo estilo campo/pasto
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
+        backgroundColor: "rgba(255, 255, 255, 0.2)", // Fondo translúcido
+        backdropFilter: "blur(12px)",                // Desenfoque
+        WebkitBackdropFilter: "blur(12px)"           // Compatibilidad Safari
       }}
     >
       {/* Capa translúcida para contraste */}
-      <div className="absolute inset-0 bg-white bg-opacity-30 backdrop-blur-[2px]"></div>
+      <div className="absolute inset-0 bg-white bg-opacity-20 backdrop-blur-md"></div>
 
       {/* Imagen decorativa izquierda */}
       <motion.img
