@@ -47,7 +47,7 @@ const Navbar = ({ classes }) => {
           </NavLink>
 
           <NavLink
-            to="/category/experimentos"
+            to="/category/proyectos"
             className={({ isActive }) =>
               `flex items-center px-3 py-2 rounded-md font-semibold transition duration-300 ${
                 isActive ? 'bg-white text-pink-600' : 'text-white hover:bg-white hover:text-pink-600'
