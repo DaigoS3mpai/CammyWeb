@@ -54,7 +54,7 @@ const Navbar = ({ classes }) => {
               }`
             }
           >
-            <FlaskConical className="w-5 h-5 mr-1" /> Experimentos
+            <FlaskConical className="w-5 h-5 mr-1" /> Proyectos
           </NavLink>
 
           <NavLink
