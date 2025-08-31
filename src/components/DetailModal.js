@@ -50,7 +50,7 @@ const DetailModal = ({ item, type, onClose, onSave }) => {
 
           <div className="flex items-center mb-6">
             {type === 'bitacora' && <FileText className="w-8 h-8 text-blue-600 mr-3" />}
-            {type === 'experimentos' && <FlaskConical className="w-8 h-8 text-purple-600 mr-3" />}
+            {type === 'proyectos' && <FlaskConical className="w-8 h-8 text-purple-600 mr-3" />}
             {type === 'galeria' && <Image className="w-8 h-8 text-pink-600 mr-3" />}
             {isEditing ? (
               <input
@@ -100,7 +100,7 @@ const DetailModal = ({ item, type, onClose, onSave }) => {
               </div>
             )}
 
-            {type === 'experimentos' && item.materials && item.materials.length > 0 && (
+            {type === 'proyectos' && item.materials && item.materials.length > 0 && (
               <div className="text-gray-600">
                 <p className="font-semibold flex items-center text-lg mb-2">
                   <FlaskConical className="w-5 h-5 mr-2 text-gray-500" /> Materiales:
