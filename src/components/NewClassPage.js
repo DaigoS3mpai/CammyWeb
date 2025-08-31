@@ -17,7 +17,7 @@ const NewClassPage = ({ onAddClass }) => {
         description: classDescription.trim() || 'Una clase nueva y emocionante.',
         sections: { // Inicializa las nuevas secciones
           bitacora: [],
-          experimentos: []
+          proyectos: []
         }
       };
       onAddClass(newClass);
