@@ -9,7 +9,7 @@ const CategoryPage = ({ classes }) => {
   const getCategoryTitle = (name) => {
     switch (name) {
       case 'bitacora': return 'Bitácora de Clases';
-      case 'experimentos': return 'Experimentos Realizados';
+      case 'proyectos': return 'Proyectos Realizados';
       case 'galeria': return 'Galería de Imágenes';
       default: return 'Categoría Desconocida';
     }
@@ -18,7 +18,7 @@ const CategoryPage = ({ classes }) => {
   const getCategoryIcon = (name) => {
     switch (name) {
       case 'bitacora': return <BookOpenText className="w-16 h-16 text-blue-500" />;
-      case 'experimentos': return <FlaskConical className="w-16 h-16 text-purple-500" />;
+      case 'proyectos': return <FlaskConical className="w-16 h-16 text-purple-500" />;
       case 'galeria': return <Image className="w-16 h-16 text-pink-500" />;
       default: return <BookOpen className="w-16 h-16 text-gray-500" />;
     }
@@ -27,7 +27,7 @@ const CategoryPage = ({ classes }) => {
   const getCategoryDescription = (name) => {
     switch (name) {
       case 'bitacora': return 'Aquí encontrarás todos los apuntes y notas detalladas de cada una de tus clases. ¡El conocimiento al alcance de tu mano!';
-      case 'experimentos': return 'Explora los resultados y detalles de los experimentos realizados en cada clase. ¡La ciencia en acción!';
+      case 'proyectos': return 'Explora los resultados y detalles de los experimentos realizados en cada clase. ¡La ciencia en acción!';
       case 'galeria': return 'Un espacio visual para todas las imágenes, diagramas y fotos capturadas durante tus clases. ¡Porque una imagen vale más que mil palabras!';
       default: return 'Esta categoría no existe o es un misterio. ¿Te has perdido?';
     }
@@ -36,7 +36,7 @@ const CategoryPage = ({ classes }) => {
   const getCategoryColor = (name) => {
     switch (name) {
       case 'bitacora': return { from: '#3B82F6', to: '#06B6D4' }; // blue-600 to cyan-700
-      case 'experimentos': return { from: '#9333EA', to: '#6D28D9' }; // purple-600 to indigo-700
+      case 'proyectos': return { from: '#9333EA', to: '#6D28D9' }; // purple-600 to indigo-700
       case 'galeria': return { from: '#EC4899', to: '#BE185D' }; // pink-600 to red-700
       default: return { from: '#4B5563', to: '#374151' }; // gray-600 to gray-700
     }
@@ -99,7 +99,7 @@ const CategoryPage = ({ classes }) => {
                 </div>
                 <p className="text-gray-700 mb-4 line-clamp-3">{cls.description}</p>
                 <div className="text-sm text-gray-500">
-                  {cls.sections[categoryName] ? cls.sections[categoryName].length : 0} {categoryName === 'bitacora' ? 'apuntes' : categoryName === 'experimentos' ? 'experimentos' : 'imágenes'}
+                  {cls.sections[categoryName] ? cls.sections[categoryName].length : 0} {categoryName === 'bitacora' ? 'apuntes' : categoryName === 'proyectos' ? 'proyectos' : 'imágenes'}
                 </div>
               </Link>
             </motion.div>
