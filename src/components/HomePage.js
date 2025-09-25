@@ -42,16 +42,6 @@ const HomePage = () => {
         transition={{ duration: 0.8 }}
       />
 
-      {/* Contenido central */}
-      <div className="relative z-10 flex flex-col items-center">
-        <motion.img
-          src="https://cdn-icons-png.flaticon.com/512/616/616408.png"
-          alt="Chibi central"
-          className="w-40 h-40 object-contain mb-6 drop-shadow-lg"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.6, type: "spring", stiffness: 100 }}
-        />
 
         <motion.h1
           className="text-6xl font-extrabold text-gray-900 mb-4 leading-tight drop-shadow-md"
