@@ -14,7 +14,7 @@ initial={{ opacity: 0 }}
 animate={{ opacity: 1 }}
 transition={{ duration: 0.8 }}
 style={{
-        backgroundImage: "url('https://img.freepik.com/free-vector/green-field-landscape-background_1308-60310.jpg')", // Fondo estilo campo/pasto
+        backgroundImage: "url('https://media.istockphoto.com/id/1451763983/es/foto/fondo-de-textura-de-papel-blanco.jpg?s=612x612&w=0&k=20&c=DKziAxjjLEt5ChPqT5pmpL13Q1FVl6tGB7n7x16xorY=')", // Fondo estilo campo/pasto
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundAttachment: "fixed",
