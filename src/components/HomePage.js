@@ -14,9 +14,9 @@ const HomePage = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
       style={{
-        backgroundColor: "rgba(255, 255, 255, 0.2)", // Fondo translúcido
-        backdropFilter: "blur(12px)",                // Desenfoque
-        WebkitBackdropFilter: "blur(12px)"           // Compatibilidad Safari
+        //backgroundColor: "rgba(255, 255, 255, 0.2)", // Fondo translúcido
+        //backdropFilter: "blur(12px)",                // Desenfoque
+        //WebkitBackdropFilter: "blur(12px)"           // Compatibilidad Safari
       }}
     >
       {/* Capa translúcida para contraste */}
