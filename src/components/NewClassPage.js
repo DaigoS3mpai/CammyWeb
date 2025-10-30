@@ -1,29 +1,60 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { PlusCircle, BookOpen } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { PlusCircle, BookOpen, Calendar, FlaskConical } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-const NewClassPage = ({ onAddClass }) => {
-  const [className, setClassName] = useState('');
-  const [classDescription, setClassDescription] = useState('');
+const NewClassPage = () => {
+  const [titulo, setTitulo] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [proyectoId, setProyectoId] = useState("");
+  const [proyectos, setProyectos] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  // 🔹 Cargar proyectos disponibles desde Neon
+  useEffect(() => {
+    fetch("/.netlify/functions/getProyectos")
+      .then((res) => res.json())
+      .then((data) => setProyectos(data))
+      .catch((err) => console.error("Error al cargar proyectos:", err));
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (className.trim()) {
-      const newClass = {
-        id: className.toLowerCase().replace(/\s+/g, '-'), // Genera un ID simple
-        name: className.trim(),
-        description: classDescription.trim() || 'Una clase nueva y emocionante.',
-        sections: { // Inicializa las nuevas secciones
-          bitacora: [],
-          proyectos: []
-        }
-      };
-      onAddClass(newClass);
-      navigate(`/class/${newClass.id}`); // Redirige a la nueva clase
-    } else {
-      alert('El nombre de la clase no puede estar vacío. ¡No seas tan misterioso!');
+
+    if (!titulo.trim() || !descripcion.trim() || !fecha || !proyectoId) {
+      alert("Por favor completa todos los campos.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch("/.netlify/functions/addClase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          titulo,
+          descripcion,
+          fecha,
+          proyecto_id: parseInt(proyectoId),
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert("✅ Clase creada exitosamente");
+        navigate("/bitacora"); // Redirige a la lista de clases
+      } else {
+        alert("❌ Error al crear la clase: " + (data.error || "Desconocido"));
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Ocurrió un error al conectar con el servidor.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -50,46 +81,105 @@ const NewClassPage = ({ onAddClass }) => {
         transition={{ delay: 0.4, duration: 0.5 }}
       >
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Nombre de la clase */}
           <div>
-            <label htmlFor="className" className="block text-gray-700 text-lg font-semibold mb-2">
-              Nombre de la Clase
+            <label
+              htmlFor="titulo"
+              className="block text-gray-700 text-lg font-semibold mb-2"
+            >
+              Nombre / Título de la Clase
             </label>
             <div className="relative">
               <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                id="className"
-                value={className}
-                onChange={(e) => setClassName(e.target.value)}
-                placeholder="Ej: Física Cuántica para Dummies"
+                id="titulo"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                placeholder="Ej: Introducción a Proyectos Tecnológicos"
                 className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 text-lg"
                 required
               />
             </div>
           </div>
 
+          {/* Descripción */}
           <div>
-            <label htmlFor="classDescription" className="block text-gray-700 text-lg font-semibold mb-2">
-              Descripción (Opcional)
+            <label
+              htmlFor="descripcion"
+              className="block text-gray-700 text-lg font-semibold mb-2"
+            >
+              Descripción
             </label>
             <textarea
-              id="classDescription"
-              value={classDescription}
-              onChange={(e) => setClassDescription(e.target.value)}
-              placeholder="Una breve descripción de lo que se verá en esta clase..."
+              id="descripcion"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              placeholder="Describe brevemente lo que se realizó en esta clase..."
               rows="4"
               className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 text-lg resize-y"
+              required
             ></textarea>
           </div>
 
+          {/* Fecha */}
+          <div>
+            <label
+              htmlFor="fecha"
+              className="block text-gray-700 text-lg font-semibold mb-2"
+            >
+              Fecha de la Clase
+            </label>
+            <div className="relative">
+              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="date"
+                id="fecha"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 text-lg"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Proyecto */}
+          <div>
+            <label
+              htmlFor="proyecto"
+              className="block text-gray-700 text-lg font-semibold mb-2"
+            >
+              Proyecto Asociado
+            </label>
+            <div className="relative">
+              <FlaskConical className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <select
+                id="proyecto"
+                value={proyectoId}
+                onChange={(e) => setProyectoId(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300 text-lg"
+                required
+              >
+                <option value="">Selecciona un proyecto</option>
+                {proyectos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.titulo}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Botón enviar */}
           <motion.button
             type="submit"
-            className="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white py-3 rounded-xl font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white py-3 rounded-xl font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center disabled:opacity-70"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
             <PlusCircle className="w-6 h-6 mr-3" />
-            Crear Clase
+            {loading ? "Creando..." : "Crear Clase"}
           </motion.button>
         </form>
       </motion.div>
