@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -17,7 +17,6 @@ import CategoryPage from './components/CategoryPage';
 import GalleryPage from './components/GalleryPage';
 import NewProjectPage from './components/NewProjectPage'; // ✅ nuevo componente
 import { AuthProvider, useAuth } from './components/AuthContext';
-import { defaultClasses } from './mock/classes';
 
 // 🔹 Maneja las rutas con animación
 const AnimatedRoutes = () => {
