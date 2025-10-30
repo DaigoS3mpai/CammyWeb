@@ -46,6 +46,10 @@ const NewClassPage = () => {
       const data = await res.json();
       if (res.ok) {
         alert("✅ Clase creada exitosamente");
+
+        // 🔹 Guardar "flag" para recargar Bitácora
+        localStorage.setItem("reloadBitacora", "true");
+
         navigate("/bitacora"); // Redirige a la lista de clases
       } else {
         alert("❌ Error al crear la clase: " + (data.error || "Desconocido"));
@@ -81,7 +85,7 @@ const NewClassPage = () => {
         transition={{ delay: 0.4, duration: 0.5 }}
       >
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Nombre de la clase */}
+          {/* Nombre / Título */}
           <div>
             <label
               htmlFor="titulo"
@@ -143,7 +147,7 @@ const NewClassPage = () => {
             </div>
           </div>
 
-          {/* Proyecto */}
+          {/* Proyecto asociado */}
           <div>
             <label
               htmlFor="proyecto"
@@ -170,7 +174,7 @@ const NewClassPage = () => {
             </div>
           </div>
 
-          {/* Botón enviar */}
+          {/* Botón */}
           <motion.button
             type="submit"
             disabled={loading}
