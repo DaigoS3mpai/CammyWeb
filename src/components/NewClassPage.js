@@ -10,10 +10,9 @@ const NewClassPage = () => {
   const [proyectos, setProyectos] = useState([]);
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState("");
   const [loading, setLoading] = useState(false);
-
   const navigate = useNavigate();
 
-  // Cargar proyectos existentes (si hay)
+  // 🔹 Cargar proyectos desde la base de datos
   useEffect(() => {
     const fetchProyectos = async () => {
       try {
@@ -29,8 +28,10 @@ const NewClassPage = () => {
     fetchProyectos();
   }, []);
 
+  // 🔹 Enviar clase al backend
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!titulo.trim() || !fecha.trim()) {
       alert("Por favor completa el título y la fecha.");
       return;
@@ -52,14 +53,15 @@ const NewClassPage = () => {
 
       const data = await res.json();
 
-      if (res.ok) {
+      if (res.ok && data.clase && data.clase.id) {
         alert("✅ Clase creada correctamente");
-        navigate("/category/bitacora");
+        // 🔹 Redirigir directamente a la clase recién creada
+        navigate(`/class/${data.clase.id}/bitacora`);
       } else {
-        alert(`❌ Error: ${data.error || "No se pudo crear la clase"}`);
+        alert(`❌ Error: ${data.error || "No se pudo crear la clase correctamente"}`);
       }
     } catch (err) {
-      console.error("Error:", err);
+      console.error("Error al crear clase:", err);
       alert("❌ Error de conexión con el servidor.");
     } finally {
       setLoading(false);
@@ -89,7 +91,7 @@ const NewClassPage = () => {
         transition={{ delay: 0.4, duration: 0.5 }}
       >
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Título */}
+          {/* 🔹 Título */}
           <div>
             <label htmlFor="titulo" className="block text-gray-700 text-lg font-semibold mb-2">
               Título de la Clase *
@@ -107,7 +109,7 @@ const NewClassPage = () => {
             </div>
           </div>
 
-          {/* Descripción */}
+          {/* 🔹 Descripción */}
           <div>
             <label htmlFor="descripcion" className="block text-gray-700 text-lg font-semibold mb-2">
               Descripción
@@ -122,7 +124,7 @@ const NewClassPage = () => {
             />
           </div>
 
-          {/* Fecha */}
+          {/* 🔹 Fecha */}
           <div>
             <label htmlFor="fecha" className="block text-gray-700 text-lg font-semibold mb-2">
               Fecha de realización *
@@ -136,7 +138,7 @@ const NewClassPage = () => {
             />
           </div>
 
-          {/* Vincular proyecto (opcional) */}
+          {/* 🔹 Vincular a proyecto */}
           <div>
             <label htmlFor="proyecto" className="block text-gray-700 text-lg font-semibold mb-2">
               Vincular a un proyecto (opcional)
@@ -163,7 +165,7 @@ const NewClassPage = () => {
             </div>
           </div>
 
-          {/* Botón */}
+          {/* 🔹 Botón enviar */}
           <motion.button
             type="submit"
             disabled={loading}

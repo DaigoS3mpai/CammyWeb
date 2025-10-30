@@ -63,11 +63,14 @@ const DetailModal = ({ item, type, onClose, onSave }) => {
 
       if (res.ok) {
         alert("✅ Clase actualizada correctamente");
-        onSave(data.clase, type);
+        if (typeof onSave === "function") {
+          onSave(data.clase, type);
+        }
         setIsEditing(false);
       } else {
         alert("❌ Error al actualizar: " + (data.error || "Desconocido"));
       }
+
     } catch (err) {
       console.error("Error al guardar cambios:", err);
       alert("❌ Error al conectar con el servidor.");
