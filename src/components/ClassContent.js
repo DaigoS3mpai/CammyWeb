@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  FileText, Calendar, Tag, Edit, Trash2, PlusCircle,
-  FlaskConical, BookOpenText, Image
-} from 'lucide-react';
-import { useAuth } from './AuthContext';
-import DetailModal from './DetailModal';
+  FileText,
+  Calendar,
+  Tag,
+  PlusCircle,
+  FlaskConical,
+  BookOpenText,
+  Image,
+} from "lucide-react";
+import { useAuth } from "./AuthContext";
+import DetailModal from "./DetailModal";
 
 const ClassContent = () => {
   const { classId } = useParams();
@@ -16,19 +21,19 @@ const ClassContent = () => {
   const [clases, setClases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [modalType, setModalType] = useState('');
-  const [activeTab, setActiveTab] = useState('bitacora');
+  const [modalType, setModalType] = useState("");
+  const [activeTab, setActiveTab] = useState("bitacora");
 
   // 🔹 Cargar clases desde Neon
   useEffect(() => {
-    fetch('/.netlify/functions/getClases')
-      .then(res => res.json())
-      .then(data => {
+    fetch("/.netlify/functions/getClases")
+      .then((res) => res.json())
+      .then((data) => {
         setClases(data);
         setLoading(false);
       })
-      .catch(err => {
-        console.error('Error al cargar clases:', err);
+      .catch((err) => {
+        console.error("Error al cargar clases:", err);
         setLoading(false);
       });
   }, []);
@@ -50,6 +55,31 @@ const ClassContent = () => {
     }
   }, []);
 
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    navigate(`/class/${classId}/${tab}`);
+  };
+
+  const openDetailModal = (item, type) => {
+    setSelectedItem(item);
+    setModalType(type);
+  };
+
+  const closeDetailModal = () => {
+    setSelectedItem(null);
+    setModalType("");
+  };
+
+  // ✅ Actualiza la clase modificada sin necesidad de recargar la página
+  const handleSaveItem = (updatedClase) => {
+    setClases((prevClases) =>
+      prevClases.map((clase) =>
+        clase.id === updatedClase.id ? { ...clase, ...updatedClase } : clase
+      )
+    );
+    closeDetailModal(); // Cierra el modal automáticamente
+  };
+
   if (loading) {
     return (
       <motion.div
@@ -63,27 +93,12 @@ const ClassContent = () => {
     );
   }
 
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    navigate(`/class/${classId}/${tab}`);
-  };
-
-  const openDetailModal = (item, type) => {
-    setSelectedItem(item);
-    setModalType(type);
-  };
-
-  const closeDetailModal = () => {
-    setSelectedItem(null);
-    setModalType('');
-  };
-
   return (
     <motion.div
       className="flex-1 p-10 bg-gray-50 overflow-y-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
     >
       <h1 className="text-5xl font-extrabold text-gray-900 mb-6 text-center">
         Bitácora de Clases
@@ -92,33 +107,33 @@ const ClassContent = () => {
       {/* 🔹 Tabs */}
       <div className="flex mb-8 justify-center space-x-4">
         <motion.button
-          onClick={() => handleTabChange('bitacora')}
+          onClick={() => handleTabChange("bitacora")}
           className={`px-6 py-3 rounded-xl font-semibold text-lg transition-all duration-300 flex items-center ${
-            activeTab === 'bitacora'
-              ? 'bg-blue-600 text-white shadow-lg'
-              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+            activeTab === "bitacora"
+              ? "bg-blue-600 text-white shadow-lg"
+              : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
           }`}
         >
           <BookOpenText className="w-5 h-5 mr-2" /> Bitácora
         </motion.button>
 
         <motion.button
-          onClick={() => handleTabChange('experimentos')}
+          onClick={() => handleTabChange("experimentos")}
           className={`px-6 py-3 rounded-xl font-semibold text-lg transition-all duration-300 flex items-center ${
-            activeTab === 'experimentos'
-              ? 'bg-purple-600 text-white shadow-lg'
-              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+            activeTab === "experimentos"
+              ? "bg-purple-600 text-white shadow-lg"
+              : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
           }`}
         >
           <FlaskConical className="w-5 h-5 mr-2" /> Experimentos
         </motion.button>
 
         <motion.button
-          onClick={() => handleTabChange('galeria')}
+          onClick={() => handleTabChange("galeria")}
           className={`px-6 py-3 rounded-xl font-semibold text-lg transition-all duration-300 flex items-center ${
-            activeTab === 'galeria'
-              ? 'bg-pink-600 text-white shadow-lg'
-              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+            activeTab === "galeria"
+              ? "bg-pink-600 text-white shadow-lg"
+              : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
           }`}
         >
           <Image className="w-5 h-5 mr-2" /> Galería
@@ -162,10 +177,10 @@ const ClassContent = () => {
                 </p>
                 <div className="flex items-center text-sm text-gray-500">
                   <Calendar className="w-4 h-4 mr-2" />
-                  <span>{new Date(item.fecha).toLocaleDateString('es-CL')}</span>
+                  <span>{new Date(item.fecha).toLocaleDateString("es-CL")}</span>
                   <Tag className="w-4 h-4 ml-4 mr-2" />
                   <span className="italic">
-                    {item.proyecto_titulo || 'Sin proyecto'}
+                    {item.proyecto_titulo || "Sin proyecto"}
                   </span>
                 </div>
               </motion.div>
@@ -178,11 +193,13 @@ const ClassContent = () => {
         </AnimatePresence>
       </div>
 
+      {/* 🔹 Modal de detalle */}
       {selectedItem && (
         <DetailModal
           item={selectedItem}
           type={modalType}
           onClose={closeDetailModal}
+          onSave={handleSaveItem} // ✅ 🔥 Actualiza la clase sin recargar
         />
       )}
     </motion.div>
