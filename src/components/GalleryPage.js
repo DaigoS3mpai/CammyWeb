@@ -1,169 +1,272 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Image, Calendar, Info, PlusCircle, Edit, Trash2 } from 'lucide-react';
-import { useAuth } from './AuthContext';
-import DetailModal from './DetailModal'; // Importar el nuevo componente
+import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Image, PlusCircle, Loader2, X } from "lucide-react";
 
-const GalleryPage = ({ classes, setClasses }) => { // Recibir setClasses
-  const { classId } = useParams();
-  const currentClass = classes.find(cls => cls.id === classId);
-  const { isAdmin } = useAuth();
+const GalleryPage = () => {
+  const [imagenes, setImagenes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [nuevaImagen, setNuevaImagen] = useState({
+    imagen_url: "",
+    descripcion: "",
+    proyecto_id: "",
+  });
+  const [proyectos, setProyectos] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(null);
 
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [modalType, setModalType] = useState('');
+  // 🔹 Cargar galería y proyectos al iniciar
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [galeriaRes, proyectosRes] = await Promise.all([
+          fetch("/.netlify/functions/getGaleria"),
+          fetch("/.netlify/functions/getProyectos"),
+        ]);
 
-  if (!currentClass) {
-    return (
-      <motion.div
-        className="flex-1 p-10 bg-gray-50 flex items-center justify-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="text-center text-gray-600">
-          <h2 className="text-3xl font-bold mb-4">Clase no encontrada</h2>
-          <p className="text-lg">Parece que esta clase se ha ido de vacaciones. Intenta con otra.</p>
-        </div>
-      </motion.div>
-    );
-  }
+        const galeriaData = await galeriaRes.json();
+        const proyectosData = await proyectosRes.json();
 
-  const galleryItems = currentClass.sections.galeria || [];
+        setImagenes(galeriaData);
+        setProyectos(proyectosData);
+      } catch (err) {
+        console.error("Error al cargar galería:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const openDetailModal = (item, type) => {
-    setSelectedItem(item);
-    setModalType(type);
-  };
+    fetchData();
+  }, []);
 
-  const closeDetailModal = () => {
-    setSelectedItem(null);
-    setModalType('');
-  };
+  // 🔹 Manejar subida de nueva imagen
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const handleSaveItem = (updatedItem, type) => {
-    setClasses(prevClasses =>
-      prevClasses.map(cls =>
-        cls.id === classId
-          ? {
-              ...cls,
-              sections: {
-                ...cls.sections,
-                [type]: cls.sections[type].map(item =>
-                  item.id === updatedItem.id ? updatedItem : item
-                )
-              }
-            }
-          : cls
-      )
-    );
-    setSelectedItem(updatedItem); // Actualiza el item en el modal
+    if (!nuevaImagen.imagen_url || !nuevaImagen.proyecto_id) {
+      alert("Por favor completa los campos obligatorios.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/.netlify/functions/addImagen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nuevaImagen),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("✅ Imagen añadida correctamente");
+        setImagenes((prev) => [data.imagen, ...prev]);
+        setNuevaImagen({ imagen_url: "", descripcion: "", proyecto_id: "" });
+        setShowForm(false);
+      } else {
+        alert("❌ Error: " + (data.error || "No se pudo subir la imagen."));
+      }
+    } catch (error) {
+      console.error("Error al subir imagen:", error);
+      alert("Ocurrió un error al conectar con el servidor.");
+    }
   };
 
   return (
     <motion.div
-      className="flex-1 p-10 bg-gray-50 overflow-y-auto"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="flex-1 p-10 bg-gradient-to-br from-pink-50 to-purple-50 overflow-y-auto"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
     >
       <motion.h1
-        className="text-5xl font-extrabold text-gray-900 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-red-700"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
+        className="text-5xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-700 mb-10"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
       >
-        Galería de {currentClass.name}
+        Galería de Imágenes
       </motion.h1>
-      <motion.p
-        className="text-gray-600 text-lg mb-8 max-w-2xl"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.5 }}
-      >
-        Aquí encontrarás todas las imágenes y fotos relevantes de esta clase. ¡Una imagen vale más que mil palabras, o al menos más que mil ecuaciones!
-      </motion.p>
 
-      {isAdmin() && (
+      {/* Botón para añadir imagen */}
+      <div className="flex justify-center mb-8">
         <motion.button
-          className="mb-8 px-6 py-3 bg-green-500 text-white rounded-xl shadow-md hover:bg-green-600 transition-all duration-300 flex items-center"
+          onClick={() => setShowForm((prev) => !prev)}
+          className="bg-pink-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center shadow-lg hover:bg-pink-700 transition-all"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => alert(`¡Aquí podrías agregar un formulario para subir una nueva imagen a la galería de ${currentClass.name}!`)}
         >
           <PlusCircle className="w-5 h-5 mr-2" />
-          Subir Nueva Imagen
+          {showForm ? "Cancelar" : "Añadir Imagen"}
         </motion.button>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        <AnimatePresence mode="wait">
-          {galleryItems.length > 0 ? (
-            galleryItems.map((item, index) => (
-              <motion.div
-                key={item.id}
-                className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden group cursor-pointer"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: index * 0.05, duration: 0.3 }}
-                whileHover={{ translateY: -5, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" }}
-                onClick={() => openDetailModal(item, 'galeria')} // Abre el modal al hacer clic
-              >
-                <div className="relative w-full h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
-                  <img src={item.url} alt={item.title} className="object-cover w-full h-full" />
-                  {isAdmin() && (
-                    <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <motion.button
-                        className="p-2 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => { e.stopPropagation(); alert(`Editando imagen: ${item.title}`); }}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </motion.button>
-                      <motion.button
-                        className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => { e.stopPropagation(); alert(`Eliminando imagen: ${item.title}`); }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </motion.button>
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">{item.title}</h3>
-                  <p className="text-gray-700 text-sm mb-3 line-clamp-2">{item.description}</p>
-                  <div className="flex items-center text-xs text-gray-500">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    <span>{item.date}</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))
-          ) : (
-            <motion.div
-              className="text-center text-gray-500 mt-16 col-span-full"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6, duration: 0.5 }}
-            >
-              <p className="text-xl">Aún no hay imágenes en la galería de esta clase. ¡Es hora de sacar la cámara!</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
-      {selectedItem && (
-        <DetailModal
-          item={selectedItem}
-          type={modalType}
-          onClose={closeDetailModal}
-          onSave={handleSaveItem}
-        />
+      {/* Formulario */}
+      <AnimatePresence>
+        {showForm && (
+          <motion.form
+            onSubmit={handleSubmit}
+            className="bg-white rounded-3xl shadow-lg p-8 max-w-2xl mx-auto mb-10"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <div className="mb-4">
+              <label className="block text-gray-700 font-semibold mb-2">
+                URL de la Imagen
+              </label>
+              <input
+                type="url"
+                value={nuevaImagen.imagen_url}
+                onChange={(e) =>
+                  setNuevaImagen({ ...nuevaImagen, imagen_url: e.target.value })
+                }
+                placeholder="https://ejemplo.com/imagen.jpg"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
+                required
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-gray-700 font-semibold mb-2">
+                Descripción
+              </label>
+              <textarea
+                value={nuevaImagen.descripcion}
+                onChange={(e) =>
+                  setNuevaImagen({
+                    ...nuevaImagen,
+                    descripcion: e.target.value,
+                  })
+                }
+                placeholder="Describe brevemente la imagen..."
+                rows="3"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-gray-700 font-semibold mb-2">
+                Proyecto asociado
+              </label>
+              <select
+                value={nuevaImagen.proyecto_id}
+                onChange={(e) =>
+                  setNuevaImagen({
+                    ...nuevaImagen,
+                    proyecto_id: e.target.value,
+                  })
+                }
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
+                required
+              >
+                <option value="">Selecciona un proyecto</option>
+                {proyectos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.titulo}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <motion.button
+              type="submit"
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold text-lg shadow-md hover:shadow-xl transition-all"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Subir Imagen
+            </motion.button>
+          </motion.form>
+        )}
+      </AnimatePresence>
+
+      {/* Galería de imágenes */}
+      {loading ? (
+        <div className="flex justify-center items-center mt-20">
+          <Loader2 className="animate-spin w-8 h-8 text-pink-600" />
+        </div>
+      ) : imagenes.length === 0 ? (
+        <p className="text-center text-gray-500 mt-10 text-lg">
+          No hay imágenes disponibles. ¡Sube la primera! 📸
+        </p>
+      ) : (
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.1 },
+            },
+          }}
+        >
+          {imagenes.map((img) => (
+            <motion.div
+              key={img.id}
+              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer"
+              whileHover={{ scale: 1.02 }}
+              onClick={() => setSelectedImage(img)}
+            >
+              <div className="h-64 overflow-hidden">
+                <img
+                  src={img.imagen_url}
+                  alt={img.descripcion || "Imagen de proyecto"}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="p-4">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  {img.proyecto_titulo || "Proyecto sin nombre"}
+                </h3>
+                <p className="text-gray-600 text-sm mt-1">
+                  {img.descripcion || "Sin descripción"}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
       )}
+
+      {/* Modal para ver imagen ampliada */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedImage(null)}
+          >
+            <motion.div
+              className="relative bg-white rounded-3xl overflow-hidden max-w-3xl w-full mx-4"
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="absolute top-4 right-4 bg-white rounded-full p-2 shadow hover:bg-gray-100"
+              >
+                <X className="w-5 h-5 text-gray-700" />
+              </button>
+              <img
+                src={selectedImage.imagen_url}
+                alt="Vista ampliada"
+                className="w-full h-[500px] object-contain bg-black"
+              />
+              <div className="p-4 text-center">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {selectedImage.proyecto_titulo}
+                </h2>
+                <p className="text-gray-600 mt-2">
+                  {selectedImage.descripcion || "Sin descripción"}
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
