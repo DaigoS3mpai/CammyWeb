@@ -10,7 +10,6 @@ const NewClassPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // 🔹 Enviar clase a Neon
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -20,6 +19,7 @@ const NewClassPage = () => {
     }
 
     setLoading(true);
+    console.log("[Nueva clase] Enviando a addClase...", { titulo, descripcion, fecha });
 
     try {
       const res = await fetch("/.netlify/functions/addClase", {
@@ -28,18 +28,21 @@ const NewClassPage = () => {
         body: JSON.stringify({
           titulo,
           descripcion,
-          fecha,
-          proyecto_id: 1, // 🔹 Vincula siempre a tu proyecto principal (puedes hacerlo dinámico luego)
+          fecha,            // "YYYY-MM-DD"
+          proyecto_id: 1,   // vinculado a tu proyecto principal
         }),
       });
 
       const data = await res.json();
+      console.log("[Nueva clase] Respuesta:", res.status, data);
 
       if (res.ok) {
         alert("✅ Clase creada correctamente");
+        // Señal para que Bitácora recargue desde Neon
+        localStorage.setItem("reloadBitacora", "true");
 
-        // Redirigir a la vista de bitácora de esa clase
-        navigate(`/class/${data.clase.id}/bitacora`);
+        // Navega SIEMPRE a la Bitácora principal (estable)
+        navigate("/class/1/bitacora");
       } else {
         alert("❌ Error: " + (data.error || "No se pudo crear la clase."));
       }
@@ -76,10 +79,7 @@ const NewClassPage = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Título */}
           <div>
-            <label
-              htmlFor="titulo"
-              className="block text-gray-700 text-lg font-semibold mb-2"
-            >
+            <label htmlFor="titulo" className="block text-gray-700 text-lg font-semibold mb-2">
               Título de la Clase *
             </label>
             <div className="relative">
@@ -98,10 +98,7 @@ const NewClassPage = () => {
 
           {/* Descripción */}
           <div>
-            <label
-              htmlFor="descripcion"
-              className="block text-gray-700 text-lg font-semibold mb-2"
-            >
+            <label htmlFor="descripcion" className="block text-gray-700 text-lg font-semibold mb-2">
               Descripción
             </label>
             <textarea
@@ -116,10 +113,7 @@ const NewClassPage = () => {
 
           {/* Fecha */}
           <div>
-            <label
-              htmlFor="fecha"
-              className="block text-gray-700 text-lg font-semibold mb-2"
-            >
+            <label htmlFor="fecha" className="block text-gray-700 text-lg font-semibold mb-2">
               Fecha de realización *
             </label>
             <input
