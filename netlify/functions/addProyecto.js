@@ -1,4 +1,3 @@
-// netlify/functions/addProyecto.js
 import { Client } from "pg";
 
 export const handler = async (event) => {
@@ -6,10 +5,14 @@ export const handler = async (event) => {
     return { statusCode: 405, body: "Método no permitido" };
   }
 
-  const { titulo, descripcion, fecha_inicio } = JSON.parse(event.body);
+  const { titulo, descripcion, fecha_inicio, imagen_portada } = JSON.parse(event.body || "{}");
 
-  if (!titulo) {
-    return { statusCode: 400, body: "El campo 'titulo' es obligatorio" };
+  // 🧠 Validación básica
+  if (!titulo || !fecha_inicio) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Faltan campos obligatorios (título o fecha)" }),
+    };
   }
 
   const client = new Client({
@@ -20,24 +23,33 @@ export const handler = async (event) => {
   try {
     await client.connect();
 
-    const result = await client.query(
-      `INSERT INTO proyectos (titulo, descripcion, fecha_inicio)
-       VALUES ($1, $2, $3)
-       RETURNING *;`,
-      [titulo, descripcion || null, fecha_inicio || new Date()]
-    );
+    // ✅ Insertar proyecto y devolver su ID
+    const insertQuery = `
+      INSERT INTO proyectos (titulo, descripcion, fecha_inicio, imagen_portada)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, titulo, descripcion, fecha_inicio, imagen_portada;
+    `;
+
+    const result = await client.query(insertQuery, [
+      titulo,
+      descripcion || null,
+      fecha_inicio,
+      imagen_portada || null,
+    ]);
+
+    const nuevoProyecto = result.rows[0];
 
     await client.end();
 
     return {
       statusCode: 200,
       body: JSON.stringify({
-        message: "Proyecto creado correctamente ✅",
-        proyecto: result.rows[0],
+        message: "✅ Proyecto creado correctamente",
+        proyecto: nuevoProyecto,
       }),
     };
   } catch (err) {
-    console.error("Error al crear proyecto:", err);
+    console.error("❌ Error al crear proyecto:", err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: err.message }),

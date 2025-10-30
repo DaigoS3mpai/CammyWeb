@@ -17,75 +17,75 @@ const DetailModal = ({ item, type, onClose, onSave }) => {
   const { isAdmin } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editedItem, setEditedItem] = useState(item);
-  const [proyectos, setProyectos] = useState([]);
 
-  // Cargar lista de proyectos disponibles
   useEffect(() => {
-    const fetchProyectos = async () => {
-      try {
-        const res = await fetch(`${window.location.origin}/.netlify/functions/getProyectos`);
-        if (!res.ok) throw new Error("Error al obtener proyectos");
-        const data = await res.json();
-        setProyectos(data);
-      } catch (err) {
-        console.warn("⚠️ No se pudieron cargar proyectos:", err.message);
-      }
-    };
-
-    if (type === "bitacora") {
-      fetchProyectos();
-    }
-
     setEditedItem(item);
-  }, [item, type]);
+  }, [item]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setEditedItem((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Guardar cambios (actualizar clase)
+  // 🔹 Guardar cambios (clase o proyecto)
   const handleSave = async () => {
     try {
-      const res = await fetch(`${window.location.origin}/.netlify/functions/updateClase`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      let endpoint = "";
+      let bodyData = {};
+
+      if (type === "bitacora") {
+        endpoint = "/.netlify/functions/updateClase";
+        bodyData = {
           id: editedItem.id,
           titulo: editedItem.titulo,
           descripcion: editedItem.descripcion,
           fecha: editedItem.fecha,
           proyecto_id: editedItem.proyecto_id || null,
-        }),
+        };
+      } else if (type === "proyectos") {
+        endpoint = "/.netlify/functions/updateProyecto";
+        bodyData = {
+          id: editedItem.id,
+          titulo: editedItem.titulo,
+          descripcion: editedItem.descripcion,
+          fecha_inicio: editedItem.fecha_inicio,
+          imagen_portada: editedItem.imagen_portada || null,
+        };
+      } else {
+        alert("Este tipo de elemento no es editable.");
+        return;
+      }
+
+      const res = await fetch(endpoint, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bodyData),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        alert("✅ Clase actualizada correctamente");
-        if (typeof onSave === "function") {
-          onSave(data.clase, type);
-        }
+        alert("✅ Cambios guardados correctamente");
         setIsEditing(false);
+        onSave?.(data[type === "bitacora" ? "clase" : "proyecto"], type);
       } else {
-        alert("❌ Error al actualizar: " + (data.error || "Desconocido"));
+        alert("❌ Error: " + (data.error || "No se pudo guardar"));
       }
-
     } catch (err) {
       console.error("Error al guardar cambios:", err);
-      alert("❌ Error al conectar con el servidor.");
+      alert("Error al conectar con el servidor.");
     }
   };
 
   if (!item) return null;
 
-  const titulo = editedItem.titulo || item.titulo || "Sin título";
-  const descripcion = editedItem.descripcion || item.descripcion || "Sin descripción";
-  const fecha = editedItem.fecha
-    ? new Date(editedItem.fecha).toLocaleDateString()
-    : item.fecha
-    ? new Date(item.fecha).toLocaleDateString()
-    : "Sin fecha";
+  const titulo = editedItem.titulo || "Sin título";
+  const descripcion = editedItem.descripcion || "Sin descripción";
+
+  const fecha =
+    type === "bitacora"
+      ? editedItem.fecha || item.fecha
+      : editedItem.fecha_inicio || item.fecha_inicio;
 
   return (
     <AnimatePresence>
@@ -114,9 +114,15 @@ const DetailModal = ({ item, type, onClose, onSave }) => {
 
           {/* Título */}
           <div className="flex items-center mb-6">
-            {type === "bitacora" && <FileText className="w-8 h-8 text-blue-600 mr-3" />}
-            {type === "proyectos" && <FlaskConical className="w-8 h-8 text-purple-600 mr-3" />}
-            {type === "galeria" && <Image className="w-8 h-8 text-pink-600 mr-3" />}
+            {type === "bitacora" && (
+              <FileText className="w-8 h-8 text-blue-600 mr-3" />
+            )}
+            {type === "proyectos" && (
+              <FlaskConical className="w-8 h-8 text-purple-600 mr-3" />
+            )}
+            {type === "galeria" && (
+              <Image className="w-8 h-8 text-pink-600 mr-3" />
+            )}
 
             {isEditing ? (
               <input
@@ -131,20 +137,52 @@ const DetailModal = ({ item, type, onClose, onSave }) => {
             )}
           </div>
 
-          {/* Imagen si es galería */}
-          {type === "galeria" && item.url && (
+          {/* Imagen principal (para proyectos o galería) */}
+          {(type === "proyectos" || type === "galeria") && (
             <div className="mb-6">
-              <img
-                src={item.url}
-                alt={titulo}
-                className="w-full h-auto max-h-96 object-contain rounded-lg shadow-md"
-              />
+              {isEditing ? (
+                <>
+                  <label className="block text-gray-700 font-semibold mb-2">
+                    URL de Imagen
+                  </label>
+                  <input
+                    type="text"
+                    name={
+                      type === "proyectos" ? "imagen_portada" : "imagen_url"
+                    }
+                    value={
+                      type === "proyectos"
+                        ? editedItem.imagen_portada || ""
+                        : editedItem.imagen_url || ""
+                    }
+                    onChange={handleInputChange}
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                  {(editedItem.imagen_portada || editedItem.imagen_url) && (
+                    <img
+                      src={
+                        editedItem.imagen_portada || editedItem.imagen_url
+                      }
+                      alt="Vista previa"
+                      className="mt-4 w-full rounded-xl shadow-md max-h-96 object-contain"
+                    />
+                  )}
+                </>
+              ) : (
+                (item.imagen_portada || item.imagen_url) && (
+                  <img
+                    src={item.imagen_portada || item.imagen_url}
+                    alt="Vista"
+                    className="w-full h-auto max-h-96 object-contain rounded-lg shadow-md"
+                  />
+                )
+              )}
             </div>
           )}
 
-          {/* Campos de detalle */}
+          {/* Descripción */}
           <div className="mb-6 text-gray-700 space-y-4">
-            {/* Descripción */}
             <div>
               <p className="font-semibold flex items-center text-lg mb-2">
                 <Info className="w-5 h-5 mr-2 text-gray-500" /> Descripción:
@@ -157,58 +195,35 @@ const DetailModal = ({ item, type, onClose, onSave }) => {
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
                 />
               ) : (
-                <p className="text-base leading-relaxed whitespace-pre-wrap">{descripcion}</p>
+                <p className="text-base leading-relaxed whitespace-pre-wrap">
+                  {descripcion}
+                </p>
               )}
             </div>
 
             {/* Fecha */}
             <div className="flex items-center text-gray-600">
               <Calendar className="w-5 h-5 mr-2" />
-              <span className="font-semibold">Fecha:</span> {fecha || "Sin fecha registrada"}
+              <span className="font-semibold">Fecha:</span>
+              {isEditing ? (
+                <input
+                  type="date"
+                  name={type === "bitacora" ? "fecha" : "fecha_inicio"}
+                  value={fecha ? fecha.split("T")[0] : ""}
+                  onChange={handleInputChange}
+                  className="ml-2 border rounded-md px-3 py-1 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              ) : (
+                <span className="ml-2">
+                  {fecha
+                    ? new Date(fecha).toLocaleDateString("es-CL")
+                    : "Sin fecha registrada"}
+                </span>
+              )}
             </div>
-
-            {/* Etiquetas */}
-            {item.tags && item.tags.length > 0 && (
-              <div className="flex items-center text-gray-600">
-                <Tag className="w-5 h-5 mr-2" />
-                <span className="font-semibold">Etiquetas:</span> {item.tags.join(", ")}
-              </div>
-            )}
-
-            {/* Vincular a proyecto */}
-            {type === "bitacora" && isAdmin() && (
-              <div className="mt-6">
-                <label className="block font-semibold mb-2 text-gray-700 flex items-center">
-                  <FlaskConical className="w-5 h-5 mr-2 text-purple-600" /> Vincular a proyecto:
-                </label>
-                {isEditing ? (
-                  <select
-                    name="proyecto_id"
-                    value={editedItem.proyecto_id || ""}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                  >
-                    <option value="">Sin proyecto</option>
-                    {proyectos.length > 0 ? (
-                      proyectos.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.titulo}
-                        </option>
-                      ))
-                    ) : (
-                      <option disabled>No hay proyectos disponibles</option>
-                    )}
-                  </select>
-                ) : (
-                  <p className="text-gray-700">
-                    {item.proyecto_titulo || "Sin proyecto vinculado"}
-                  </p>
-                )}
-              </div>
-            )}
           </div>
 
-          {/* Botones admin */}
+          {/* Botones */}
           {isAdmin() && (
             <div className="flex justify-end mt-6 space-x-4">
               {isEditing ? (
