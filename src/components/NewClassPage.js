@@ -1,54 +1,66 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { PlusCircle, BookOpen } from "lucide-react";
+import { BookOpen, PlusCircle, FlaskConical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const NewClassPage = () => {
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [fecha, setFecha] = useState("");
+  const [proyectos, setProyectos] = useState([]);
+  const [proyectoSeleccionado, setProyectoSeleccionado] = useState("");
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
+
+  // Cargar proyectos existentes (si hay)
+  useEffect(() => {
+    const fetchProyectos = async () => {
+      try {
+        const res = await fetch(`${window.location.origin}/.netlify/functions/getProyectos`);
+        if (!res.ok) throw new Error("Error al cargar proyectos");
+        const data = await res.json();
+        setProyectos(data || []);
+      } catch (err) {
+        console.warn("⚠️ No hay proyectos disponibles:", err.message);
+        setProyectos([]);
+      }
+    };
+    fetchProyectos();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!titulo.trim() || !fecha.trim()) {
-      alert("Por favor completa los campos obligatorios (Título y Fecha).");
+      alert("Por favor completa el título y la fecha.");
       return;
     }
 
     setLoading(true);
-    console.log("[Nueva clase] Enviando a addClase...", { titulo, descripcion, fecha });
 
     try {
-      const res = await fetch("/.netlify/functions/addClase", {
+      const res = await fetch(`${window.location.origin}/.netlify/functions/addClase`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           titulo,
           descripcion,
-          fecha,            // "YYYY-MM-DD"
-          proyecto_id: 1,   // vinculado a tu proyecto principal
+          fecha,
+          proyecto_id: proyectoSeleccionado || null,
         }),
       });
 
       const data = await res.json();
-      console.log("[Nueva clase] Respuesta:", res.status, data);
 
       if (res.ok) {
         alert("✅ Clase creada correctamente");
-        // Señal para que Bitácora recargue desde Neon
-        localStorage.setItem("reloadBitacora", "true");
-
-        // Navega SIEMPRE a la Bitácora principal (estable)
-        navigate("/class/1/bitacora");
+        navigate("/category/bitacora");
       } else {
-        alert("❌ Error: " + (data.error || "No se pudo crear la clase."));
+        alert(`❌ Error: ${data.error || "No se pudo crear la clase"}`);
       }
     } catch (err) {
-      console.error("Error al crear clase:", err);
-      alert("Ocurrió un error al conectar con el servidor.");
+      console.error("Error:", err);
+      alert("❌ Error de conexión con el servidor.");
     } finally {
       setLoading(false);
     }
@@ -62,7 +74,7 @@ const NewClassPage = () => {
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
       <motion.h1
-        className="text-5xl font-extrabold text-gray-900 mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-700 text-center"
+        className="text-5xl font-extrabold text-gray-900 mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.5 }}
@@ -74,7 +86,7 @@ const NewClassPage = () => {
         className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 w-full max-w-2xl mx-auto"
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.3, duration: 0.4 }}
+        transition={{ delay: 0.4, duration: 0.5 }}
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Título */}
@@ -85,13 +97,12 @@ const NewClassPage = () => {
             <div className="relative">
               <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
-                type="text"
                 id="titulo"
+                type="text"
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
-                placeholder="Ej: Clase 3 - Evaluación de materiales"
-                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-lg"
-                required
+                placeholder="Ej: Clase sobre circuitos eléctricos"
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
               />
             </div>
           </div>
@@ -105,10 +116,10 @@ const NewClassPage = () => {
               id="descripcion"
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Describe brevemente los contenidos o actividades de la clase..."
+              placeholder="Breve descripción de lo que se hizo en clase..."
               rows="4"
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-lg resize-y"
-            ></textarea>
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg resize-y"
+            />
           </div>
 
           {/* Fecha */}
@@ -117,33 +128,55 @@ const NewClassPage = () => {
               Fecha de realización *
             </label>
             <input
-              type="date"
               id="fecha"
+              type="date"
               value={fecha}
               onChange={(e) => setFecha(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-lg"
-              required
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
             />
+          </div>
+
+          {/* Vincular proyecto (opcional) */}
+          <div>
+            <label htmlFor="proyecto" className="block text-gray-700 text-lg font-semibold mb-2">
+              Vincular a un proyecto (opcional)
+            </label>
+            <div className="relative">
+              <FlaskConical className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <select
+                id="proyecto"
+                value={proyectoSeleccionado}
+                onChange={(e) => setProyectoSeleccionado(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-lg"
+              >
+                <option value="">Sin proyecto</option>
+                {proyectos.length > 0 ? (
+                  proyectos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.titulo}
+                    </option>
+                  ))
+                ) : (
+                  <option disabled>No hay proyectos disponibles</option>
+                )}
+              </select>
+            </div>
           </div>
 
           {/* Botón */}
           <motion.button
             type="submit"
             disabled={loading}
-            className={`w-full flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-xl font-bold text-xl shadow-lg hover:shadow-xl transform transition-all duration-300 ${
-              loading ? "opacity-50 cursor-not-allowed" : "hover:scale-105"
+            className={`w-full py-3 rounded-xl font-bold text-xl text-white shadow-lg flex items-center justify-center ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-blue-500 to-purple-600 hover:shadow-xl transform hover:scale-105 transition-all"
             }`}
-            whileHover={!loading ? { scale: 1.03 } : {}}
-            whileTap={!loading ? { scale: 0.97 } : {}}
+            whileHover={{ scale: loading ? 1 : 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            {loading ? (
-              <span className="animate-pulse">Guardando...</span>
-            ) : (
-              <>
-                <PlusCircle className="w-6 h-6 mr-3" />
-                Crear Clase
-              </>
-            )}
+            <PlusCircle className="w-6 h-6 mr-3" />
+            {loading ? "Guardando..." : "Crear Clase"}
           </motion.button>
         </form>
       </motion.div>

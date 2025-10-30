@@ -17,20 +17,37 @@ const DetailModal = ({ item, type, onClose, onSave }) => {
   const { isAdmin } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editedItem, setEditedItem] = useState(item);
+  const [proyectos, setProyectos] = useState([]);
 
+  // Cargar lista de proyectos disponibles
   useEffect(() => {
+    const fetchProyectos = async () => {
+      try {
+        const res = await fetch(`${window.location.origin}/.netlify/functions/getProyectos`);
+        if (!res.ok) throw new Error("Error al obtener proyectos");
+        const data = await res.json();
+        setProyectos(data);
+      } catch (err) {
+        console.warn("⚠️ No se pudieron cargar proyectos:", err.message);
+      }
+    };
+
+    if (type === "bitacora") {
+      fetchProyectos();
+    }
+
     setEditedItem(item);
-  }, [item]);
+  }, [item, type]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setEditedItem((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Actualizar clase directamente en Neon
+  // ✅ Guardar cambios (actualizar clase)
   const handleSave = async () => {
     try {
-      const res = await fetch("/.netlify/functions/updateClase", {
+      const res = await fetch(`${window.location.origin}/.netlify/functions/updateClase`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -38,6 +55,7 @@ const DetailModal = ({ item, type, onClose, onSave }) => {
           titulo: editedItem.titulo,
           descripcion: editedItem.descripcion,
           fecha: editedItem.fecha,
+          proyecto_id: editedItem.proyecto_id || null,
         }),
       });
 
@@ -52,16 +70,14 @@ const DetailModal = ({ item, type, onClose, onSave }) => {
       }
     } catch (err) {
       console.error("Error al guardar cambios:", err);
-      alert("Error al conectar con el servidor.");
+      alert("❌ Error al conectar con el servidor.");
     }
   };
 
   if (!item) return null;
 
-  // 🔹 Ajuste de campos según la base de datos
   const titulo = editedItem.titulo || item.titulo || "Sin título";
-  const descripcion =
-    editedItem.descripcion || item.descripcion || "Sin descripción";
+  const descripcion = editedItem.descripcion || item.descripcion || "Sin descripción";
   const fecha = editedItem.fecha
     ? new Date(editedItem.fecha).toLocaleDateString()
     : item.fecha
@@ -95,15 +111,9 @@ const DetailModal = ({ item, type, onClose, onSave }) => {
 
           {/* Título */}
           <div className="flex items-center mb-6">
-            {type === "bitacora" && (
-              <FileText className="w-8 h-8 text-blue-600 mr-3" />
-            )}
-            {type === "proyectos" && (
-              <FlaskConical className="w-8 h-8 text-purple-600 mr-3" />
-            )}
-            {type === "galeria" && (
-              <Image className="w-8 h-8 text-pink-600 mr-3" />
-            )}
+            {type === "bitacora" && <FileText className="w-8 h-8 text-blue-600 mr-3" />}
+            {type === "proyectos" && <FlaskConical className="w-8 h-8 text-purple-600 mr-3" />}
+            {type === "galeria" && <Image className="w-8 h-8 text-pink-600 mr-3" />}
 
             {isEditing ? (
               <input
@@ -129,8 +139,9 @@ const DetailModal = ({ item, type, onClose, onSave }) => {
             </div>
           )}
 
-          {/* Descripción y fecha */}
+          {/* Campos de detalle */}
           <div className="mb-6 text-gray-700 space-y-4">
+            {/* Descripción */}
             <div>
               <p className="font-semibold flex items-center text-lg mb-2">
                 <Info className="w-5 h-5 mr-2 text-gray-500" /> Descripción:
@@ -143,54 +154,55 @@ const DetailModal = ({ item, type, onClose, onSave }) => {
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
                 />
               ) : (
-                <p className="text-base leading-relaxed whitespace-pre-wrap">
-                  {descripcion}
-                </p>
+                <p className="text-base leading-relaxed whitespace-pre-wrap">{descripcion}</p>
               )}
             </div>
 
+            {/* Fecha */}
             <div className="flex items-center text-gray-600">
               <Calendar className="w-5 h-5 mr-2" />
-              <span className="font-semibold">Fecha:</span>{" "}
-              {fecha || "Sin fecha registrada"}
+              <span className="font-semibold">Fecha:</span> {fecha || "Sin fecha registrada"}
             </div>
 
+            {/* Etiquetas */}
             {item.tags && item.tags.length > 0 && (
               <div className="flex items-center text-gray-600">
                 <Tag className="w-5 h-5 mr-2" />
-                <span className="font-semibold">Etiquetas:</span>{" "}
-                {item.tags.join(", ")}
+                <span className="font-semibold">Etiquetas:</span> {item.tags.join(", ")}
               </div>
             )}
 
-            {type === "proyectos" &&
-              item.materials &&
-              item.materials.length > 0 && (
-                <div className="text-gray-600">
-                  <p className="font-semibold flex items-center text-lg mb-2">
-                    <FlaskConical className="w-5 h-5 mr-2 text-gray-500" />{" "}
-                    Materiales:
+            {/* Vincular a proyecto */}
+            {type === "bitacora" && isAdmin() && (
+              <div className="mt-6">
+                <label className="block font-semibold mb-2 text-gray-700 flex items-center">
+                  <FlaskConical className="w-5 h-5 mr-2 text-purple-600" /> Vincular a proyecto:
+                </label>
+                {isEditing ? (
+                  <select
+                    name="proyecto_id"
+                    value={editedItem.proyecto_id || ""}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  >
+                    <option value="">Sin proyecto</option>
+                    {proyectos.length > 0 ? (
+                      proyectos.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.titulo}
+                        </option>
+                      ))
+                    ) : (
+                      <option disabled>No hay proyectos disponibles</option>
+                    )}
+                  </select>
+                ) : (
+                  <p className="text-gray-700">
+                    {item.proyecto_titulo || "Sin proyecto vinculado"}
                   </p>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="materials"
-                      value={editedItem.materials.join(", ")}
-                      onChange={(e) =>
-                        setEditedItem((prev) => ({
-                          ...prev,
-                          materials: e.target.value
-                            .split(",")
-                            .map((m) => m.trim()),
-                        }))
-                      }
-                      className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                  ) : (
-                    <p>{item.materials.join(", ")}</p>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
+            )}
           </div>
 
           {/* Botones admin */}
