@@ -1,24 +1,28 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { PlusCircle, FlaskConical, Calendar } from "lucide-react";
+import { PlusCircle, FlaskConical, Calendar, Image as ImageIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const NewProjectPage = () => {
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [fechaInicio, setFechaInicio] = useState("");
+  const [imagenUrl, setImagenUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!titulo.trim() || !fechaInicio.trim()) {
       alert("Por favor completa los campos obligatorios (Título y Fecha).");
       return;
     }
 
     setLoading(true);
+
     try {
+      // 🔹 Crear proyecto en la base de datos
       const res = await fetch("/.netlify/functions/addProyecto", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -26,16 +30,35 @@ const NewProjectPage = () => {
           titulo,
           descripcion,
           fecha_inicio: fechaInicio,
+          imagen_portada: imagenUrl || null,
         }),
       });
 
       const data = await res.json();
+
       if (res.ok) {
         alert("✅ Proyecto creado correctamente");
+
+        // 🔹 Si hay imagen, registrarla en la galería automáticamente
+        if (imagenUrl) {
+          await fetch("/.netlify/functions/addImagen", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              imagen_url: imagenUrl,
+              descripcion: `Imagen principal del proyecto ${titulo}`,
+              proyecto_id: data.proyecto.id,
+            }),
+          });
+        }
+
+        // 🔹 Forzar recarga de lista en la vista principal
         localStorage.setItem("reloadProyectos", "true");
-        navigate("/bitacora");
+        localStorage.setItem("reloadGaleria", "true");
+
+        navigate("/category/proyectos");
       } else {
-        alert("❌ Error: " + (data.error || "Desconocido"));
+        alert("❌ Error: " + (data.error || "No se pudo crear el proyecto."));
       }
     } catch (err) {
       console.error("Error al crear proyecto:", err);
@@ -68,9 +91,10 @@ const NewProjectPage = () => {
         transition={{ delay: 0.4, duration: 0.5 }}
       >
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* 🔹 Título */}
           <div>
             <label className="block text-gray-700 text-lg font-semibold mb-2">
-              Nombre del Proyecto
+              Nombre del Proyecto *
             </label>
             <div className="relative">
               <FlaskConical className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -85,6 +109,7 @@ const NewProjectPage = () => {
             </div>
           </div>
 
+          {/* 🔹 Descripción */}
           <div>
             <label className="block text-gray-700 text-lg font-semibold mb-2">
               Descripción
@@ -95,12 +120,13 @@ const NewProjectPage = () => {
               placeholder="Describe brevemente de qué trata este proyecto..."
               rows="4"
               className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 text-lg resize-y"
-            ></textarea>
+            />
           </div>
 
+          {/* 🔹 Fecha */}
           <div>
             <label className="block text-gray-700 text-lg font-semibold mb-2">
-              Fecha de Inicio
+              Fecha de Inicio *
             </label>
             <div className="relative">
               <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -114,6 +140,24 @@ const NewProjectPage = () => {
             </div>
           </div>
 
+          {/* 🔹 Imagen principal */}
+          <div>
+            <label className="block text-gray-700 text-lg font-semibold mb-2">
+              Imagen principal (opcional)
+            </label>
+            <div className="relative">
+              <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="url"
+                value={imagenUrl}
+                onChange={(e) => setImagenUrl(e.target.value)}
+                placeholder="https://ejemplo.com/imagen.jpg"
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 text-lg"
+              />
+            </div>
+          </div>
+
+          {/* 🔹 Botón */}
           <motion.button
             type="submit"
             disabled={loading}
