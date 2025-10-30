@@ -7,12 +7,8 @@ export const handler = async (event) => {
 
   const { id, titulo, descripcion, fecha } = JSON.parse(event.body || "{}");
 
-  // Validar campos
   if (!id) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Falta el ID de la clase" }),
-    };
+    return { statusCode: 400, body: JSON.stringify({ error: "Falta el ID de la clase" }) };
   }
 
   const client = new Client({
@@ -58,9 +54,7 @@ export const handler = async (event) => {
     };
   } catch (err) {
     console.error("Error al actualizar clase:", err);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
-    };
+    await client.end();
+    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 };
