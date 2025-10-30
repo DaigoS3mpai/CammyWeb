@@ -1,17 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Image, PlusCircle, Loader2, X } from "lucide-react";
+import { Image, PlusCircle, Loader2, X, Upload } from "lucide-react";
 
 const GalleryPage = () => {
   const [imagenes, setImagenes] = useState([]);
+  const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [nuevaImagen, setNuevaImagen] = useState({
-    imagen_url: "",
-    descripcion: "",
-    proyecto_id: "",
-  });
-  const [proyectos, setProyectos] = useState([]);
+  const [selectedProject, setSelectedProject] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [descripcion, setDescripcion] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
 
   // 🔹 Cargar galería y proyectos al iniciar
@@ -38,37 +36,64 @@ const GalleryPage = () => {
     fetchData();
   }, []);
 
-  // 🔹 Manejar subida de nueva imagen
+  // 🔹 Manejar selección de archivos
+  const handleFileChange = (e) => {
+    setSelectedFiles(Array.from(e.target.files));
+  };
+
+  // 🔹 Subir múltiples imágenes
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!nuevaImagen.imagen_url || !nuevaImagen.proyecto_id) {
-      alert("Por favor completa los campos obligatorios.");
+    if (!selectedProject || selectedFiles.length === 0) {
+      alert("Por favor selecciona un proyecto y al menos una imagen.");
       return;
     }
 
+    setLoading(true);
+
     try {
-      const res = await fetch("/.netlify/functions/addImagen", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nuevaImagen),
-      });
+      for (const file of selectedFiles) {
+        // En este punto puedes implementar tu subida a un bucket o URL externa
+        // Por ahora asumimos que se ingresa una URL manual o se procesa en el backend
+        const imagen_url = URL.createObjectURL(file);
 
-      const data = await res.json();
+        const res = await fetch("/.netlify/functions/addImagen", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imagen_url,
+            descripcion,
+            proyecto_id: selectedProject,
+          }),
+        });
 
-      if (res.ok) {
-        alert("✅ Imagen añadida correctamente");
-        setImagenes((prev) => [data.imagen, ...prev]);
-        setNuevaImagen({ imagen_url: "", descripcion: "", proyecto_id: "" });
-        setShowForm(false);
-      } else {
-        alert("❌ Error: " + (data.error || "No se pudo subir la imagen."));
+        const data = await res.json();
+
+        if (res.ok) {
+          setImagenes((prev) => [data.imagen, ...prev]);
+        } else {
+          console.error("❌ Error al subir imagen:", data.error);
+        }
       }
+
+      alert("✅ Imágenes añadidas correctamente");
+      setDescripcion("");
+      setSelectedFiles([]);
+      setShowForm(false);
     } catch (error) {
-      console.error("Error al subir imagen:", error);
+      console.error("Error al subir imágenes:", error);
       alert("Ocurrió un error al conectar con el servidor.");
+    } finally {
+      setLoading(false);
     }
   };
+
+  // 🔹 Agrupar imágenes por proyecto
+  const imagenesPorProyecto = proyectos.map((p) => ({
+    ...p,
+    imagenes: imagenes.filter((img) => img.proyecto_id === p.id),
+  }));
 
   return (
     <motion.div
@@ -82,7 +107,7 @@ const GalleryPage = () => {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
       >
-        Galería de Imágenes
+        Galería de Proyectos
       </motion.h1>
 
       {/* Botón para añadir imagen */}
@@ -94,7 +119,7 @@ const GalleryPage = () => {
           whileTap={{ scale: 0.95 }}
         >
           <PlusCircle className="w-5 h-5 mr-2" />
-          {showForm ? "Cancelar" : "Añadir Imagen"}
+          {showForm ? "Cancelar" : "Añadir Imágenes"}
         </motion.button>
       </div>
 
@@ -110,50 +135,11 @@ const GalleryPage = () => {
           >
             <div className="mb-4">
               <label className="block text-gray-700 font-semibold mb-2">
-                URL de la Imagen
-              </label>
-              <input
-                type="url"
-                value={nuevaImagen.imagen_url}
-                onChange={(e) =>
-                  setNuevaImagen({ ...nuevaImagen, imagen_url: e.target.value })
-                }
-                placeholder="https://ejemplo.com/imagen.jpg"
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
-                required
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Descripción
-              </label>
-              <textarea
-                value={nuevaImagen.descripcion}
-                onChange={(e) =>
-                  setNuevaImagen({
-                    ...nuevaImagen,
-                    descripcion: e.target.value,
-                  })
-                }
-                placeholder="Describe brevemente la imagen..."
-                rows="3"
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
-              />
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Proyecto asociado
+                Proyecto asociado *
               </label>
               <select
-                value={nuevaImagen.proyecto_id}
-                onChange={(e) =>
-                  setNuevaImagen({
-                    ...nuevaImagen,
-                    proyecto_id: e.target.value,
-                  })
-                }
+                value={selectedProject}
+                onChange={(e) => setSelectedProject(e.target.value)}
                 className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
                 required
               >
@@ -166,19 +152,50 @@ const GalleryPage = () => {
               </select>
             </div>
 
+            <div className="mb-4">
+              <label className="block text-gray-700 font-semibold mb-2">
+                Descripción general (opcional)
+              </label>
+              <textarea
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                placeholder="Describe brevemente las imágenes..."
+                rows="3"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-gray-700 font-semibold mb-2">
+                Seleccionar imágenes *
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 cursor-pointer"
+              />
+              {selectedFiles.length > 0 && (
+                <p className="mt-2 text-sm text-gray-500">
+                  {selectedFiles.length} imagen(es) seleccionada(s)
+                </p>
+              )}
+            </div>
+
             <motion.button
               type="submit"
-              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold text-lg shadow-md hover:shadow-xl transition-all"
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold text-lg shadow-md hover:shadow-xl transition-all flex items-center justify-center"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              Subir Imagen
+              <Upload className="w-5 h-5 mr-2" /> Subir Imágenes
             </motion.button>
           </motion.form>
         )}
       </AnimatePresence>
 
-      {/* Galería de imágenes */}
+      {/* Galería agrupada por proyecto */}
       {loading ? (
         <div className="flex justify-center items-center mt-20">
           <Loader2 className="animate-spin w-8 h-8 text-pink-600" />
@@ -188,46 +205,56 @@ const GalleryPage = () => {
           No hay imágenes disponibles. ¡Sube la primera! 📸
         </p>
       ) : (
-        <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: { opacity: 0 },
-            visible: {
-              opacity: 1,
-              transition: { staggerChildren: 0.1 },
-            },
-          }}
-        >
-          {imagenes.map((img) => (
+        imagenesPorProyecto.map((proyecto) => (
+          <div key={proyecto.id} className="mb-12">
+            <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">
+              {proyecto.titulo}
+            </h2>
             <motion.div
-              key={img.id}
-              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer"
-              whileHover={{ scale: 1.02 }}
-              onClick={() => setSelectedImage(img)}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.1 },
+                },
+              }}
             >
-              <div className="h-64 overflow-hidden">
-                <img
-                  src={img.imagen_url}
-                  alt={img.descripcion || "Imagen de proyecto"}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  {img.proyecto_titulo || "Proyecto sin nombre"}
-                </h3>
-                <p className="text-gray-600 text-sm mt-1">
-                  {img.descripcion || "Sin descripción"}
+              {proyecto.imagenes.length > 0 ? (
+                proyecto.imagenes.map((img) => (
+                  <motion.div
+                    key={img.id}
+                    className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer"
+                    whileHover={{ scale: 1.02 }}
+                    onClick={() => setSelectedImage(img)}
+                  >
+                    <div className="h-64 overflow-hidden">
+                      <img
+                        src={img.imagen_url}
+                        alt={img.descripcion || "Imagen de proyecto"}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <p className="text-gray-600 text-sm mt-1">
+                        {img.descripcion || "Sin descripción"}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center col-span-full italic">
+                  No hay imágenes para este proyecto.
                 </p>
-              </div>
+              )}
             </motion.div>
-          ))}
-        </motion.div>
+          </div>
+        ))
       )}
 
-      {/* Modal para ver imagen ampliada */}
+      {/* Modal de imagen ampliada */}
       <AnimatePresence>
         {selectedImage && (
           <motion.div
