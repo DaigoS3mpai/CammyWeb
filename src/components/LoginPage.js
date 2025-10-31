@@ -16,7 +16,10 @@ const LoginPage = () => {
     setMessage({ type: "", text: "" });
 
     if (!username.trim() || !password.trim()) {
-      setMessage({ type: "error", text: "Por favor, completa todos los campos." });
+      setMessage({
+        type: "error",
+        text: "Por favor, completa todos los campos.",
+      });
       return;
     }
 
@@ -32,8 +35,7 @@ const LoginPage = () => {
       const data = await res.json();
 
       if (res.ok) {
-        // ✅ Guardar token y datos del usuario en localStorage
-        localStorage.setItem("token", data.token);
+        // ✅ Guardar datos del usuario en localStorage
         localStorage.setItem("usuario", JSON.stringify(data.usuario));
 
         setMessage({

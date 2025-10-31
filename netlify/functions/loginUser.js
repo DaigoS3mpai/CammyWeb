@@ -9,7 +9,10 @@ export const handler = async (event) => {
   const { nombre, password } = JSON.parse(event.body || "{}");
 
   if (!nombre || !password) {
-    return { statusCode: 400, body: "Faltan campos obligatorios" };
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Faltan campos obligatorios" }),
+    };
   }
 
   const client = new Client({
@@ -20,27 +23,40 @@ export const handler = async (event) => {
   try {
     await client.connect();
 
+    // Buscar el usuario
     const result = await client.query(
-      "SELECT id_usuario, nombre, password, rol FROM usuarios WHERE nombre = $1",
+      `SELECT id_usuario, nombre, password, rol 
+       FROM usuarios 
+       WHERE nombre = $1`,
       [nombre]
     );
 
-    await client.end();
-
     if (result.rows.length === 0) {
-      return { statusCode: 404, body: "Usuario no encontrado" };
+      await client.end();
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: "Usuario no encontrado" }),
+      };
     }
 
     const usuario = result.rows[0];
 
+    // Comparar contraseñas (sin bcrypt)
     if (usuario.password !== password) {
-      return { statusCode: 401, body: "Contraseña incorrecta" };
+      await client.end();
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ error: "Contraseña incorrecta" }),
+      };
     }
 
+    await client.end();
+
+    // Login exitoso
     return {
       statusCode: 200,
       body: JSON.stringify({
-        message: "✅ Login exitoso",
+        message: "✅ Inicio de sesión exitoso",
         usuario: {
           id_usuario: usuario.id_usuario,
           nombre: usuario.nombre,
