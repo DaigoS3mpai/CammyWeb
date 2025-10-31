@@ -9,8 +9,10 @@ import {
   FileText,
   Pencil,
   Save,
+  PlusCircle,
+  Link2,
 } from "lucide-react";
-import { useAuth } from "./AuthContext"; // ✅ Contexto de autenticación
+import { useAuth } from "./AuthContext";
 
 const DetailModal = ({ item, type, onClose }) => {
   const { isAdmin } = useAuth();
@@ -22,22 +24,42 @@ const DetailModal = ({ item, type, onClose }) => {
     descripcion: "",
     fecha_inicio: "",
     imagen_portada: "",
+    proyecto_id: null,
   });
   const [saving, setSaving] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [proyectos, setProyectos] = useState([]); // 🔹 para vincular clase a proyecto
 
-  // 🔹 Inicializar datos del proyecto o clase
+  // 🔹 Inicializar datos
   useEffect(() => {
     if (item) {
       setFormData({
         titulo: item.titulo || "",
         descripcion: item.descripcion || "",
-        fecha_inicio: item.fecha_inicio || "",
+        fecha_inicio: item.fecha_inicio || item.fecha || "",
         imagen_portada: item.imagen_portada || "",
+        proyecto_id: item.proyecto_id || null,
       });
     }
   }, [item]);
 
-  // 🔹 Cargar imágenes asociadas al proyecto
+  // 🔹 Cargar proyectos (solo si se edita una clase)
+  useEffect(() => {
+    if (type === "bitacora" && isAdmin()) {
+      const fetchProyectos = async () => {
+        try {
+          const res = await fetch("/.netlify/functions/getProyectos");
+          const data = await res.json();
+          setProyectos(data);
+        } catch (err) {
+          console.error("Error al cargar proyectos:", err);
+        }
+      };
+      fetchProyectos();
+    }
+  }, [type]);
+
+  // 🔹 Cargar imágenes asociadas
   useEffect(() => {
     if (type === "proyectos" && item?.id) {
       const fetchImagenes = async () => {
@@ -58,7 +80,7 @@ const DetailModal = ({ item, type, onClose }) => {
     }
   }, [item, type]);
 
-  // 🔹 Guardar cambios (solo admins)
+  // 🔹 Guardar cambios
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -70,10 +92,7 @@ const DetailModal = ({ item, type, onClose }) => {
       const res = await fetch(endpoint, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: item.id,
-          ...formData,
-        }),
+        body: JSON.stringify({ id: item.id, ...formData }),
       });
 
       const data = await res.json();
@@ -95,7 +114,7 @@ const DetailModal = ({ item, type, onClose }) => {
     }
   };
 
-  // 🔹 Subir nueva imagen a Cloudinary
+  // 🔹 Subir imagen de portada
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -113,24 +132,70 @@ const DetailModal = ({ item, type, onClose }) => {
     formDataImg.append("upload_preset", uploadPreset);
 
     try {
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        {
-          method: "POST",
-          body: formDataImg,
-        }
-      );
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: formDataImg,
+      });
 
       const data = await res.json();
 
       if (res.ok) {
         setFormData((prev) => ({ ...prev, imagen_portada: data.secure_url }));
       } else {
-        alert("❌ Error al subir la imagen: " + (data.error?.message || "Error desconocido"));
+        alert("❌ Error al subir imagen: " + (data.error?.message || "Error desconocido"));
       }
     } catch (err) {
-      console.error("Error al subir la imagen:", err);
+      console.error("Error al subir imagen:", err);
       alert("Error al conectar con Cloudinary.");
+    }
+  };
+
+  // 🔹 Subir imagen a galería
+  const handleGalleryUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !item?.id) return;
+
+    setUploadingGallery(true);
+
+    try {
+      const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
+
+      const formDataImg = new FormData();
+      formDataImg.append("file", file);
+      formDataImg.append("upload_preset", uploadPreset);
+
+      // 1️⃣ Subir a Cloudinary
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: formDataImg,
+      });
+
+      const uploadData = await uploadRes.json();
+
+      if (!uploadRes.ok) throw new Error(uploadData.error?.message || "Error subiendo a Cloudinary");
+
+      // 2️⃣ Guardar en base de datos
+      const dbRes = await fetch("/.netlify/functions/addImagen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imagen_url: uploadData.secure_url,
+          descripcion: "Imagen agregada al proyecto",
+          proyecto_id: item.id,
+        }),
+      });
+
+      const dbData = await dbRes.json();
+      if (!dbRes.ok) throw new Error(dbData.error || "Error guardando en DB");
+
+      alert("✅ Imagen agregada correctamente a la galería.");
+      setImagenes((prev) => [...prev, dbData.imagen]);
+    } catch (err) {
+      console.error("Error al agregar imagen:", err);
+      alert("❌ Error: " + err.message);
+    } finally {
+      setUploadingGallery(false);
     }
   };
 
@@ -152,7 +217,7 @@ const DetailModal = ({ item, type, onClose }) => {
           exit={{ scale: 0.8, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 🔹 Botones superiores */}
+          {/* Botones superiores */}
           <div className="absolute top-4 right-4 flex space-x-2">
             {isAdmin() && !editMode && (
               <button
@@ -168,11 +233,7 @@ const DetailModal = ({ item, type, onClose }) => {
                 className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 transition"
                 disabled={saving}
               >
-                {saving ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Save className="w-5 h-5" />
-                )}
+                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
               </button>
             )}
             <button
@@ -183,158 +244,124 @@ const DetailModal = ({ item, type, onClose }) => {
             </button>
           </div>
 
-          {/* 🔹 Contenido principal */}
+          {/* Contenido */}
           <div className="p-8 overflow-y-auto max-h-[90vh] space-y-8">
-            {/* Título */}
-            <div className="flex items-center mb-4">
+            <h2 className="text-3xl font-extrabold text-gray-900 flex items-center">
               {type === "proyectos" ? (
                 <FlaskConical className="w-8 h-8 text-purple-600 mr-3" />
               ) : (
-                <ImageIcon className="w-8 h-8 text-blue-600 mr-3" />
+                <BookOpen className="w-8 h-8 text-blue-600 mr-3" />
               )}
-              {isAdmin() && editMode ? (
-                <input
-                  type="text"
-                  value={formData.titulo}
-                  onChange={(e) =>
-                    setFormData({ ...formData, titulo: e.target.value })
-                  }
-                  className="text-3xl font-bold text-gray-900 border-b border-gray-300 focus:border-purple-500 outline-none w-full"
-                />
-              ) : (
-                <h2 className="text-3xl font-extrabold text-gray-900">
-                  {formData.titulo}
-                </h2>
-              )}
-            </div>
+              {formData.titulo}
+            </h2>
 
-            {/* Descripción */}
-            <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
-              <div className="flex items-center mb-3">
-                <FileText className="w-5 h-5 text-green-600 mr-2" />
-                <h3 className="text-xl font-semibold text-gray-800">
-                  Descripción
-                </h3>
-              </div>
-              {isAdmin() && editMode ? (
-                <textarea
-                  value={formData.descripcion}
-                  onChange={(e) =>
-                    setFormData({ ...formData, descripcion: e.target.value })
-                  }
-                  rows="5"
-                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-purple-500 resize-none"
-                />
-              ) : (
-                <p className="text-gray-700 leading-relaxed">
-                  {formData.descripcion || "Sin descripción disponible."}
-                </p>
-              )}
-            </section>
-
-            {/* Fecha */}
-            {formData.fecha_inicio && (
+            {/* 🔹 Mostrar vínculo con proyecto (solo en clases) */}
+            {type === "bitacora" && (
               <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
                 <div className="flex items-center mb-3">
-                  <Calendar className="w-5 h-5 text-blue-600 mr-2" />
+                  <Link2 className="w-5 h-5 text-purple-600 mr-2" />
                   <h3 className="text-xl font-semibold text-gray-800">
-                    Fecha del proyecto
+                    Proyecto vinculado
                   </h3>
                 </div>
+
                 {isAdmin() && editMode ? (
-                  <input
-                    type="date"
-                    value={formData.fecha_inicio.split("T")[0]}
+                  <select
+                    value={formData.proyecto_id || ""}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        fecha_inicio: e.target.value,
+                        proyecto_id: e.target.value || null,
                       })
                     }
-                    className="border border-gray-300 rounded-xl p-2"
-                  />
-                ) : (
+                    className="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="">Sin proyecto</option>
+                    {proyectos.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.titulo}
+                      </option>
+                    ))}
+                  </select>
+                ) : formData.proyecto_id ? (
                   <p className="text-gray-700 text-lg font-medium">
-                    {new Date(formData.fecha_inicio).toLocaleDateString("es-CL", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    🔗 {item.proyecto_titulo || "Proyecto vinculado"}
                   </p>
+                ) : (
+                  <p className="text-gray-500 italic">No está vinculado a ningún proyecto.</p>
                 )}
               </section>
             )}
 
-            {/* Imagen de portada */}
-            <section>
-              <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-                <ImageIcon className="w-6 h-6 mr-2 text-purple-500" />
-                Imagen principal
-              </h3>
-              {isAdmin() && editMode ? (
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="border border-gray-300 rounded-xl p-2 w-full"
-                  />
-                  {formData.imagen_portada && (
+            {/* Imagen principal y galería (igual que antes) */}
+            {type === "proyectos" && (
+              <>
+                <section>
+                  <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <ImageIcon className="w-6 h-6 mr-2 text-purple-500" />
+                    Imagen principal
+                  </h3>
+                  {formData.imagen_portada ? (
                     <img
                       src={formData.imagen_portada}
-                      alt="Preview"
-                      className="w-full max-h-[400px] object-cover mt-4 rounded-2xl shadow-md"
+                      alt={formData.titulo}
+                      className="w-full max-h-[450px] object-cover rounded-2xl shadow-md"
                     />
+                  ) : (
+                    <p className="text-gray-500 italic">Sin imagen de portada.</p>
                   )}
-                </div>
-              ) : formData.imagen_portada ? (
-                <img
-                  src={formData.imagen_portada}
-                  alt={formData.titulo}
-                  className="w-full max-h-[450px] object-cover rounded-2xl shadow-md"
-                />
-              ) : (
-                <p className="text-gray-500 italic">Sin imagen de portada.</p>
-              )}
-            </section>
+                </section>
 
-            {/* Galería (solo visible, no editable) */}
-            {type === "proyectos" && !editMode && (
-              <section>
-                <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <ImageIcon className="w-6 h-6 mr-2 text-pink-500" />
-                  Galería del Proyecto
-                </h3>
-
-                {loading ? (
-                  <div className="flex justify-center items-center py-10">
-                    <Loader2 className="animate-spin w-8 h-8 text-pink-500" />
-                  </div>
-                ) : imagenes.length === 0 ? (
-                  <p className="text-gray-500 italic">
-                    No hay imágenes asociadas.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {imagenes.map((img) => (
-                      <motion.div
-                        key={img.id}
-                        className="rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all"
-                        whileHover={{ scale: 1.03 }}
-                      >
-                        <img
-                          src={img.imagen_url}
-                          alt={img.descripcion || "Imagen"}
-                          className="w-full h-48 object-cover"
-                        />
-                        <div className="p-3 text-sm text-gray-600 text-center bg-gray-50">
-                          {img.descripcion || "Sin descripción"}
-                        </div>
-                      </motion.div>
-                    ))}
+                {isAdmin() && (
+                  <div className="text-center mt-6">
+                    <label className="inline-flex items-center bg-pink-500 text-white px-6 py-3 rounded-xl font-semibold shadow-md hover:bg-pink-600 cursor-pointer">
+                      <PlusCircle className="w-5 h-5 mr-2" />
+                      {uploadingGallery ? "Subiendo..." : "Agregar imagen a galería"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleGalleryUpload}
+                        disabled={uploadingGallery}
+                      />
+                    </label>
                   </div>
                 )}
-              </section>
+
+                <section>
+                  <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <ImageIcon className="w-6 h-6 mr-2 text-pink-500" />
+                    Galería del Proyecto
+                  </h3>
+
+                  {loading ? (
+                    <div className="flex justify-center items-center py-10">
+                      <Loader2 className="animate-spin w-8 h-8 text-pink-500" />
+                    </div>
+                  ) : imagenes.length === 0 ? (
+                    <p className="text-gray-500 italic">No hay imágenes asociadas.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {imagenes.map((img) => (
+                        <motion.div
+                          key={img.id}
+                          className="rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all"
+                          whileHover={{ scale: 1.03 }}
+                        >
+                          <img
+                            src={img.imagen_url}
+                            alt={img.descripcion || "Imagen"}
+                            className="w-full h-48 object-cover"
+                          />
+                          <div className="p-3 text-sm text-gray-600 text-center bg-gray-50">
+                            {img.descripcion || "Sin descripción"}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </>
             )}
           </div>
         </motion.div>

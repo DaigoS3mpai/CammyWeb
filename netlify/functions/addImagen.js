@@ -46,7 +46,7 @@ export const handler = async (event) => {
     const query = `
       INSERT INTO galeria (imagen_url, descripcion, proyecto_id)
       VALUES ($1, $2, $3)
-      RETURNING id, imagen_url, descripcion, proyecto_id, created_at;
+      RETURNING id, imagen_url, descripcion, proyecto_id;
     `;
 
     const values = [imagen_url, descripcion || null, proyecto_id];

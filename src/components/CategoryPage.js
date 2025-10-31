@@ -22,7 +22,8 @@ const CategoryPage = () => {
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedItem, setSelectedItem] = useState(null); // 🔹 Nuevo: item abierto
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedType, setSelectedType] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
   // 🔹 Cargar datos según categoría
@@ -62,7 +63,7 @@ const CategoryPage = () => {
     fetchData();
   }, [categoryName]);
 
-  // 🔁 Recarga automática tras creación
+  // 🔁 Recarga automática tras creación o edición
   useEffect(() => {
     const reloadFlags = {
       bitacora: "reloadBitacora",
@@ -76,7 +77,7 @@ const CategoryPage = () => {
     }
   }, [categoryName]);
 
-  // 🔹 Config visual
+  // 🔹 Config visual por categoría
   const config =
     {
       bitacora: {
@@ -113,15 +114,18 @@ const CategoryPage = () => {
       gradient: "from-gray-400 to-gray-600",
     };
 
-  // 🔹 Manejar apertura de detalle
-  const handleOpenDetail = (item) => {
+  // 🔹 Abrir detalle
+  const handleOpenDetail = (item, type = categoryName) => {
     setSelectedItem(item);
+    setSelectedType(type);
     setShowModal(true);
   };
 
+  // 🔹 Cerrar modal
   const handleCloseDetail = () => {
     setShowModal(false);
     setSelectedItem(null);
+    setSelectedType(null);
   };
 
   return (
@@ -189,7 +193,7 @@ const CategoryPage = () => {
               key={item.id || index}
               className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-gray-100 overflow-hidden transition-all cursor-pointer"
               whileHover={{ scale: 1.02 }}
-              onClick={() => handleOpenDetail(item)} // ✅ Todos pueden abrir detalles
+              onClick={() => handleOpenDetail(item)}
             >
               {/* Imagen portada */}
               {categoryName === "galeria" && item.imagen_url ? (
@@ -227,7 +231,35 @@ const CategoryPage = () => {
                   </div>
                 ) : null}
 
-                {/* 🔹 Estadísticas para proyectos */}
+                {/* 🔹 Proyecto vinculado (solo para bitácoras) */}
+                {categoryName === "bitacora" &&
+                  (item.proyecto_titulo || item.proyecto_id) && (
+                    <div className="flex items-center text-sm text-purple-600 mb-2">
+                      <Layers className="w-4 h-4 mr-2" />
+                      <span>
+                        Vinculado a:{" "}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenDetail(
+                              {
+                                id: item.proyecto_id,
+                                titulo:
+                                  item.proyecto_titulo || "Proyecto vinculado",
+                              },
+                              "proyectos"
+                            );
+                          }}
+                          className="font-semibold text-purple-700 hover:underline"
+                        >
+                          {item.proyecto_titulo ||
+                            `Proyecto #${item.proyecto_id}`}
+                        </button>
+                      </span>
+                    </div>
+                  )}
+
+                {/* 🔹 Estadísticas (solo proyectos) */}
                 {categoryName === "proyectos" && (
                   <div className="flex items-center text-sm text-gray-600 space-x-4 mt-2">
                     <div className="flex items-center">
@@ -246,12 +278,12 @@ const CategoryPage = () => {
         </motion.div>
       )}
 
-      {/* 🔹 Modal de detalle (todos pueden verlo) */}
+      {/* 🔹 Modal de detalle */}
       <AnimatePresence>
         {showModal && selectedItem && (
           <DetailModal
             item={selectedItem}
-            type={categoryName}
+            type={selectedType || categoryName}
             onClose={handleCloseDetail}
           />
         )}
