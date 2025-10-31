@@ -1,10 +1,39 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Calendar, FlaskConical, Image as ImageIcon, Loader2, FileText } from "lucide-react";
+import {
+  X,
+  Calendar,
+  FlaskConical,
+  Image as ImageIcon,
+  Loader2,
+  FileText,
+  Pencil,
+  Save,
+} from "lucide-react";
 
-const DetailModal = ({ item, type, onClose }) => {
+const DetailModal = ({ item, type, onClose, isAdmin = true }) => {
   const [imagenes, setImagenes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
+  const [formData, setFormData] = useState({
+    titulo: "",
+    descripcion: "",
+    fecha_inicio: "",
+    imagen_portada: "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  // 🔹 Inicializar datos del proyecto/clase
+  useEffect(() => {
+    if (item) {
+      setFormData({
+        titulo: item.titulo || "",
+        descripcion: item.descripcion || "",
+        fecha_inicio: item.fecha_inicio || "",
+        imagen_portada: item.imagen_portada || "",
+      });
+    }
+  }, [item]);
 
   // 🔹 Cargar imágenes asociadas al proyecto
   useEffect(() => {
@@ -27,6 +56,65 @@ const DetailModal = ({ item, type, onClose }) => {
     }
   }, [item, type]);
 
+  // 🔹 Guardar cambios
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const endpoint =
+        type === "proyectos"
+          ? "/.netlify/functions/updateProyecto"
+          : "/.netlify/functions/updateClase";
+
+      const res = await fetch(endpoint, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          ...formData,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("✅ Cambios guardados correctamente");
+        setEditMode(false);
+        localStorage.setItem("reloadProyectos", "true");
+        localStorage.setItem("reloadBitacora", "true");
+        onClose();
+      } else {
+        alert("❌ Error al guardar: " + (data.error || "Error desconocido"));
+      }
+    } catch (err) {
+      console.error("Error al actualizar:", err);
+      alert("Error al conectar con el servidor.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 🔹 Subir nueva imagen a Cloudinary (opcional)
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const cloudName =
+      import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset =
+      import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_UPLOAD_PRESET;
+
+    const formDataImg = new FormData();
+    formDataImg.append("file", file);
+    formDataImg.append("upload_preset", uploadPreset);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: "POST",
+      body: formDataImg,
+    });
+
+    const data = await res.json();
+    setFormData((prev) => ({ ...prev, imagen_portada: data.secure_url }));
+  };
+
   if (!item) return null;
 
   return (
@@ -45,14 +133,34 @@ const DetailModal = ({ item, type, onClose }) => {
           exit={{ scale: 0.8, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Botón cerrar */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition"
-          >
-            <X className="w-5 h-5 text-gray-700" />
-          </button>
+          {/* Botones superiores */}
+          <div className="absolute top-4 right-4 flex space-x-2">
+            {isAdmin && !editMode && (
+              <button
+                onClick={() => setEditMode(true)}
+                className="bg-yellow-400 hover:bg-yellow-500 text-white rounded-full p-2 transition"
+              >
+                <Pencil className="w-5 h-5" />
+              </button>
+            )}
+            {editMode && (
+              <button
+                onClick={handleSave}
+                className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 transition"
+                disabled={saving}
+              >
+                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition"
+            >
+              <X className="w-5 h-5 text-gray-700" />
+            </button>
+          </div>
 
+          {/* Contenido */}
           <div className="p-8 overflow-y-auto max-h-[90vh] space-y-8">
             {/* Encabezado */}
             <div className="flex items-center mb-4">
@@ -61,60 +169,99 @@ const DetailModal = ({ item, type, onClose }) => {
               ) : (
                 <ImageIcon className="w-8 h-8 text-blue-600 mr-3" />
               )}
-              <h2 className="text-3xl font-extrabold text-gray-900">
-                {item.titulo || "Sin título"}
-              </h2>
+              {editMode ? (
+                <input
+                  type="text"
+                  value={formData.titulo}
+                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+                  className="text-3xl font-bold text-gray-900 border-b border-gray-300 focus:border-purple-500 outline-none w-full"
+                />
+              ) : (
+                <h2 className="text-3xl font-extrabold text-gray-900">{formData.titulo}</h2>
+              )}
             </div>
 
             {/* Descripción */}
             <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
               <div className="flex items-center mb-3">
                 <FileText className="w-5 h-5 text-green-600 mr-2" />
-                <h3 className="text-xl font-semibold text-gray-800">
-                  Descripción del Proyecto
-                </h3>
+                <h3 className="text-xl font-semibold text-gray-800">Descripción</h3>
               </div>
-              <p className="text-gray-700 leading-relaxed">
-                {item.descripcion || "Sin descripción disponible."}
-              </p>
+              {editMode ? (
+                <textarea
+                  value={formData.descripcion}
+                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                  rows="5"
+                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-purple-500 resize-none"
+                />
+              ) : (
+                <p className="text-gray-700 leading-relaxed">
+                  {formData.descripcion || "Sin descripción disponible."}
+                </p>
+              )}
             </section>
 
-            {/* Fecha del proyecto */}
-            {item.fecha_inicio && (
+            {/* Fecha */}
+            {formData.fecha_inicio && (
               <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
                 <div className="flex items-center mb-3">
                   <Calendar className="w-5 h-5 text-blue-600 mr-2" />
-                  <h3 className="text-xl font-semibold text-gray-800">
-                    Fecha de realización del proyecto
-                  </h3>
+                  <h3 className="text-xl font-semibold text-gray-800">Fecha del proyecto</h3>
                 </div>
-                <p className="text-gray-700 text-lg font-medium">
-                  {new Date(item.fecha_inicio).toLocaleDateString("es-CL", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
+                {editMode ? (
+                  <input
+                    type="date"
+                    value={formData.fecha_inicio.split("T")[0]}
+                    onChange={(e) => setFormData({ ...formData, fecha_inicio: e.target.value })}
+                    className="border border-gray-300 rounded-xl p-2"
+                  />
+                ) : (
+                  <p className="text-gray-700 text-lg font-medium">
+                    {new Date(formData.fecha_inicio).toLocaleDateString("es-CL", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </p>
+                )}
               </section>
             )}
 
             {/* Imagen de portada */}
-            {item.imagen_portada && (
-              <section>
-                <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <ImageIcon className="w-6 h-6 mr-2 text-purple-500" />
-                  Imagen principal del proyecto
-                </h3>
+            <section>
+              <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                <ImageIcon className="w-6 h-6 mr-2 text-purple-500" />
+                Imagen principal del proyecto
+              </h3>
+              {editMode ? (
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="border border-gray-300 rounded-xl p-2 w-full"
+                  />
+                  {formData.imagen_portada && (
+                    <img
+                      src={formData.imagen_portada}
+                      alt="Preview"
+                      className="w-full max-h-[400px] object-cover mt-4 rounded-2xl shadow-md"
+                    />
+                  )}
+                </div>
+              ) : formData.imagen_portada ? (
                 <img
-                  src={item.imagen_portada}
-                  alt={item.titulo}
+                  src={formData.imagen_portada}
+                  alt={formData.titulo}
                   className="w-full max-h-[450px] object-cover rounded-2xl shadow-md"
                 />
-              </section>
-            )}
+              ) : (
+                <p className="text-gray-500 italic">Sin imagen de portada.</p>
+              )}
+            </section>
 
-            {/* Galería de imágenes */}
-            {type === "proyectos" && (
+            {/* Galería */}
+            {type === "proyectos" && !editMode && (
               <section>
                 <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
                   <ImageIcon className="w-6 h-6 mr-2 text-pink-500" />
@@ -126,9 +273,7 @@ const DetailModal = ({ item, type, onClose }) => {
                     <Loader2 className="animate-spin w-8 h-8 text-pink-500" />
                   </div>
                 ) : imagenes.length === 0 ? (
-                  <p className="text-gray-500 italic">
-                    No hay imágenes asociadas a este proyecto.
-                  </p>
+                  <p className="text-gray-500 italic">No hay imágenes asociadas a este proyecto.</p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {imagenes.map((img) => (
