@@ -10,23 +10,24 @@ export const handler = async () => {
   try {
     await client.connect();
 
-    const result = await client.query(`
+    const query = `
       SELECT 
         g.id,
         g.imagen_url,
         g.descripcion,
-        g.proyecto_id,              -- ✅ Incluimos el ID del proyecto
-        p.titulo AS proyecto_titulo -- Nombre del proyecto asociado
+        g.proyecto_id,
+        p.titulo AS proyecto_titulo,
+        g.created_at
       FROM galeria g
       LEFT JOIN proyectos p ON g.proyecto_id = p.id
-      ORDER BY g.id DESC;
-    `);
+      ORDER BY g.created_at DESC NULLS LAST, g.id DESC;
+    `;
 
-    await client.end();
+    const result = await client.query(query);
 
     return {
       statusCode: 200,
-      body: JSON.stringify(result.rows),
+      body: JSON.stringify(result.rows || []),
     };
   } catch (err) {
     console.error("❌ Error al obtener galería:", err);
@@ -34,5 +35,7 @@ export const handler = async () => {
       statusCode: 500,
       body: JSON.stringify({ error: err.message }),
     };
+  } finally {
+    await client.end().catch(() => {});
   }
 };

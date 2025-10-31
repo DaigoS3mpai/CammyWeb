@@ -197,11 +197,44 @@ const CategoryPage = () => {
             >
               {/* Imagen portada */}
               {categoryName === "galeria" && item.imagen_url ? (
-                <img
-                  src={item.imagen_url}
-                  alt={item.descripcion || "Imagen"}
-                  className="w-full h-64 object-cover"
-                />
+                <>
+                  <img
+                    src={item.imagen_url}
+                    alt={item.descripcion || "Imagen"}
+                    className="w-full h-64 object-cover"
+                  />
+
+                  {/* 🆕 Mostrar proyecto asociado en galería */}
+                  <div className="p-4 border-t bg-gray-50">
+                    <h4 className="text-sm font-semibold text-gray-700">
+                      {item.proyecto_titulo ? (
+                        <>
+                          Proyecto:&nbsp;
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDetail(
+                                {
+                                  id: item.proyecto_id,
+                                  titulo: item.proyecto_titulo,
+                                },
+                                "proyectos"
+                              );
+                            }}
+                            className="text-purple-600 hover:underline"
+                          >
+                            {item.proyecto_titulo}
+                          </button>
+                        </>
+                      ) : (
+                        "Imagen sin proyecto vinculado"
+                      )}
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {item.descripcion || "Sin descripción"}
+                    </p>
+                  </div>
+                </>
               ) : categoryName === "proyectos" && item.imagen_portada ? (
                 <img
                   src={item.imagen_portada}

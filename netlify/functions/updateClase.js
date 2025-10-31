@@ -23,7 +23,7 @@ export const handler = async (event) => {
   try {
     await client.connect();
 
-    // 🔹 Actualizar clase
+    // 🔹 Actualizar clase (permitimos desvincular proyecto)
     const updateQuery = `
       UPDATE bitacora
       SET
@@ -39,14 +39,13 @@ export const handler = async (event) => {
       titulo || null,
       descripcion || null,
       fecha || null,
-      proyecto_id || null,
+      proyecto_id === "" ? null : proyecto_id, // 🧩 Si viene vacío, desvinculamos
       id,
     ];
 
     const result = await client.query(updateQuery, values);
 
     if (result.rows.length === 0) {
-      await client.end();
       return {
         statusCode: 404,
         body: JSON.stringify({ error: "Clase no encontrada" }),
@@ -55,18 +54,15 @@ export const handler = async (event) => {
 
     const updatedClass = result.rows[0];
 
-    // 🔹 Traer nombre del proyecto vinculado (si existe)
-    const projectQuery = `
-      SELECT titulo FROM proyectos WHERE id = $1;
-    `;
+    // 🔹 Obtener título del proyecto vinculado (si existe)
     let proyectoTitulo = null;
-
     if (updatedClass.proyecto_id) {
-      const projectResult = await client.query(projectQuery, [updatedClass.proyecto_id]);
-      proyectoTitulo = projectResult.rows[0]?.titulo || null;
+      const projectRes = await client.query(
+        `SELECT titulo FROM proyectos WHERE id = $1`,
+        [updatedClass.proyecto_id]
+      );
+      proyectoTitulo = projectRes.rows[0]?.titulo || null;
     }
-
-    await client.end();
 
     return {
       statusCode: 200,
@@ -84,5 +80,8 @@ export const handler = async (event) => {
       statusCode: 500,
       body: JSON.stringify({ error: err.message }),
     };
+  } finally {
+    // 🧹 Cierre seguro de conexión
+    await client.end().catch(() => {});
   }
 };

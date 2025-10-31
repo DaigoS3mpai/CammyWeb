@@ -10,30 +10,32 @@ export const handler = async () => {
   try {
     await client.connect();
 
-    // 🔹 Cambiar 'clases' → 'bitacora'
-    const result = await client.query(`
+    const query = `
       SELECT 
         b.id,
         b.titulo,
         b.descripcion,
         b.fecha,
+        b.proyecto_id,          -- 🆕 Incluimos el ID del proyecto vinculado
         p.titulo AS proyecto_titulo
       FROM bitacora b
       LEFT JOIN proyectos p ON b.proyecto_id = p.id
-      ORDER BY b.fecha DESC;
-    `);
+      ORDER BY b.fecha DESC NULLS LAST, b.id DESC;
+    `;
 
-    await client.end();
+    const result = await client.query(query);
 
     return {
       statusCode: 200,
-      body: JSON.stringify(result.rows),
+      body: JSON.stringify(result.rows || []),
     };
   } catch (err) {
-    console.error("Error al obtener bitácora:", err);
+    console.error("❌ Error al obtener bitácora:", err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: err.message }),
     };
+  } finally {
+    await client.end().catch(() => {});
   }
 };
