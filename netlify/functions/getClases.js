@@ -1,4 +1,3 @@
-// netlify/functions/getClases.js
 import { Client } from "pg";
 
 export const handler = async () => {
@@ -10,17 +9,25 @@ export const handler = async () => {
   try {
     await client.connect();
 
-    // Consulta todas las clases (bitácora) con el nombre del proyecto asociado
     const result = await client.query(`
       SELECT 
-        b.id,
-        b.titulo,
-        b.descripcion,
-        b.fecha,
-        p.titulo AS proyecto_titulo
-      FROM bitacora b
-      LEFT JOIN proyectos p ON b.proyecto_id = p.id
-      ORDER BY b.fecha DESC;
+        p.id,
+        p.titulo,
+        p.descripcion,
+        p.fecha_inicio,
+        p.imagen_portada,
+
+        -- 🔹 Contar clases vinculadas (tabla bitacora)
+        COUNT(DISTINCT b.id) AS clase_count,
+
+        -- 🔹 Contar imágenes vinculadas (tabla galeria)
+        COUNT(DISTINCT g.id) AS imagen_count
+
+      FROM proyectos p
+      LEFT JOIN bitacora b ON b.proyecto_id = p.id
+      LEFT JOIN galeria g ON g.proyecto_id = p.id
+      GROUP BY p.id
+      ORDER BY p.fecha_inicio DESC;
     `);
 
     await client.end();
@@ -30,7 +37,7 @@ export const handler = async () => {
       body: JSON.stringify(result.rows),
     };
   } catch (err) {
-    console.error("Error al obtener clases:", err);
+    console.error("❌ Error al obtener proyectos:", err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: err.message }),

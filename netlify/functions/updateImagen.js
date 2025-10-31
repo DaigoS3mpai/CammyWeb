@@ -5,9 +5,9 @@ export const handler = async (event) => {
     return { statusCode: 405, body: "Método no permitido" };
   }
 
-  const { id, titulo, descripcion, fecha_inicio, imagen_portada } = JSON.parse(event.body || "{}");
+  const { id, descripcion } = JSON.parse(event.body || "{}");
   if (!id) {
-    return { statusCode: 400, body: JSON.stringify({ error: "Falta el ID del proyecto" }) };
+    return { statusCode: 400, body: JSON.stringify({ error: "Falta el ID de la imagen" }) };
   }
 
   const client = new Client({
@@ -19,26 +19,23 @@ export const handler = async (event) => {
     await client.connect();
     const result = await client.query(
       `
-      UPDATE proyectos
-      SET titulo = COALESCE($1, titulo),
-          descripcion = COALESCE($2, descripcion),
-          fecha_inicio = COALESCE($3, fecha_inicio),
-          imagen_portada = COALESCE($4, imagen_portada)
-      WHERE id = $5
+      UPDATE galeria
+      SET descripcion = COALESCE($1, descripcion)
+      WHERE id = $2
       RETURNING *;
     `,
-      [titulo || null, descripcion || null, fecha_inicio || null, imagen_portada || null, id]
+      [descripcion || null, id]
     );
 
     await client.end();
     if (result.rows.length === 0)
-      return { statusCode: 404, body: JSON.stringify({ error: "Proyecto no encontrado" }) };
+      return { statusCode: 404, body: JSON.stringify({ error: "Imagen no encontrada" }) };
 
     return {
       statusCode: 200,
       body: JSON.stringify({
-        message: "✅ Proyecto actualizado",
-        proyecto: result.rows[0],
+        message: "✅ Imagen actualizada correctamente",
+        imagen: result.rows[0],
       }),
     };
   } catch (err) {

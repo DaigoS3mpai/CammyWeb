@@ -8,7 +8,6 @@ import {
 } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Navbar from './components/Navbar';
-import ClassContent from './components/ClassContent';
 import HomePage from './components/HomePage';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
@@ -34,32 +33,27 @@ const AnimatedRoutes = () => {
         {/* 🔒 Protegidas */}
         {isAuthenticated() ? (
           <>
-            {/* Bitácora, proyectos y galería */}
+            {/* 🌍 Globales */}
             <Route path="/category/:categoryName" element={<CategoryPage />} />
-            <Route path="/class/:classId/:tab" element={<ClassContent />} />
             <Route path="/gallery" element={<GalleryPage />} />
 
-            {/* Admin: crear clases y proyectos */}
+            {/* 👑 Solo administradores */}
             {isAdmin() && (
               <>
                 <Route path="/new-class" element={<NewClassPage />} />
-                <Route path="/new-project" element={<NewProjectPage />} />
+                <Route path="/newproject" element={<NewProjectPage />} />
               </>
             )}
 
-            {/* Evitar volver a login o registro */}
+            {/* Redirecciones si ya está logueado */}
             <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="/register" element={<Navigate to="/" replace />} />
           </>
         ) : (
           <>
-            {/* No autenticado → redirigir */}
+            {/* Si NO está autenticado */}
             <Route
               path="/category/:categoryName"
-              element={<Navigate to="/login" replace />}
-            />
-            <Route
-              path="/class/:classId/:tab"
               element={<Navigate to="/login" replace />}
             />
             <Route path="/gallery" element={<Navigate to="/login" replace />} />
@@ -68,13 +62,13 @@ const AnimatedRoutes = () => {
               element={<Navigate to="/login" replace />}
             />
             <Route
-              path="/new-project"
+              path="/newproject"
               element={<Navigate to="/login" replace />}
             />
           </>
         )}
 
-        {/* 🧭 Fallback general */}
+        {/* 🧭 Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
