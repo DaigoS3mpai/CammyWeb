@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Image, PlusCircle, Loader2, X, Upload } from "lucide-react";
+import { Image as ImageIcon, PlusCircle, Loader2, X, Upload } from "lucide-react";
 
 const GalleryPage = () => {
   const [imagenes, setImagenes] = useState([]);
-  const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [selectedProject, setSelectedProject] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [descripcion, setDescripcion] = useState("");
+  const [nuevaImagen, setNuevaImagen] = useState({
+    imagen_url: "",
+    descripcion: "",
+    proyecto_id: "",
+  });
+  const [proyectos, setProyectos] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   // 🔹 Cargar galería y proyectos al iniciar
   useEffect(() => {
@@ -36,64 +39,73 @@ const GalleryPage = () => {
     fetchData();
   }, []);
 
-  // 🔹 Manejar selección de archivos
-  const handleFileChange = (e) => {
-    setSelectedFiles(Array.from(e.target.files));
+  // 🖼️ Subir imagen a Cloudinary
+  const uploadToCloudinary = async (file) => {
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_UPLOAD_PRESET;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    return data.secure_url;
   };
 
-  // 🔹 Subir múltiples imágenes
+  // 🧩 Manejar selección de archivo
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const url = await uploadToCloudinary(file);
+      setNuevaImagen((prev) => ({ ...prev, imagen_url: url }));
+      alert("✅ Imagen subida correctamente a Cloudinary");
+    } catch (err) {
+      console.error("Error al subir imagen:", err);
+      alert("❌ No se pudo subir la imagen.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 🔹 Manejar envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!selectedProject || selectedFiles.length === 0) {
-      alert("Por favor selecciona un proyecto y al menos una imagen.");
+    if (!nuevaImagen.imagen_url || !nuevaImagen.proyecto_id) {
+      alert("Por favor completa los campos obligatorios.");
       return;
     }
 
-    setLoading(true);
-
     try {
-      for (const file of selectedFiles) {
-        // En este punto puedes implementar tu subida a un bucket o URL externa
-        // Por ahora asumimos que se ingresa una URL manual o se procesa en el backend
-        const imagen_url = URL.createObjectURL(file);
+      const res = await fetch("/.netlify/functions/addImagen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nuevaImagen),
+      });
 
-        const res = await fetch("/.netlify/functions/addImagen", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            imagen_url,
-            descripcion,
-            proyecto_id: selectedProject,
-          }),
-        });
+      const data = await res.json();
 
-        const data = await res.json();
-
-        if (res.ok) {
-          setImagenes((prev) => [data.imagen, ...prev]);
-        } else {
-          console.error("❌ Error al subir imagen:", data.error);
-        }
+      if (res.ok) {
+        alert("✅ Imagen añadida correctamente");
+        setImagenes((prev) => [data.imagen, ...prev]);
+        setNuevaImagen({ imagen_url: "", descripcion: "", proyecto_id: "" });
+        setShowForm(false);
+      } else {
+        alert("❌ Error: " + (data.error || "No se pudo subir la imagen."));
       }
-
-      alert("✅ Imágenes añadidas correctamente");
-      setDescripcion("");
-      setSelectedFiles([]);
-      setShowForm(false);
     } catch (error) {
-      console.error("Error al subir imágenes:", error);
+      console.error("Error al guardar en base de datos:", error);
       alert("Ocurrió un error al conectar con el servidor.");
-    } finally {
-      setLoading(false);
     }
   };
-
-  // 🔹 Agrupar imágenes por proyecto
-  const imagenesPorProyecto = proyectos.map((p) => ({
-    ...p,
-    imagenes: imagenes.filter((img) => img.proyecto_id === p.id),
-  }));
 
   return (
     <motion.div
@@ -107,7 +119,7 @@ const GalleryPage = () => {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
       >
-        Galería de Proyectos
+        Galería de Imágenes
       </motion.h1>
 
       {/* Botón para añadir imagen */}
@@ -119,7 +131,7 @@ const GalleryPage = () => {
           whileTap={{ scale: 0.95 }}
         >
           <PlusCircle className="w-5 h-5 mr-2" />
-          {showForm ? "Cancelar" : "Añadir Imágenes"}
+          {showForm ? "Cancelar" : "Añadir Imagen"}
         </motion.button>
       </div>
 
@@ -133,13 +145,56 @@ const GalleryPage = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
+            {/* Subir archivo */}
             <div className="mb-4">
               <label className="block text-gray-700 font-semibold mb-2">
-                Proyecto asociado *
+                Subir imagen
+              </label>
+              <div className="flex items-center space-x-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  disabled={uploading}
+                  className="border border-gray-300 rounded-xl p-2 w-full"
+                />
+                {uploading && <Loader2 className="animate-spin w-6 h-6 text-pink-600" />}
+              </div>
+              {nuevaImagen.imagen_url && (
+                <img
+                  src={nuevaImagen.imagen_url}
+                  alt="Vista previa"
+                  className="w-full mt-3 rounded-xl shadow-md"
+                />
+              )}
+            </div>
+
+            {/* Descripción */}
+            <div className="mb-4">
+              <label className="block text-gray-700 font-semibold mb-2">
+                Descripción
+              </label>
+              <textarea
+                value={nuevaImagen.descripcion}
+                onChange={(e) =>
+                  setNuevaImagen({ ...nuevaImagen, descripcion: e.target.value })
+                }
+                placeholder="Describe brevemente la imagen..."
+                rows="3"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
+              />
+            </div>
+
+            {/* Proyecto asociado */}
+            <div className="mb-6">
+              <label className="block text-gray-700 font-semibold mb-2">
+                Proyecto asociado
               </label>
               <select
-                value={selectedProject}
-                onChange={(e) => setSelectedProject(e.target.value)}
+                value={nuevaImagen.proyecto_id}
+                onChange={(e) =>
+                  setNuevaImagen({ ...nuevaImagen, proyecto_id: e.target.value })
+                }
                 className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
                 required
               >
@@ -152,50 +207,28 @@ const GalleryPage = () => {
               </select>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Descripción general (opcional)
-              </label>
-              <textarea
-                value={descripcion}
-                onChange={(e) => setDescripcion(e.target.value)}
-                placeholder="Describe brevemente las imágenes..."
-                rows="3"
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
-              />
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Seleccionar imágenes *
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFileChange}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 cursor-pointer"
-              />
-              {selectedFiles.length > 0 && (
-                <p className="mt-2 text-sm text-gray-500">
-                  {selectedFiles.length} imagen(es) seleccionada(s)
-                </p>
-              )}
-            </div>
-
             <motion.button
               type="submit"
               className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold text-lg shadow-md hover:shadow-xl transition-all flex items-center justify-center"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              disabled={uploading}
             >
-              <Upload className="w-5 h-5 mr-2" /> Subir Imágenes
+              {uploading ? (
+                <>
+                  <Loader2 className="animate-spin w-6 h-6 mr-2" /> Subiendo...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-6 h-6 mr-2" /> Guardar Imagen
+                </>
+              )}
             </motion.button>
           </motion.form>
         )}
       </AnimatePresence>
 
-      {/* Galería agrupada por proyecto */}
+      {/* Galería */}
       {loading ? (
         <div className="flex justify-center items-center mt-20">
           <Loader2 className="animate-spin w-8 h-8 text-pink-600" />
@@ -205,56 +238,46 @@ const GalleryPage = () => {
           No hay imágenes disponibles. ¡Sube la primera! 📸
         </p>
       ) : (
-        imagenesPorProyecto.map((proyecto) => (
-          <div key={proyecto.id} className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-              {proyecto.titulo}
-            </h2>
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.1 },
+            },
+          }}
+        >
+          {imagenes.map((img) => (
             <motion.div
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-              initial="hidden"
-              animate="visible"
-              variants={{
-                hidden: { opacity: 0 },
-                visible: {
-                  opacity: 1,
-                  transition: { staggerChildren: 0.1 },
-                },
-              }}
+              key={img.id}
+              className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer"
+              whileHover={{ scale: 1.02 }}
+              onClick={() => setSelectedImage(img)}
             >
-              {proyecto.imagenes.length > 0 ? (
-                proyecto.imagenes.map((img) => (
-                  <motion.div
-                    key={img.id}
-                    className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer"
-                    whileHover={{ scale: 1.02 }}
-                    onClick={() => setSelectedImage(img)}
-                  >
-                    <div className="h-64 overflow-hidden">
-                      <img
-                        src={img.imagen_url}
-                        alt={img.descripcion || "Imagen de proyecto"}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="p-4">
-                      <p className="text-gray-600 text-sm mt-1">
-                        {img.descripcion || "Sin descripción"}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center col-span-full italic">
-                  No hay imágenes para este proyecto.
+              <div className="h-64 overflow-hidden">
+                <img
+                  src={img.imagen_url}
+                  alt={img.descripcion || "Imagen de proyecto"}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="p-4">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  {img.proyecto_titulo || "Proyecto sin nombre"}
+                </h3>
+                <p className="text-gray-600 text-sm mt-1">
+                  {img.descripcion || "Sin descripción"}
                 </p>
-              )}
+              </div>
             </motion.div>
-          </div>
-        ))
+          ))}
+        </motion.div>
       )}
 
-      {/* Modal de imagen ampliada */}
+      {/* Modal para ver imagen ampliada */}
       <AnimatePresence>
         {selectedImage && (
           <motion.div
