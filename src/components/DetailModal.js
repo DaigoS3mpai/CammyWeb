@@ -10,8 +10,10 @@ import {
   Pencil,
   Save,
 } from "lucide-react";
+import { useAuth } from "./AuthContext"; // ✅ Importamos el contexto
 
-const DetailModal = ({ item, type, onClose, isAdmin = true }) => {
+const DetailModal = ({ item, type, onClose }) => {
+  const { isAdmin } = useAuth(); // ✅ Detectar si el usuario es admin
   const [imagenes, setImagenes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
@@ -133,9 +135,9 @@ const DetailModal = ({ item, type, onClose, isAdmin = true }) => {
           exit={{ scale: 0.8, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Botones superiores */}
+          {/* 🔹 Botones superiores */}
           <div className="absolute top-4 right-4 flex space-x-2">
-            {isAdmin && !editMode && (
+            {isAdmin() && !editMode && (
               <button
                 onClick={() => setEditMode(true)}
                 className="bg-yellow-400 hover:bg-yellow-500 text-white rounded-full p-2 transition"
@@ -143,13 +145,17 @@ const DetailModal = ({ item, type, onClose, isAdmin = true }) => {
                 <Pencil className="w-5 h-5" />
               </button>
             )}
-            {editMode && (
+            {isAdmin() && editMode && (
               <button
                 onClick={handleSave}
                 className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 transition"
                 disabled={saving}
               >
-                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                {saving ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Save className="w-5 h-5" />
+                )}
               </button>
             )}
             <button
@@ -160,16 +166,16 @@ const DetailModal = ({ item, type, onClose, isAdmin = true }) => {
             </button>
           </div>
 
-          {/* Contenido */}
+          {/* 🔹 Contenido principal */}
           <div className="p-8 overflow-y-auto max-h-[90vh] space-y-8">
-            {/* Encabezado */}
+            {/* Título */}
             <div className="flex items-center mb-4">
               {type === "proyectos" ? (
                 <FlaskConical className="w-8 h-8 text-purple-600 mr-3" />
               ) : (
                 <ImageIcon className="w-8 h-8 text-blue-600 mr-3" />
               )}
-              {editMode ? (
+              {isAdmin() && editMode ? (
                 <input
                   type="text"
                   value={formData.titulo}
@@ -187,7 +193,7 @@ const DetailModal = ({ item, type, onClose, isAdmin = true }) => {
                 <FileText className="w-5 h-5 text-green-600 mr-2" />
                 <h3 className="text-xl font-semibold text-gray-800">Descripción</h3>
               </div>
-              {editMode ? (
+              {isAdmin() && editMode ? (
                 <textarea
                   value={formData.descripcion}
                   onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
@@ -208,7 +214,7 @@ const DetailModal = ({ item, type, onClose, isAdmin = true }) => {
                   <Calendar className="w-5 h-5 text-blue-600 mr-2" />
                   <h3 className="text-xl font-semibold text-gray-800">Fecha del proyecto</h3>
                 </div>
-                {editMode ? (
+                {isAdmin() && editMode ? (
                   <input
                     type="date"
                     value={formData.fecha_inicio.split("T")[0]}
@@ -231,9 +237,9 @@ const DetailModal = ({ item, type, onClose, isAdmin = true }) => {
             <section>
               <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
                 <ImageIcon className="w-6 h-6 mr-2 text-purple-500" />
-                Imagen principal del proyecto
+                Imagen principal
               </h3>
-              {editMode ? (
+              {isAdmin() && editMode ? (
                 <div>
                   <input
                     type="file"
@@ -273,7 +279,7 @@ const DetailModal = ({ item, type, onClose, isAdmin = true }) => {
                     <Loader2 className="animate-spin w-8 h-8 text-pink-500" />
                   </div>
                 ) : imagenes.length === 0 ? (
-                  <p className="text-gray-500 italic">No hay imágenes asociadas a este proyecto.</p>
+                  <p className="text-gray-500 italic">No hay imágenes asociadas.</p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {imagenes.map((img) => (

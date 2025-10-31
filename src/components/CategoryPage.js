@@ -13,6 +13,7 @@ import {
   Images,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
+import DetailModal from "./DetailModal";
 
 const CategoryPage = () => {
   const { categoryName } = useParams();
@@ -21,6 +22,8 @@ const CategoryPage = () => {
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedItem, setSelectedItem] = useState(null); // 🔹 Nuevo: item abierto
+  const [showModal, setShowModal] = useState(false);
 
   // 🔹 Cargar datos según categoría
   const fetchData = async () => {
@@ -74,39 +77,51 @@ const CategoryPage = () => {
   }, [categoryName]);
 
   // 🔹 Config visual
-  const config = {
-    bitacora: {
-      title: "Bitácora de Clases",
-      description:
-        "Aquí encontrarás el registro completo de todas las clases realizadas.",
-      icon: <BookOpenText className="w-12 h-12 text-blue-500" />,
-      gradient: "from-blue-500 to-cyan-600",
-      buttonText: "Nueva Clase",
-      buttonRoute: "/new-class",
-    },
-    proyectos: {
-      title: "Proyectos Realizados",
-      description:
-        "Explora todos los proyectos desarrollados durante las clases.",
-      icon: <FlaskConical className="w-12 h-12 text-purple-500" />,
-      gradient: "from-purple-500 to-indigo-600",
-      buttonText: "Nuevo Proyecto",
-      buttonRoute: "/newproject",
-    },
-    galeria: {
-      title: "Galería de Imágenes",
-      description:
-        "Disfruta de todas las imágenes capturadas de tus proyectos y clases.",
-      icon: <ImageIcon className="w-12 h-12 text-pink-500" />,
-      gradient: "from-pink-500 to-rose-600",
-      buttonText: "Ver Galería Completa",
-      buttonRoute: "/gallery",
-    },
-  }[categoryName] || {
-    title: "Categoría no encontrada",
-    description: "La sección que buscas no existe.",
-    icon: <FileText className="w-12 h-12 text-gray-500" />,
-    gradient: "from-gray-400 to-gray-600",
+  const config =
+    {
+      bitacora: {
+        title: "Bitácora de Clases",
+        description:
+          "Aquí encontrarás el registro completo de todas las clases realizadas.",
+        icon: <BookOpenText className="w-12 h-12 text-blue-500" />,
+        gradient: "from-blue-500 to-cyan-600",
+        buttonText: "Nueva Clase",
+        buttonRoute: "/new-class",
+      },
+      proyectos: {
+        title: "Proyectos Realizados",
+        description:
+          "Explora todos los proyectos desarrollados durante las clases.",
+        icon: <FlaskConical className="w-12 h-12 text-purple-500" />,
+        gradient: "from-purple-500 to-indigo-600",
+        buttonText: "Nuevo Proyecto",
+        buttonRoute: "/newproject",
+      },
+      galeria: {
+        title: "Galería de Imágenes",
+        description:
+          "Disfruta de todas las imágenes capturadas de tus proyectos y clases.",
+        icon: <ImageIcon className="w-12 h-12 text-pink-500" />,
+        gradient: "from-pink-500 to-rose-600",
+        buttonText: "Ver Galería Completa",
+        buttonRoute: "/gallery",
+      },
+    }[categoryName] || {
+      title: "Categoría no encontrada",
+      description: "La sección que buscas no existe.",
+      icon: <FileText className="w-12 h-12 text-gray-500" />,
+      gradient: "from-gray-400 to-gray-600",
+    };
+
+  // 🔹 Manejar apertura de detalle
+  const handleOpenDetail = (item) => {
+    setSelectedItem(item);
+    setShowModal(true);
+  };
+
+  const handleCloseDetail = () => {
+    setShowModal(false);
+    setSelectedItem(null);
   };
 
   return (
@@ -174,6 +189,7 @@ const CategoryPage = () => {
               key={item.id || index}
               className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-gray-100 overflow-hidden transition-all cursor-pointer"
               whileHover={{ scale: 1.02 }}
+              onClick={() => handleOpenDetail(item)} // ✅ Todos pueden abrir detalles
             >
               {/* Imagen portada */}
               {categoryName === "galeria" && item.imagen_url ? (
@@ -205,9 +221,9 @@ const CategoryPage = () => {
                 {item.fecha || item.fecha_inicio ? (
                   <div className="flex items-center text-sm text-gray-500 mb-2">
                     <Calendar className="w-4 h-4 mr-2" />
-                    {new Date(item.fecha || item.fecha_inicio).toLocaleDateString(
-                      "es-CL"
-                    )}
+                    {new Date(
+                      item.fecha || item.fecha_inicio
+                    ).toLocaleDateString("es-CL")}
                   </div>
                 ) : null}
 
@@ -229,6 +245,17 @@ const CategoryPage = () => {
           ))}
         </motion.div>
       )}
+
+      {/* 🔹 Modal de detalle (todos pueden verlo) */}
+      <AnimatePresence>
+        {showModal && selectedItem && (
+          <DetailModal
+            item={selectedItem}
+            type={categoryName}
+            onClose={handleCloseDetail}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
