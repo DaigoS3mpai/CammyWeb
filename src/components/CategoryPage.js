@@ -91,7 +91,7 @@ const CategoryPage = () => {
       icon: <FlaskConical className="w-12 h-12 text-purple-500" />,
       gradient: "from-purple-500 to-indigo-600",
       buttonText: "Nuevo Proyecto",
-      buttonRoute: "/new-project",
+      buttonRoute: "/newproject",
     },
     galeria: {
       title: "Galería de Imágenes",
