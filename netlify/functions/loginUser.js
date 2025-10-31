@@ -1,6 +1,5 @@
+// netlify/functions/loginUser.js
 import { Client } from "pg";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 
 export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -10,10 +9,7 @@ export const handler = async (event) => {
   const { nombre, password } = JSON.parse(event.body || "{}");
 
   if (!nombre || !password) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Faltan campos obligatorios." }),
-    };
+    return { statusCode: 400, body: "Faltan campos obligatorios" };
   }
 
   const client = new Client({
@@ -24,59 +20,36 @@ export const handler = async (event) => {
   try {
     await client.connect();
 
-    // Buscar usuario por nombre
     const result = await client.query(
-      "SELECT * FROM usuarios WHERE nombre = $1",
+      "SELECT id_usuario, nombre, password, rol FROM usuarios WHERE nombre = $1",
       [nombre]
-    );
-
-    const user = result.rows[0];
-    if (!user) {
-      await client.end();
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ error: "Usuario no encontrado." }),
-      };
-    }
-
-    // Validar contraseña
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      await client.end();
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ error: "Contraseña incorrecta." }),
-      };
-    }
-
-    // Crear token JWT
-    const token = jwt.sign(
-      {
-        id_usuario: user.id_usuario,
-        nombre: user.nombre,
-        rol: user.rol,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "8h" }
     );
 
     await client.end();
 
-    // Enviar respuesta con token y datos
+    if (result.rows.length === 0) {
+      return { statusCode: 404, body: "Usuario no encontrado" };
+    }
+
+    const usuario = result.rows[0];
+
+    if (usuario.password !== password) {
+      return { statusCode: 401, body: "Contraseña incorrecta" };
+    }
+
     return {
       statusCode: 200,
       body: JSON.stringify({
-        message: "Inicio de sesión exitoso",
+        message: "✅ Login exitoso",
         usuario: {
-          id_usuario: user.id_usuario,
-          nombre: user.nombre,
-          rol: user.rol,
+          id_usuario: usuario.id_usuario,
+          nombre: usuario.nombre,
+          rol: usuario.rol,
         },
-        token,
       }),
     };
   } catch (err) {
-    console.error("Error al iniciar sesión:", err);
+    console.error("Error en login:", err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: err.message }),

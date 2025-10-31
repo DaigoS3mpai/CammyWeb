@@ -1,5 +1,5 @@
+// netlify/functions/registerUser.js
 import { Client } from "pg";
-import bcrypt from "bcryptjs";
 
 export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -8,19 +8,12 @@ export const handler = async (event) => {
 
   const { nombre, password, confirmar } = JSON.parse(event.body || "{}");
 
-  // 🔹 Validación básica
   if (!nombre || !password || !confirmar) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Faltan campos obligatorios." }),
-    };
+    return { statusCode: 400, body: "Faltan campos obligatorios" };
   }
 
   if (password !== confirmar) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Las contraseñas no coinciden." }),
-    };
+    return { statusCode: 400, body: "Las contraseñas no coinciden" };
   }
 
   const client = new Client({
@@ -31,30 +24,13 @@ export const handler = async (event) => {
   try {
     await client.connect();
 
-    // 🔍 Verificar si ya existe el usuario
-    const exists = await client.query(
-      `SELECT id_usuario FROM usuarios WHERE nombre = $1;`,
-      [nombre]
-    );
-    if (exists.rows.length > 0) {
-      await client.end();
-      return {
-        statusCode: 409,
-        body: JSON.stringify({ error: "Ese nombre de usuario ya existe." }),
-      };
-    }
-
-    // 🔐 Encriptar contraseña
-    const hash = await bcrypt.hash(password, 10);
-
-    // 🧩 Insertar nuevo usuario con rol por defecto "usuario"
     const result = await client.query(
       `
-      INSERT INTO usuarios (nombre, password, rol, fecha_registro)
-      VALUES ($1, $2, 'usuario', NOW())
+      INSERT INTO usuarios (nombre, password, rol)
+      VALUES ($1, $2, 'usuario')
       RETURNING id_usuario, nombre, rol, fecha_registro;
       `,
-      [nombre, hash]
+      [nombre, password]
     );
 
     await client.end();
@@ -67,13 +43,10 @@ export const handler = async (event) => {
       }),
     };
   } catch (err) {
-    console.error("❌ Error al registrar usuario:", err);
+    console.error("Error al registrar usuario:", err);
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        error: "Error interno al registrar el usuario.",
-        detalle: err.message,
-      }),
+      body: JSON.stringify({ error: err.message }),
     };
   }
 };

@@ -3,55 +3,17 @@ import React, { createContext, useState, useContext, useEffect } from "react";
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem("currentUser");
+    return stored ? JSON.parse(stored) : null;
+  });
 
-  // 🔹 Cargar usuario y token desde localStorage al iniciar
   useEffect(() => {
-    const storedUser = localStorage.getItem("usuario");
-    const storedToken = localStorage.getItem("token");
+    if (user) localStorage.setItem("currentUser", JSON.stringify(user));
+    else localStorage.removeItem("currentUser");
+  }, [user]);
 
-    if (storedUser && storedToken) {
-      try {
-        setUser(JSON.parse(storedUser));
-        setToken(storedToken);
-      } catch (err) {
-        console.error("Error cargando usuario:", err);
-        localStorage.removeItem("usuario");
-        localStorage.removeItem("token");
-      }
-    }
-  }, []);
-
-  // 🔹 Iniciar sesión con el backend
-  const login = async (nombre, password) => {
-    try {
-      const res = await fetch("/.netlify/functions/loginUser", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        return { success: false, message: data.error || "Error al iniciar sesión" };
-      }
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("usuario", JSON.stringify(data.usuario));
-
-      setUser(data.usuario);
-      setToken(data.token);
-
-      return { success: true, message: "Inicio de sesión exitoso" };
-    } catch (err) {
-      console.error("Error en login:", err);
-      return { success: false, message: "Error al conectar con el servidor." };
-    }
-  };
-
-  // 🔹 Registrar usuario nuevo en la base de datos
+  // 🔹 Registro real
   const register = async (nombre, password, confirmar) => {
     try {
       const res = await fetch("/.netlify/functions/registerUser", {
@@ -59,46 +21,41 @@ export const AuthProvider = ({ children }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nombre, password, confirmar }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        return { success: false, message: data.error || "Error al registrar usuario" };
-      }
-
-      return { success: true, message: "Registro exitoso" };
+      if (res.ok) return { success: true, message: data.message };
+      else return { success: false, message: data.error || data };
     } catch (err) {
-      console.error("Error en register:", err);
-      return { success: false, message: "Error al conectar con el servidor." };
+      return { success: false, message: "Error en el registro: " + err.message };
     }
   };
 
-  // 🔹 Cerrar sesión
-  const logout = () => {
-    localStorage.removeItem("usuario");
-    localStorage.removeItem("token");
-    setUser(null);
-    setToken(null);
+  // 🔹 Login real
+  const login = async (nombre, password) => {
+    try {
+      const res = await fetch("/.netlify/functions/loginUser", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre, password }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUser(data.usuario);
+        return { success: true };
+      } else {
+        return { success: false, message: data.error || data };
+      }
+    } catch (err) {
+      return { success: false, message: "Error en el login: " + err.message };
+    }
   };
 
-  // 🔹 Utilidades
-  const isAuthenticated = () => !!user && !!token;
+  const logout = () => setUser(null);
+
+  const isAuthenticated = () => !!user;
   const isAdmin = () => user?.rol === "admin";
-  const isUsuario = () => user?.rol === "usuario";
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        login,
-        register,
-        logout,
-        isAuthenticated,
-        isAdmin,
-        isUsuario,
-      }}
-    >
+    <AuthContext.Provider value={{ user, register, login, logout, isAuthenticated, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );
