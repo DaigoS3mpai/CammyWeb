@@ -11,10 +11,12 @@ export const handler = async () => {
     await client.connect();
 
     const result = await client.query(`
-      SELECT g.id,
-             g.imagen_url,
-             g.descripcion,
-             p.titulo AS proyecto_titulo
+      SELECT 
+        g.id,
+        g.imagen_url,
+        g.descripcion,
+        g.proyecto_id,              -- ✅ Incluimos el ID del proyecto
+        p.titulo AS proyecto_titulo -- Nombre del proyecto asociado
       FROM galeria g
       LEFT JOIN proyectos p ON g.proyecto_id = p.id
       ORDER BY g.id DESC;
@@ -27,7 +29,7 @@ export const handler = async () => {
       body: JSON.stringify(result.rows),
     };
   } catch (err) {
-    console.error("Error al obtener galería:", err);
+    console.error("❌ Error al obtener galería:", err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: err.message }),
