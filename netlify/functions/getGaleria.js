@@ -1,4 +1,3 @@
-// netlify/functions/getGaleria.js
 import { Client } from "pg";
 
 export const handler = async () => {
@@ -10,24 +9,23 @@ export const handler = async () => {
   try {
     await client.connect();
 
-    const query = `
+    const result = await client.query(`
       SELECT 
         g.id,
         g.imagen_url,
         g.descripcion,
         g.proyecto_id,
-        p.titulo AS proyecto_titulo,
-        g.created_at
+        p.titulo AS proyecto_titulo
       FROM galeria g
       LEFT JOIN proyectos p ON g.proyecto_id = p.id
-      ORDER BY g.created_at DESC NULLS LAST, g.id DESC;
-    `;
+      ORDER BY g.id DESC;
+    `);
 
-    const result = await client.query(query);
+    await client.end();
 
     return {
       statusCode: 200,
-      body: JSON.stringify(result.rows || []),
+      body: JSON.stringify(result.rows || []), // 🧩 aseguramos siempre array
     };
   } catch (err) {
     console.error("❌ Error al obtener galería:", err);
@@ -35,7 +33,5 @@ export const handler = async () => {
       statusCode: 500,
       body: JSON.stringify({ error: err.message }),
     };
-  } finally {
-    await client.end().catch(() => {});
   }
 };
