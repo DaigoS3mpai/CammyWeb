@@ -1,16 +1,57 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { PlusCircle, FlaskConical, Calendar, Image as ImageIcon } from "lucide-react";
+import { PlusCircle, FlaskConical, Calendar, Image as ImageIcon, Upload, Loader2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const NewProjectPage = () => {
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [fechaInicio, setFechaInicio] = useState("");
-  const [imagenUrl, setImagenUrl] = useState("");
+  const [imagenPortada, setImagenPortada] = useState("");
+  const [imagenesExtras, setImagenesExtras] = useState([]); // lista de imágenes opcionales
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
 
+  // 🔹 Subir imagen a Cloudinary
+  const uploadToCloudinary = async (file) => {
+    const cloudName =
+      import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset =
+      import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_UPLOAD_PRESET;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    return data.secure_url;
+  };
+
+  // 🔹 Manejar selección de imágenes extra
+  const handleExtraImages = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const uploadPromises = files.map(uploadToCloudinary);
+      const urls = await Promise.all(uploadPromises);
+      setImagenesExtras((prev) => [...prev, ...urls]);
+    } catch (err) {
+      console.error("Error al subir imágenes:", err);
+      alert("❌ No se pudieron subir algunas imágenes.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 🔹 Crear proyecto y guardar imágenes
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -30,29 +71,42 @@ const NewProjectPage = () => {
           titulo,
           descripcion,
           fecha_inicio: fechaInicio,
-          imagen_portada: imagenUrl || null,
+          imagen_portada: imagenPortada || null,
         }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        alert("✅ Proyecto creado correctamente");
+        const proyectoId = data.proyecto.id;
 
-        // 🔹 Si hay imagen, registrarla en la galería automáticamente
-        if (imagenUrl) {
+        // 🔹 Registrar portada en galería (si existe)
+        if (imagenPortada) {
           await fetch("/.netlify/functions/addImagen", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              imagen_url: imagenUrl,
-              descripcion: `Imagen principal del proyecto ${titulo}`,
-              proyecto_id: data.proyecto.id,
+              imagen_url: imagenPortada,
+              descripcion: `Portada del proyecto ${titulo}`,
+              proyecto_id: proyectoId,
             }),
           });
         }
 
-        // 🔹 Forzar recarga de lista en la vista principal
+        // 🔹 Registrar imágenes adicionales
+        for (const url of imagenesExtras) {
+          await fetch("/.netlify/functions/addImagen", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              imagen_url: url,
+              descripcion: `Imagen adicional del proyecto ${titulo}`,
+              proyecto_id: proyectoId,
+            }),
+          });
+        }
+
+        alert("✅ Proyecto creado correctamente");
         localStorage.setItem("reloadProyectos", "true");
         localStorage.setItem("reloadGaleria", "true");
 
@@ -143,24 +197,70 @@ const NewProjectPage = () => {
           {/* 🔹 Imagen principal */}
           <div>
             <label className="block text-gray-700 text-lg font-semibold mb-2">
-              Imagen principal (opcional)
+              Imagen principal (portada)
             </label>
-            <div className="relative">
-              <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="url"
-                value={imagenUrl}
-                onChange={(e) => setImagenUrl(e.target.value)}
-                placeholder="https://ejemplo.com/imagen.jpg"
-                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 text-lg"
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                if (e.target.files[0]) {
+                  setUploading(true);
+                  const url = await uploadToCloudinary(e.target.files[0]);
+                  setImagenPortada(url);
+                  setUploading(false);
+                }
+              }}
+              className="w-full border border-gray-300 rounded-xl p-2"
+            />
+            {uploading && <Loader2 className="animate-spin w-6 h-6 mt-2 text-green-500" />}
+            {imagenPortada && (
+              <img
+                src={imagenPortada}
+                alt="Portada"
+                className="w-full mt-3 rounded-xl shadow-md"
               />
+            )}
+          </div>
+
+          {/* 🔹 Imágenes adicionales */}
+          <div>
+            <label className="block text-gray-700 text-lg font-semibold mb-2">
+              Imágenes adicionales (opcionales)
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleExtraImages}
+              className="w-full border border-gray-300 rounded-xl p-2"
+            />
+            {uploading && <Loader2 className="animate-spin w-6 h-6 mt-2 text-green-500" />}
+            <div className="grid grid-cols-3 gap-3 mt-3">
+              {imagenesExtras.map((img, i) => (
+                <div key={i} className="relative group">
+                  <img
+                    src={img}
+                    alt={`Extra ${i + 1}`}
+                    className="rounded-lg shadow-md"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setImagenesExtras(imagenesExtras.filter((_, idx) => idx !== i))
+                    }
+                    className="absolute top-1 right-1 bg-white text-red-500 rounded-full p-1 shadow group-hover:opacity-100 opacity-0 transition"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* 🔹 Botón */}
           <motion.button
             type="submit"
-            disabled={loading}
+            disabled={loading || uploading}
             className="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white py-3 rounded-xl font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center disabled:opacity-70"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
