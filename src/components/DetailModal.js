@@ -10,10 +10,10 @@ import {
   Pencil,
   Save,
 } from "lucide-react";
-import { useAuth } from "./AuthContext"; // ✅ Importamos el contexto
+import { useAuth } from "./AuthContext"; // ✅ Contexto de autenticación
 
 const DetailModal = ({ item, type, onClose }) => {
-  const { isAdmin } = useAuth(); // ✅ Detectar si el usuario es admin
+  const { isAdmin } = useAuth();
   const [imagenes, setImagenes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
@@ -25,7 +25,7 @@ const DetailModal = ({ item, type, onClose }) => {
   });
   const [saving, setSaving] = useState(false);
 
-  // 🔹 Inicializar datos del proyecto/clase
+  // 🔹 Inicializar datos del proyecto o clase
   useEffect(() => {
     if (item) {
       setFormData({
@@ -58,7 +58,7 @@ const DetailModal = ({ item, type, onClose }) => {
     }
   }, [item, type]);
 
-  // 🔹 Guardar cambios
+  // 🔹 Guardar cambios (solo admins)
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -95,26 +95,43 @@ const DetailModal = ({ item, type, onClose }) => {
     }
   };
 
-  // 🔹 Subir nueva imagen a Cloudinary (opcional)
+  // 🔹 Subir nueva imagen a Cloudinary
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const cloudName =
-      import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
-    const uploadPreset =
-      import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_UPLOAD_PRESET;
+
+    const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      alert("⚠️ Faltan las variables de Cloudinary en Netlify.");
+      return;
+    }
 
     const formDataImg = new FormData();
     formDataImg.append("file", file);
     formDataImg.append("upload_preset", uploadPreset);
 
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-      method: "POST",
-      body: formDataImg,
-    });
+    try {
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: "POST",
+          body: formDataImg,
+        }
+      );
 
-    const data = await res.json();
-    setFormData((prev) => ({ ...prev, imagen_portada: data.secure_url }));
+      const data = await res.json();
+
+      if (res.ok) {
+        setFormData((prev) => ({ ...prev, imagen_portada: data.secure_url }));
+      } else {
+        alert("❌ Error al subir la imagen: " + (data.error?.message || "Error desconocido"));
+      }
+    } catch (err) {
+      console.error("Error al subir la imagen:", err);
+      alert("Error al conectar con Cloudinary.");
+    }
   };
 
   if (!item) return null;
@@ -179,11 +196,15 @@ const DetailModal = ({ item, type, onClose }) => {
                 <input
                   type="text"
                   value={formData.titulo}
-                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, titulo: e.target.value })
+                  }
                   className="text-3xl font-bold text-gray-900 border-b border-gray-300 focus:border-purple-500 outline-none w-full"
                 />
               ) : (
-                <h2 className="text-3xl font-extrabold text-gray-900">{formData.titulo}</h2>
+                <h2 className="text-3xl font-extrabold text-gray-900">
+                  {formData.titulo}
+                </h2>
               )}
             </div>
 
@@ -191,12 +212,16 @@ const DetailModal = ({ item, type, onClose }) => {
             <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
               <div className="flex items-center mb-3">
                 <FileText className="w-5 h-5 text-green-600 mr-2" />
-                <h3 className="text-xl font-semibold text-gray-800">Descripción</h3>
+                <h3 className="text-xl font-semibold text-gray-800">
+                  Descripción
+                </h3>
               </div>
               {isAdmin() && editMode ? (
                 <textarea
                   value={formData.descripcion}
-                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, descripcion: e.target.value })
+                  }
                   rows="5"
                   className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-purple-500 resize-none"
                 />
@@ -212,13 +237,20 @@ const DetailModal = ({ item, type, onClose }) => {
               <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
                 <div className="flex items-center mb-3">
                   <Calendar className="w-5 h-5 text-blue-600 mr-2" />
-                  <h3 className="text-xl font-semibold text-gray-800">Fecha del proyecto</h3>
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    Fecha del proyecto
+                  </h3>
                 </div>
                 {isAdmin() && editMode ? (
                   <input
                     type="date"
                     value={formData.fecha_inicio.split("T")[0]}
-                    onChange={(e) => setFormData({ ...formData, fecha_inicio: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        fecha_inicio: e.target.value,
+                      })
+                    }
                     className="border border-gray-300 rounded-xl p-2"
                   />
                 ) : (
@@ -266,7 +298,7 @@ const DetailModal = ({ item, type, onClose }) => {
               )}
             </section>
 
-            {/* Galería */}
+            {/* Galería (solo visible, no editable) */}
             {type === "proyectos" && !editMode && (
               <section>
                 <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
@@ -279,7 +311,9 @@ const DetailModal = ({ item, type, onClose }) => {
                     <Loader2 className="animate-spin w-8 h-8 text-pink-500" />
                   </div>
                 ) : imagenes.length === 0 ? (
-                  <p className="text-gray-500 italic">No hay imágenes asociadas.</p>
+                  <p className="text-gray-500 italic">
+                    No hay imágenes asociadas.
+                  </p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {imagenes.map((img) => (
