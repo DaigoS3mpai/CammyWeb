@@ -8,17 +8,15 @@ const NewProjectPage = () => {
   const [descripcion, setDescripcion] = useState("");
   const [fechaInicio, setFechaInicio] = useState("");
   const [imagenPortada, setImagenPortada] = useState("");
-  const [imagenesExtras, setImagenesExtras] = useState([]); // lista de imágenes opcionales
+  const [imagenesExtras, setImagenesExtras] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
 
   // 🔹 Subir imagen a Cloudinary
   const uploadToCloudinary = async (file) => {
-    const cloudName =
-      import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
-    const uploadPreset =
-      import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_UPLOAD_PRESET;
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_UPLOAD_PRESET;
 
     const formData = new FormData();
     formData.append("file", file);
@@ -63,7 +61,7 @@ const NewProjectPage = () => {
     setLoading(true);
 
     try {
-      // 🔹 Crear proyecto en la base de datos
+      // Crear proyecto
       const res = await fetch("/.netlify/functions/addProyecto", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -80,7 +78,7 @@ const NewProjectPage = () => {
       if (res.ok) {
         const proyectoId = data.proyecto.id;
 
-        // 🔹 Registrar portada en galería (si existe)
+        // Subir portada a galería
         if (imagenPortada) {
           await fetch("/.netlify/functions/addImagen", {
             method: "POST",
@@ -93,7 +91,7 @@ const NewProjectPage = () => {
           });
         }
 
-        // 🔹 Registrar imágenes adicionales
+        // Subir imágenes extra
         for (const url of imagenesExtras) {
           await fetch("/.netlify/functions/addImagen", {
             method: "POST",
@@ -145,11 +143,9 @@ const NewProjectPage = () => {
         transition={{ delay: 0.4, duration: 0.5 }}
       >
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 🔹 Título */}
+          {/* Título */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">
-              Nombre del Proyecto *
-            </label>
+            <label className="block text-gray-700 text-lg font-semibold mb-2">Nombre del Proyecto *</label>
             <div className="relative">
               <FlaskConical className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -163,11 +159,9 @@ const NewProjectPage = () => {
             </div>
           </div>
 
-          {/* 🔹 Descripción */}
+          {/* Descripción */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">
-              Descripción
-            </label>
+            <label className="block text-gray-700 text-lg font-semibold mb-2">Descripción</label>
             <textarea
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
@@ -177,11 +171,9 @@ const NewProjectPage = () => {
             />
           </div>
 
-          {/* 🔹 Fecha */}
+          {/* Fecha */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">
-              Fecha de Inicio *
-            </label>
+            <label className="block text-gray-700 text-lg font-semibold mb-2">Fecha de Inicio *</label>
             <div className="relative">
               <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -194,11 +186,9 @@ const NewProjectPage = () => {
             </div>
           </div>
 
-          {/* 🔹 Imagen principal */}
+          {/* Portada */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">
-              Imagen principal (portada)
-            </label>
+            <label className="block text-gray-700 text-lg font-semibold mb-2">Imagen principal (portada)</label>
             <input
               type="file"
               accept="image/*"
@@ -213,20 +203,12 @@ const NewProjectPage = () => {
               className="w-full border border-gray-300 rounded-xl p-2"
             />
             {uploading && <Loader2 className="animate-spin w-6 h-6 mt-2 text-green-500" />}
-            {imagenPortada && (
-              <img
-                src={imagenPortada}
-                alt="Portada"
-                className="w-full mt-3 rounded-xl shadow-md"
-              />
-            )}
+            {imagenPortada && <img src={imagenPortada} alt="Portada" className="w-full mt-3 rounded-xl shadow-md" />}
           </div>
 
-          {/* 🔹 Imágenes adicionales */}
+          {/* Imágenes adicionales */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">
-              Imágenes adicionales (opcionales)
-            </label>
+            <label className="block text-gray-700 text-lg font-semibold mb-2">Imágenes adicionales (opcionales)</label>
             <input
               type="file"
               accept="image/*"
@@ -238,16 +220,10 @@ const NewProjectPage = () => {
             <div className="grid grid-cols-3 gap-3 mt-3">
               {imagenesExtras.map((img, i) => (
                 <div key={i} className="relative group">
-                  <img
-                    src={img}
-                    alt={`Extra ${i + 1}`}
-                    className="rounded-lg shadow-md"
-                  />
+                  <img src={img} alt={`Extra ${i + 1}`} className="rounded-lg shadow-md" />
                   <button
                     type="button"
-                    onClick={() =>
-                      setImagenesExtras(imagenesExtras.filter((_, idx) => idx !== i))
-                    }
+                    onClick={() => setImagenesExtras(imagenesExtras.filter((_, idx) => idx !== i))}
                     className="absolute top-1 right-1 bg-white text-red-500 rounded-full p-1 shadow group-hover:opacity-100 opacity-0 transition"
                   >
                     <X className="w-4 h-4" />
@@ -257,11 +233,39 @@ const NewProjectPage = () => {
             </div>
           </div>
 
-          {/* 🔹 Botón */}
+          {/* Vista previa del proyecto */}
+          {(titulo || descripcion || imagenPortada || imagenesExtras.length > 0) && (
+            <div className="mt-8 border-t pt-6">
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">Vista previa del proyecto</h3>
+
+              {imagenPortada && (
+                <img src={imagenPortada} alt="Portada preview" className="w-full rounded-xl shadow mb-4" />
+              )}
+
+              <h4 className="text-xl font-semibold text-gray-900">{titulo || "Sin título"}</h4>
+              <p className="text-gray-600 mt-2">{descripcion || "Sin descripción"}</p>
+
+              {fechaInicio && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Fecha de inicio: {new Date(fechaInicio).toLocaleDateString("es-CL")}
+                </p>
+              )}
+
+              {imagenesExtras.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+                  {imagenesExtras.map((img, i) => (
+                    <img key={i} src={img} alt={`Preview ${i + 1}`} className="rounded-lg shadow" />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Botón crear */}
           <motion.button
             type="submit"
             disabled={loading || uploading}
-            className="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white py-3 rounded-xl font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center disabled:opacity-70"
+            className="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white py-3 rounded-xl font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center disabled:opacity-70 mt-6"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
