@@ -94,8 +94,8 @@ const DetailModalBook = ({ item, type, onClose }) => {
 
   // ☁️ Subir imagen a Cloudinary
   const uploadToCloudinary = async (file) => {
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME
+    const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET
     if (!cloudName || !uploadPreset) {
       alert("⚠️ No se configuraron variables de Cloudinary.");
       return null;
