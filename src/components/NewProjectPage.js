@@ -22,13 +22,19 @@ const NewProjectPage = () => {
 
   // 🔹 Subir imagen a Cloudinary
   const uploadToCloudinary = async (file) => {
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-
+    // ✅ Detección automática: usa VITE_ primero, y si no existen, usa las normales.
+    const cloudName =
+      import.meta.env?.VITE_CLOUDINARY_CLOUD_NAME ||
+      process.env?.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset =
+      import.meta.env?.VITE_CLOUDINARY_UPLOAD_PRESET ||
+      process.env?.CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      console.error("⚠️ Faltan variables de entorno de Cloudinary en Netlify.");
-      alert("No se pudo conectar con Cloudinary (faltan variables).");
+      console.error("⚠️ Faltan variables de entorno de Cloudinary.");
+      alert(
+        "No se pudo conectar con Cloudinary. Verifica las variables de entorno en Netlify."
+      );
       return null;
     }
 
@@ -47,7 +53,10 @@ const NewProjectPage = () => {
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error?.message || "Error al subir imagen");
+      if (!res.ok)
+        throw new Error(data.error?.message || "Error al subir imagen");
+
+      console.log("✅ Imagen subida a Cloudinary:", data.secure_url);
       return data.secure_url;
     } catch (err) {
       console.error("❌ Error subiendo imagen:", err);
@@ -55,6 +64,7 @@ const NewProjectPage = () => {
       return null;
     }
   };
+
 
   // 🔹 Subir imágenes adicionales
   const handleExtraImages = async (e) => {
