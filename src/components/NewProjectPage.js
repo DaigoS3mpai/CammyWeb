@@ -21,49 +21,43 @@ const NewProjectPage = () => {
   const navigate = useNavigate();
 
   // 🔹 Subir imagen a Cloudinary
-  const uploadToCloudinary = async (file) => {
-    // ✅ Detección automática: usa VITE_ primero, y si no existen, usa las normales.
-    const cloudName =
-      import.meta.env?.VITE_CLOUDINARY_CLOUD_NAME ||
-      process.env?.CLOUDINARY_CLOUD_NAME;
-    const uploadPreset =
-      import.meta.env?.VITE_CLOUDINARY_UPLOAD_PRESET ||
-      process.env?.CLOUDINARY_UPLOAD_PRESET;
+  // 🔹 Subir imagen a Cloudinary (versión final para Vite)
+const uploadToCloudinary = async (file) => {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
-    if (!cloudName || !uploadPreset) {
-      console.error("⚠️ Faltan variables de entorno de Cloudinary.");
-      alert(
-        "No se pudo conectar con Cloudinary. Verifica las variables de entorno en Netlify."
-      );
-      return null;
-    }
+  console.log("🌐 Cloudinary vars:", { cloudName, uploadPreset });
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", uploadPreset);
+  if (!cloudName || !uploadPreset) {
+    console.error("⚠️ Faltan variables de entorno de Cloudinary.");
+    alert("No se pudo conectar con Cloudinary. Verifica las variables en Netlify.");
+    return null;
+  }
 
-    try {
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", uploadPreset);
 
-      const data = await res.json();
+  try {
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
 
-      if (!res.ok)
-        throw new Error(data.error?.message || "Error al subir imagen");
+    const data = await res.json();
 
-      console.log("✅ Imagen subida a Cloudinary:", data.secure_url);
-      return data.secure_url;
-    } catch (err) {
-      console.error("❌ Error subiendo imagen:", err);
-      alert("No se pudo subir la imagen. Intenta nuevamente.");
-      return null;
-    }
-  };
+    if (!res.ok) throw new Error(data.error?.message || "Error al subir imagen");
+    console.log("✅ Imagen subida a Cloudinary:", data.secure_url);
+    return data.secure_url;
+  } catch (err) {
+    console.error("❌ Error subiendo imagen:", err);
+    alert("No se pudo subir la imagen. Intenta nuevamente.");
+    return null;
+  }
+};
 
 
   // 🔹 Subir imágenes adicionales
