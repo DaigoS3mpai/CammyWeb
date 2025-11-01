@@ -1,115 +1,135 @@
-import React from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  useLocation,
-  Navigate,
-} from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
-import Navbar from "./components/Navbar";
-import HomePage from "./components/HomePage";
-import LoginPage from "./components/LoginPage";
-import RegisterPage from "./components/RegisterPage";
-import NewClassPage from "./components/NewClassPage";
-import CategoryPage from "./components/CategoryPage";
-import GalleryPage from "./components/GalleryPage";
-import NewProjectPage from "./components/NewProjectPage";
-import { AuthProvider, useAuth } from "./components/AuthContext";
+import React from 'react';
+import { motion } from 'framer-motion';
+import { UploadCloud, Eye, BookOpenText, FlaskConical, Image } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useAuth } from './AuthContext';
 
-// 🔹 Páginas nuevas (puedes ajustarlas luego)
-const BitacoraPage = () => (
-  <div className="p-10 text-center">
-    <h1 className="text-4xl font-bold text-pink-600 mb-4">Bitácora</h1>
-    <p className="text-gray-700">Aquí se mostrarán las experiencias y reflexiones 💭.</p>
-  </div>
-);
-
-const ProyectosPage = () => (
-  <div className="p-10 text-center">
-    <h1 className="text-4xl font-bold text-yellow-600 mb-4">Proyectos</h1>
-    <p className="text-gray-700">Explora los trabajos y actividades 🧩.</p>
-  </div>
-);
-
-const GaleriaPage = () => (
-  <div className="p-10 text-center">
-    <h1 className="text-4xl font-bold text-purple-600 mb-4">Galería</h1>
-    <p className="text-gray-700">Mira fotos y momentos destacados 📸.</p>
-  </div>
-);
-
-// 🔹 Rutas con animación
-const AnimatedRoutes = () => {
-  const location = useLocation();
-  const { isAuthenticated, isAdmin } = useAuth();
+const HomePage = () => {
+  const { isAdmin, isAuthenticated } = useAuth();
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        {/* 🔓 Rutas públicas */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+    <motion.div
+      className="flex-1 p-10 flex flex-col items-center justify-center text-center relative min-h-screen overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8 }}
+      style={{
+        backgroundImage:
+          "url('https://media.istockphoto.com/id/1451763983/es/foto/fondo-de-textura-de-papel-blanco.jpg?s=612x612&w=0&k=20&c=DKziAxjjLEt5ChPqT5pmpL13Q1FVl6tGB7n7x16xorY=')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
+    >
+      {/* Capas translúcidas para contraste */}
+      <div className="absolute inset-0 bg-white bg-opacity-30 backdrop-blur-[2px]"></div>
+      <div className="absolute inset-0 bg-white bg-opacity-20 backdrop-blur-md"></div>
 
-        {/* 🌍 Rutas visibles para todos (autenticados o no) */}
-        <Route path="/category/:categoryName" element={<CategoryPage />} />
-        <Route path="/gallery" element={<GalleryPage />} />
+      {/* Contenido central */}
+      <div className="relative z-10 flex flex-col items-center">
+        <motion.h1
+          className="text-6xl font-extrabold text-gray-900 mb-4 leading-tight drop-shadow-md"
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+        >
+          Bienvenido a{' '}
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-purple-700">
+            CammyWeb
+          </span>
+        </motion.h1>
 
-        {/* 🆕 Rutas nuevas del HomePage (solo visibles para no logeados) */}
-        <Route path="/bitacora" element={<BitacoraPage />} />
-        <Route path="/proyectos" element={<ProyectosPage />} />
-        <Route path="/galeria" element={<GaleriaPage />} />
+        <motion.p
+          className="text-lg md:text-xl text-gray-800 mb-10 max-w-3xl leading-relaxed bg-white bg-opacity-60 p-6 rounded-3xl shadow-lg border border-pink-200"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+        >
+          Hola, soy{' '}
+          <span className="font-semibold text-purple-700">Camila Aguierre</span>, estudiante de
+          <span className="italic"> Pedagogía en Educación Básica </span> de la Universidad de Chile.  
+          Este es mi proyecto para la asignatura{' '}
+          <span className="italic">Proyecto Tecnológico</span>, donde compartiré mis clases y los proyectos
+          que realizaremos en conjunto con mis compañeros, dándoles un enfoque{' '}
+          <span className="font-bold text-pink-500">pedagógico y didáctico</span> para fomentar la enseñanza
+          y aprendizaje de nuestros futuros estudiantes. 🌸✨
+        </motion.p>
 
-        {/* 👑 Solo para administradores */}
-        {isAdmin() && (
-          <>
-            <Route path="/new-class" element={<NewClassPage />} />
-            <Route path="/newproject" element={<NewProjectPage />} />
-          </>
-        )}
+        {/* Opciones dinámicas */}
+        <div className="flex flex-col md:flex-row flex-wrap justify-center gap-8">
+          {/* 👤 Si el usuario está logueado */}
+          {isAuthenticated() && (
+            <>
+              <Link
+                to="/category/bitacora"
+                className="flex flex-col items-center p-6 rounded-3xl shadow-xl border border-blue-200 bg-white bg-opacity-70 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+              >
+                <Eye className="w-12 h-12 text-blue-500 mb-3" />
+                <h3 className="text-lg font-semibold text-gray-800">Visualizar Apuntes</h3>
+                <p className="text-gray-600 text-sm mt-1">
+                  Explora el conocimiento existente 📖✨.
+                </p>
+              </Link>
 
-        {/* 🚫 Protección: si no está logueado e intenta acceder a páginas admin */}
-        {!isAuthenticated() && (
-          <>
-            <Route
-              path="/new-class"
-              element={<Navigate to="/login" replace />}
-            />
-            <Route
-              path="/newproject"
-              element={<Navigate to="/login" replace />}
-            />
-          </>
-        )}
+              {isAdmin() && (
+                <Link
+                  to="/new-class"
+                  className="flex flex-col items-center p-6 rounded-3xl shadow-xl border border-green-200 bg-white bg-opacity-70 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+                >
+                  <UploadCloud className="w-12 h-12 text-green-500 mb-3" />
+                  <h3 className="text-lg font-semibold text-gray-800">Subir Contenidos</h3>
+                  <p className="text-gray-600 text-sm mt-1">
+                    Añade nuevas clases y apuntes 📚💡.
+                  </p>
+                </Link>
+              )}
+            </>
+          )}
 
-        {/* 🧭 Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AnimatePresence>
+          {/* 🚪 Si el usuario NO está logueado */}
+          {!isAuthenticated() && (
+            <>
+              <Link
+                to="/category/bitacora"
+                className="flex flex-col items-center p-6 rounded-3xl shadow-xl border border-blue-200 bg-white bg-opacity-70 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+              >
+                <BookOpenText className="w-12 h-12 text-blue-500 mb-3" />
+                <h3 className="text-lg font-semibold text-gray-800">Bitácora</h3>
+                <p className="text-gray-600 text-sm mt-1">
+                  Explora reflexiones y experiencias 📖✨.
+                </p>
+              </Link>
+
+              <Link
+                to="/category/proyectos"
+                className="flex flex-col items-center p-6 rounded-3xl shadow-xl border border-purple-200 bg-white bg-opacity-70 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+              >
+                <FlaskConical className="w-12 h-12 text-purple-500 mb-3" />
+                <h3 className="text-lg font-semibold text-gray-800">Proyectos</h3>
+                <p className="text-gray-600 text-sm mt-1">
+                  Mira los trabajos y actividades 🧩.
+                </p>
+              </Link>
+
+              <Link
+                to="/category/galeria"
+                className="flex flex-col items-center p-6 rounded-3xl shadow-xl border border-pink-200 bg-white bg-opacity-70 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+              >
+                <Image className="w-12 h-12 text-pink-500 mb-3" />
+                <h3 className="text-lg font-semibold text-gray-800">Galería</h3>
+                <p className="text-gray-600 text-sm mt-1">
+                  Descubre momentos y fotografías 📸.
+                </p>
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </motion.div>
   );
 };
 
-// 🔹 Layout principal
-const AppContent = () => {
-  return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
-      {/* ✅ Navbar siempre visible (muestra login/logout dinámicamente) */}
-      <Navbar />
-      <main className="flex-1">
-        <AnimatedRoutes />
-      </main>
-    </div>
-  );
-};
-
-// 🔹 App raíz
-const App = () => (
-  <Router>
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  </Router>
-);
-
-export default App;
+export default HomePage;
