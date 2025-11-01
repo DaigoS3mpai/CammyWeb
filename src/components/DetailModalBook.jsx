@@ -12,6 +12,8 @@ import {
   Save,
   ArrowLeftCircle,
   ArrowRightCircle,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -25,21 +27,22 @@ const DetailModalBook = ({ item, type, onClose }) => {
   const [editMode, setEditMode] = useState(false);
   const [titulo, setTitulo] = useState(item?.titulo || "");
   const [descripcion, setDescripcion] = useState(item?.descripcion || "");
-  const [page, setPage] = useState(1); // 1: Info, 2: Galería
+  const [page, setPage] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [allProyectos, setAllProyectos] = useState([]); // para selector
+  const [proyectoId, setProyectoId] = useState(item?.proyecto_id || "");
+  const [uploading, setUploading] = useState(false);
+  const [nuevasImagenes, setNuevasImagenes] = useState([]);
 
-  // 🔹 Cargar título del proyecto vinculado
+  // 🔹 Cargar lista de proyectos para selector
   useEffect(() => {
-    if (type === "bitacora" && item?.proyecto_id && !item.proyecto_titulo) {
+    if (type === "bitacora") {
       fetch("/.netlify/functions/getProyectos")
         .then((res) => res.json())
-        .then((data) => {
-          const proyecto = data.find((p) => p.id === item.proyecto_id);
-          setProyectoTitulo(proyecto ? proyecto.titulo : null);
-        })
-        .catch(() => setProyectoTitulo(null));
+        .then((data) => setAllProyectos(data))
+        .catch(() => setAllProyectos([]));
     }
-  }, [item, type]);
+  }, [type]);
 
   // 🔹 Cargar clases vinculadas a un proyecto
   useEffect(() => {
@@ -74,7 +77,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
     exit: { rotateY: -90, opacity: 0, scale: 0.9 },
   };
 
-  // 🔁 Navegar al proyecto vinculado o clase vinculada
+  // 🔁 Navegar a proyecto o clase vinculada
   const handleNavigate = (id, destino) => {
     if (!id) return;
     if (destino === "proyecto") {
@@ -87,6 +90,27 @@ const DetailModalBook = ({ item, type, onClose }) => {
       navigate("/category/bitacora");
     }
     onClose(true);
+  };
+
+  // ☁️ Subir imagen a Cloudinary
+  const uploadToCloudinary = async (file) => {
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    if (!cloudName || !uploadPreset) {
+      alert("⚠️ No se configuraron variables de Cloudinary.");
+      return null;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    return data.secure_url;
   };
 
   // 📝 Guardar cambios
@@ -103,17 +127,36 @@ const DetailModalBook = ({ item, type, onClose }) => {
           ? "/.netlify/functions/updateProyecto"
           : "/.netlify/functions/updateClase";
 
+      const payload =
+        type === "bitacora"
+          ? { id: item.id, titulo, descripcion, proyecto_id: proyectoId }
+          : { id: item.id, titulo, descripcion };
+
       const res = await fetch(endpoint, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: item.id,
-          titulo,
-          descripcion,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) throw new Error("Error al guardar cambios");
+
+      // 🔹 Si se agregaron imágenes nuevas
+      if (type === "proyectos" && nuevasImagenes.length > 0) {
+        for (const file of nuevasImagenes) {
+          const url = await uploadToCloudinary(file);
+          if (url) {
+            await fetch("/.netlify/functions/addImagen", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                imagen_url: url,
+                descripcion: `Imagen agregada a ${titulo}`,
+                proyecto_id: item.id,
+              }),
+            });
+          }
+        }
+      }
 
       alert("✅ Cambios guardados correctamente");
       setEditMode(false);
@@ -136,10 +179,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
           exit={{ opacity: 0 }}
           onClick={() => onClose(false)}
         >
-          <motion.div
-            className="relative perspective-1000"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <motion.div className="relative perspective-1000" onClick={(e) => e.stopPropagation()}>
             <motion.div
               className="relative bg-gradient-to-br from-[#f9f8f5] to-[#f3f2ee] shadow-2xl rounded-2xl w-full max-w-7xl flex overflow-hidden border border-[#d8d5cc]"
               variants={bookVariants}
@@ -165,7 +205,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                       disabled={saving}
                       className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 shadow-md"
                     >
-                      <Save className="w-5 h-5" />
+                      {saving ? <Loader2 className="animate-spin w-5 h-5" /> : <Save className="w-5 h-5" />}
                     </button>
                     <button
                       onClick={() => setEditMode(false)}
@@ -218,25 +258,32 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     </div>
                   )}
 
-                  {/* Proyecto vinculado (en clase) */}
+                  {/* Proyecto vinculado (solo en bitácora) */}
                   {type === "bitacora" && (
                     <div className="mb-5">
                       <div className="flex items-center mb-1">
                         <Layers className="w-5 h-5 text-purple-600 mr-2" />
-                        <h3 className="text-lg font-semibold text-gray-700">
-                          Proyecto vinculado
-                        </h3>
+                        <h3 className="text-lg font-semibold text-gray-700">Proyecto vinculado</h3>
                       </div>
-                      {item.proyecto_id ? (
+                      {editMode ? (
+                        <select
+                          value={proyectoId || ""}
+                          onChange={(e) => setProyectoId(e.target.value)}
+                          className="w-full border border-gray-300 rounded-xl p-2"
+                        >
+                          <option value="">Sin vincular</option>
+                          {allProyectos.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.titulo}
+                            </option>
+                          ))}
+                        </select>
+                      ) : item.proyecto_id ? (
                         <button
-                          onClick={() =>
-                            handleNavigate(item.proyecto_id, "proyecto")
-                          }
+                          onClick={() => handleNavigate(item.proyecto_id, "proyecto")}
                           className="text-purple-600 hover:underline font-semibold"
                         >
-                          {item.proyecto_titulo ||
-                            proyectoTitulo ||
-                            `Proyecto #${item.proyecto_id}`}
+                          {item.proyecto_titulo || proyectoTitulo || `Proyecto #${item.proyecto_id}`}
                         </button>
                       ) : (
                         <p className="text-gray-500 italic">Sin proyecto vinculado.</p>
@@ -244,14 +291,12 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     </div>
                   )}
 
-                  {/* Clases vinculadas (en proyecto) */}
+                  {/* Clases vinculadas (solo proyectos) */}
                   {type === "proyectos" && (
                     <div className="mb-5">
                       <div className="flex items-center mb-1">
                         <BookOpen className="w-5 h-5 text-blue-600 mr-2" />
-                        <h3 className="text-lg font-semibold text-gray-700">
-                          Clases vinculadas
-                        </h3>
+                        <h3 className="text-lg font-semibold text-gray-700">Clases vinculadas</h3>
                       </div>
                       {linkedClases.length > 0 ? (
                         <ul className="space-y-2">
@@ -298,7 +343,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                 transition={{ delay: 0.25, duration: 0.6, ease: "easeOut" }}
               >
                 {page === 1 ? (
-                  <div>
+                  <>
                     <div className="flex items-center mb-3">
                       <FileText className="w-5 h-5 text-green-600 mr-2" />
                       <h3 className="text-2xl font-semibold text-gray-800">Descripción</h3>
@@ -315,12 +360,26 @@ const DetailModalBook = ({ item, type, onClose }) => {
                         {descripcion || "Sin descripción disponible."}
                       </div>
                     )}
-                  </div>
-                ) : (
-                  <div>
+                  </>
+                ) : type === "proyectos" ? (
+                  <>
                     <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
                       <ImageIcon className="w-5 h-5 text-pink-500 mr-2" /> Galería completa
                     </h3>
+                    {editMode && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">
+                          Agregar imágenes nuevas:
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={(e) => setNuevasImagenes(Array.from(e.target.files))}
+                          className="border border-gray-300 rounded-lg p-2 w-full"
+                        />
+                      </div>
+                    )}
                     {item.imagenes?.length > 0 ? (
                       <div className="grid grid-cols-2 gap-3">
                         {item.imagenes.map((img) => (
@@ -336,7 +395,9 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     ) : (
                       <p className="text-gray-500 italic">Sin imágenes adicionales.</p>
                     )}
-                  </div>
+                  </>
+                ) : (
+                  <p className="text-gray-500 italic">Sin galería para esta clase.</p>
                 )}
 
                 {/* 📖 Control de páginas */}
@@ -349,14 +410,16 @@ const DetailModalBook = ({ item, type, onClose }) => {
                   >
                     <ArrowLeftCircle className="w-5 h-5 mr-1" /> Página 1
                   </button>
-                  <button
-                    onClick={() => setPage(2)}
-                    className={`flex items-center text-sm font-semibold ${
-                      page === 2 ? "text-blue-600" : "text-gray-500"
-                    }`}
-                  >
-                    Página 2 <ArrowRightCircle className="w-5 h-5 ml-1" />
-                  </button>
+                  {type === "proyectos" && (
+                    <button
+                      onClick={() => setPage(2)}
+                      className={`flex items-center text-sm font-semibold ${
+                        page === 2 ? "text-blue-600" : "text-gray-500"
+                      }`}
+                    >
+                      Página 2 <ArrowRightCircle className="w-5 h-5 ml-1" />
+                    </button>
+                  )}
                 </div>
               </motion.div>
             </motion.div>
