@@ -20,11 +20,14 @@ const NewProjectPage = () => {
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
 
-  // 🔹 Subir imagen a Cloudinary
-  // 🔹 Subir imagen a Cloudinary (versión final para Vite)
+// 🔹 Subir imagen a Cloudinary (compatible con CRA y Netlify)
 const uploadToCloudinary = async (file) => {
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+  const cloudName =
+    process.env.REACT_APP_CLOUDINARY_CLOUD_NAME ||
+    process.env.CLOUDINARY_CLOUD_NAME;
+  const uploadPreset =
+    process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET ||
+    process.env.CLOUDINARY_UPLOAD_PRESET;
 
   console.log("🌐 Cloudinary vars:", { cloudName, uploadPreset });
 
@@ -39,13 +42,10 @@ const uploadToCloudinary = async (file) => {
   formData.append("upload_preset", uploadPreset);
 
   try {
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: "POST",
+      body: formData,
+    });
 
     const data = await res.json();
 
@@ -58,6 +58,7 @@ const uploadToCloudinary = async (file) => {
     return null;
   }
 };
+
 
 
   // 🔹 Subir imágenes adicionales
