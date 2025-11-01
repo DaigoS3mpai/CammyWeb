@@ -11,12 +11,14 @@ import {
   Save,
   PlusCircle,
   Layers,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 
 const DetailModal = ({ item, type, onClose }) => {
   const { isAdmin } = useAuth();
   const [imagenes, setImagenes] = useState([]);
+  const [clases, setClases] = useState([]);
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
@@ -46,25 +48,28 @@ const DetailModal = ({ item, type, onClose }) => {
     }
   }, [item]);
 
-  // 🔹 Cargar imágenes asociadas si es un proyecto
+  // 🔹 Cargar imágenes y clases asociadas si es un proyecto
   useEffect(() => {
-    if (type === "proyectos" && item?.id) {
-      const fetchImagenes = async () => {
-        try {
-          const res = await fetch("/.netlify/functions/getGaleria");
-          const data = await res.json();
-          const relacionadas = data.filter((img) => img.proyecto_id === item.id);
-          setImagenes(relacionadas);
-        } catch (err) {
-          console.error("Error al cargar imágenes:", err);
-        } finally {
-          setLoading(false);
+    const fetchData = async () => {
+      try {
+        if (type === "proyectos" && item?.id) {
+          const [resGaleria, resClases] = await Promise.all([
+            fetch("/.netlify/functions/getGaleria"),
+            fetch("/.netlify/functions/getClases"),
+          ]);
+          const dataGaleria = await resGaleria.json();
+          const dataClases = await resClases.json();
+
+          setImagenes(dataGaleria.filter((img) => img.proyecto_id === item.id));
+          setClases(dataClases.filter((cls) => cls.proyecto_id === item.id));
         }
-      };
-      fetchImagenes();
-    } else {
-      setLoading(false);
-    }
+      } catch (err) {
+        console.error("Error al cargar datos:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, [item, type]);
 
   // 🔹 Cargar proyectos para vincular (solo en bitácora)
@@ -102,13 +107,10 @@ const DetailModal = ({ item, type, onClose }) => {
 
       if (res.ok) {
         alert("✅ Cambios guardados correctamente");
-
-        // 🔁 Forzar recarga de categorías relacionadas
         localStorage.setItem("reloadProyectos", "true");
         localStorage.setItem("reloadBitacora", "true");
-
         setEditMode(false);
-        onClose(true); // 🔁 Actualiza automáticamente la lista principal
+        onClose(true);
       } else {
         alert("❌ Error al guardar: " + (data.error || "Error desconocido"));
       }
@@ -128,23 +130,17 @@ const DetailModal = ({ item, type, onClose }) => {
     const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
 
-    if (!cloudName || !uploadPreset) {
-      alert("⚠️ Faltan variables de Cloudinary en Netlify.");
-      return;
-    }
-
     const formDataImg = new FormData();
     formDataImg.append("file", file);
     formDataImg.append("upload_preset", uploadPreset);
 
     try {
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: "POST",
-        body: formDataImg,
-      });
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: "POST", body: formDataImg }
+      );
 
       const data = await res.json();
-
       if (res.ok) {
         setFormData((prev) => ({ ...prev, imagen_portada: data.secure_url }));
       } else {
@@ -170,16 +166,14 @@ const DetailModal = ({ item, type, onClose }) => {
       formDataImg.append("file", file);
       formDataImg.append("upload_preset", uploadPreset);
 
-      // Subir a Cloudinary
-      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: "POST",
-        body: formDataImg,
-      });
+      const uploadRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: "POST", body: formDataImg }
+      );
 
       const uploadData = await uploadRes.json();
       if (!uploadRes.ok) throw new Error(uploadData.error?.message || "Error subiendo imagen");
 
-      // Guardar en DB
       const dbRes = await fetch("/.netlify/functions/addImagen", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -293,7 +287,7 @@ const DetailModal = ({ item, type, onClose }) => {
             <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
               <div className="flex items-center mb-3">
                 <Calendar className="w-5 h-5 text-blue-600 mr-2" />
-                <h3 className="text-xl font-semibold text-gray-800">Fecha</h3>
+                <h3 className="text-xl font-semibold text-gray-800">Fecha del proyecto</h3>
               </div>
               {isAdmin() && editMode ? (
                 <input
@@ -343,14 +337,18 @@ const DetailModal = ({ item, type, onClose }) => {
                       </option>
                     ))}
                   </select>
+                ) : formData.proyecto_id ? (
+                  <button
+                    onClick={() => {
+                      localStorage.setItem("openProyectoId", formData.proyecto_id);
+                      onClose(true);
+                    }}
+                    className="text-purple-600 font-semibold hover:underline"
+                  >
+                    {item.proyecto_titulo || `Proyecto #${formData.proyecto_id}`}
+                  </button>
                 ) : (
-                  <p className="text-gray-700 text-lg font-medium">
-                    {item.proyecto_titulo
-                      ? item.proyecto_titulo
-                      : formData.proyecto_id
-                      ? `Proyecto #${formData.proyecto_id}`
-                      : "Sin proyecto vinculado."}
-                  </p>
+                  <p className="text-gray-500 italic">Sin proyecto vinculado.</p>
                 )}
               </section>
             )}
@@ -387,55 +385,89 @@ const DetailModal = ({ item, type, onClose }) => {
               )}
             </section>
 
-            {/* Galería del proyecto */}
+            {/* Galería */}
             {type === "proyectos" && (
-              <section>
-                <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <ImageIcon className="w-6 h-6 mr-2 text-pink-500" /> Galería del Proyecto
-                </h3>
-                {isAdmin() && (
-                  <div className="text-center mb-6">
-                    <label className="inline-flex items-center bg-pink-500 text-white px-6 py-3 rounded-xl font-semibold shadow-md hover:bg-pink-600 cursor-pointer">
-                      <PlusCircle className="w-5 h-5 mr-2" />
-                      {uploadingGallery ? "Subiendo..." : "Agregar imagen a galería"}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleGalleryUpload}
-                        disabled={uploadingGallery}
-                      />
-                    </label>
-                  </div>
-                )}
-
-                {loading ? (
-                  <div className="flex justify-center items-center py-10">
-                    <Loader2 className="animate-spin w-8 h-8 text-pink-500" />
-                  </div>
-                ) : imagenes.length === 0 ? (
-                  <p className="text-gray-500 italic">No hay imágenes asociadas.</p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {imagenes.map((img) => (
-                      <motion.div
-                        key={img.id}
-                        className="rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all"
-                        whileHover={{ scale: 1.03 }}
-                      >
-                        <img
-                          src={img.imagen_url}
-                          alt={img.descripcion || "Imagen"}
-                          className="w-full h-48 object-cover"
+              <>
+                <section>
+                  <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <ImageIcon className="w-6 h-6 mr-2 text-pink-500" /> Galería del Proyecto
+                  </h3>
+                  {isAdmin() && (
+                    <div className="text-center mb-6">
+                      <label className="inline-flex items-center bg-pink-500 text-white px-6 py-3 rounded-xl font-semibold shadow-md hover:bg-pink-600 cursor-pointer">
+                        <PlusCircle className="w-5 h-5 mr-2" />
+                        {uploadingGallery ? "Subiendo..." : "Agregar imagen a galería"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleGalleryUpload}
+                          disabled={uploadingGallery}
                         />
-                        <div className="p-3 text-sm text-gray-600 text-center bg-gray-50">
-                          {img.descripcion || "Sin descripción"}
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </section>
+                      </label>
+                    </div>
+                  )}
+
+                  {loading ? (
+                    <div className="flex justify-center items-center py-10">
+                      <Loader2 className="animate-spin w-8 h-8 text-pink-500" />
+                    </div>
+                  ) : imagenes.length === 0 ? (
+                    <p className="text-gray-500 italic">No hay imágenes asociadas.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {imagenes.map((img) => (
+                        <motion.div
+                          key={img.id}
+                          className="rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all"
+                          whileHover={{ scale: 1.03 }}
+                        >
+                          <img
+                            src={img.imagen_url}
+                            alt={img.descripcion || "Imagen"}
+                            className="w-full h-48 object-cover"
+                          />
+                          <div className="p-3 text-sm text-gray-600 text-center bg-gray-50">
+                            {img.descripcion || "Sin descripción"}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* Clases vinculadas */}
+                <section>
+                  <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <BookOpen className="w-6 h-6 mr-2 text-blue-500" /> Clases vinculadas
+                  </h3>
+                  {loading ? (
+                    <div className="flex justify-center items-center py-6">
+                      <Loader2 className="animate-spin w-6 h-6 text-blue-500" />
+                    </div>
+                  ) : clases.length === 0 ? (
+                    <p className="text-gray-500 italic">
+                      No hay clases vinculadas a este proyecto.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {clases.map((clase) => (
+                        <li key={clase.id}>
+                          <button
+                            onClick={() => {
+                              localStorage.setItem("openClaseId", clase.id);
+                              onClose(true);
+                            }}
+                            className="text-blue-600 font-semibold hover:underline"
+                          >
+                            {clase.titulo}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              </>
             )}
           </div>
         </motion.div>

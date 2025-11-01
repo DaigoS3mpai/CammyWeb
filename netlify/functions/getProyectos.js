@@ -19,13 +19,9 @@ export const handler = async () => {
         p.fecha_inicio,
         p.imagen_portada,
 
-        -- 🔹 Contador de clases vinculadas (desde bitácora)
         COUNT(DISTINCT b.id) AS clase_count,
-
-        -- 🔹 Contador de imágenes vinculadas (desde galería)
         COUNT(DISTINCT g.id) AS imagen_count,
 
-        -- 🔹 JSON con las imágenes del proyecto
         COALESCE(
           JSON_AGG(
             DISTINCT JSONB_BUILD_OBJECT(
@@ -35,7 +31,19 @@ export const handler = async () => {
             )
           ) FILTER (WHERE g.id IS NOT NULL),
           '[]'
-        ) AS imagenes
+        ) AS imagenes,
+
+        -- 🔹 Lista de clases vinculadas
+        COALESCE(
+          JSON_AGG(
+            DISTINCT JSONB_BUILD_OBJECT(
+              'id', b.id,
+              'titulo', b.titulo,
+              'fecha', b.fecha
+            )
+          ) FILTER (WHERE b.id IS NOT NULL),
+          '[]'
+        ) AS clases
 
       FROM proyectos p
       LEFT JOIN bitacora b ON b.proyecto_id = p.id
@@ -43,6 +51,7 @@ export const handler = async () => {
       GROUP BY p.id
       ORDER BY p.fecha_inicio DESC;
     `);
+
 
     await client.end();
 
