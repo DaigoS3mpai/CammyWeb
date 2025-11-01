@@ -17,6 +17,28 @@ import GalleryPage from "./components/GalleryPage";
 import NewProjectPage from "./components/NewProjectPage";
 import { AuthProvider, useAuth } from "./components/AuthContext";
 
+// 🔹 Páginas nuevas (puedes ajustarlas luego)
+const BitacoraPage = () => (
+  <div className="p-10 text-center">
+    <h1 className="text-4xl font-bold text-pink-600 mb-4">Bitácora</h1>
+    <p className="text-gray-700">Aquí se mostrarán las experiencias y reflexiones 💭.</p>
+  </div>
+);
+
+const ProyectosPage = () => (
+  <div className="p-10 text-center">
+    <h1 className="text-4xl font-bold text-yellow-600 mb-4">Proyectos</h1>
+    <p className="text-gray-700">Explora los trabajos y actividades 🧩.</p>
+  </div>
+);
+
+const GaleriaPage = () => (
+  <div className="p-10 text-center">
+    <h1 className="text-4xl font-bold text-purple-600 mb-4">Galería</h1>
+    <p className="text-gray-700">Mira fotos y momentos destacados 📸.</p>
+  </div>
+);
+
 // 🔹 Rutas con animación
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -33,6 +55,11 @@ const AnimatedRoutes = () => {
         {/* 🌍 Rutas visibles para todos (autenticados o no) */}
         <Route path="/category/:categoryName" element={<CategoryPage />} />
         <Route path="/gallery" element={<GalleryPage />} />
+
+        {/* 🆕 Rutas nuevas del HomePage (solo visibles para no logeados) */}
+        <Route path="/bitacora" element={<BitacoraPage />} />
+        <Route path="/proyectos" element={<ProyectosPage />} />
+        <Route path="/galeria" element={<GaleriaPage />} />
 
         {/* 👑 Solo para administradores */}
         {isAdmin() && (
