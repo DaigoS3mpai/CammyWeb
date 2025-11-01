@@ -22,9 +22,9 @@ const NewProjectPage = () => {
 
   // 🔹 Subir imagen a Cloudinary
   const uploadToCloudinary = async (file) => {
-    // ✅ Usa las variables de entorno de Netlify (ya configuradas sin VITE_)
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET;
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
 
     if (!cloudName || !uploadPreset) {
       console.error("⚠️ Faltan variables de entorno de Cloudinary en Netlify.");
