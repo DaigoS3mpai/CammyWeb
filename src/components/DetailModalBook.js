@@ -8,13 +8,19 @@ import {
   FileText,
   Layers,
   BookOpen,
+  Pencil,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const DetailModalBook = ({ item, type, onClose }) => {
   const { isAdmin } = useAuth();
-  const [proyectoTitulo, setProyectoTitulo] = useState(null);
+  const navigate = useNavigate();
 
+  const [proyectoTitulo, setProyectoTitulo] = useState(null);
+  const [linkedClases, setLinkedClases] = useState([]);
+
+  // 🔹 Cargar título del proyecto vinculado
   useEffect(() => {
     if (type === "bitacora" && item?.proyecto_id && !item.proyecto_titulo) {
       fetch("/.netlify/functions/getProyectos")
@@ -27,6 +33,19 @@ const DetailModalBook = ({ item, type, onClose }) => {
     }
   }, [item, type]);
 
+  // 🔹 Cargar clases vinculadas a un proyecto
+  useEffect(() => {
+    if (type === "proyectos" && item?.id) {
+      fetch("/.netlify/functions/getClases")
+        .then((res) => res.json())
+        .then((data) => {
+          const relacionadas = data.filter((c) => c.proyecto_id === item.id);
+          setLinkedClases(relacionadas);
+        })
+        .catch(() => setLinkedClases([]));
+    }
+  }, [item, type]);
+
   const fecha =
     item.fecha_inicio || item.fecha
       ? new Date(item.fecha_inicio || item.fecha).toLocaleDateString("es-CL", {
@@ -36,20 +55,30 @@ const DetailModalBook = ({ item, type, onClose }) => {
         })
       : null;
 
-  // 🔹 Variantes de animación 3D de apertura tipo libro
   const bookVariants = {
     hidden: { rotateY: 90, opacity: 0, scale: 0.9 },
     visible: {
       rotateY: 0,
       opacity: 1,
       scale: 1,
-      transition: {
-        type: "spring",
-        stiffness: 100,
-        damping: 18,
-      },
+      transition: { type: "spring", stiffness: 100, damping: 18 },
     },
     exit: { rotateY: -90, opacity: 0, scale: 0.9 },
+  };
+
+  // 🔁 Navegar al proyecto vinculado o clase vinculada
+  const handleNavigate = (id, destino) => {
+    if (!id) return;
+    if (destino === "proyecto") {
+      localStorage.setItem("openProyectoId", id);
+      localStorage.setItem("reloadProyectos", "true");
+      navigate("/category/proyectos");
+    } else {
+      localStorage.setItem("openClaseId", id);
+      localStorage.setItem("reloadBitacora", "true");
+      navigate("/category/bitacora");
+    }
+    onClose(true);
   };
 
   return (
@@ -72,20 +101,25 @@ const DetailModalBook = ({ item, type, onClose }) => {
               initial="hidden"
               animate="visible"
               exit="exit"
-              style={{
-                transformStyle: "preserve-3d",
-              }}
+              style={{ transformStyle: "preserve-3d" }}
             >
-              {/* Lomo del libro */}
-              <div className="absolute top-0 left-1/2 w-[5px] h-full bg-gradient-to-b from-[#c9c7c0] to-[#b6b4ac] shadow-inner z-10" />
-
-              {/* Botón cerrar */}
-              <button
-                onClick={() => onClose(false)}
-                className="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 rounded-full p-2 z-20"
-              >
-                <X className="w-5 h-5 text-gray-700" />
-              </button>
+              {/* Botones superiores */}
+              <div className="absolute top-4 right-4 flex space-x-2 z-20">
+                {isAdmin() && (
+                  <button
+                    onClick={() => alert("🛠️ Editar próximamente aquí")}
+                    className="bg-yellow-400 hover:bg-yellow-500 text-white rounded-full p-2 shadow-md"
+                  >
+                    <Pencil className="w-5 h-5" />
+                  </button>
+                )}
+                <button
+                  onClick={() => onClose(false)}
+                  className="bg-gray-100 hover:bg-gray-200 rounded-full p-2"
+                >
+                  <X className="w-5 h-5 text-gray-700" />
+                </button>
+              </div>
 
               {/* Página izquierda */}
               <motion.div
@@ -112,13 +146,14 @@ const DetailModalBook = ({ item, type, onClose }) => {
                       <div className="flex items-center mb-1">
                         <Calendar className="w-5 h-5 text-blue-600 mr-2" />
                         <h3 className="text-lg font-semibold text-gray-700">
-                          Fecha del proyecto
+                          Fecha
                         </h3>
                       </div>
                       <p className="text-gray-600">{fecha}</p>
                     </div>
                   )}
 
+                  {/* Proyecto vinculado (en clase) */}
                   {type === "bitacora" && (
                     <div className="mb-5">
                       <div className="flex items-center mb-1">
@@ -129,10 +164,9 @@ const DetailModalBook = ({ item, type, onClose }) => {
                       </div>
                       {item.proyecto_id ? (
                         <button
-                          onClick={() => {
-                            localStorage.setItem("openProyectoId", item.proyecto_id);
-                            onClose(true);
-                          }}
+                          onClick={() =>
+                            handleNavigate(item.proyecto_id, "proyecto")
+                          }
                           className="text-purple-600 hover:underline font-semibold"
                         >
                           {item.proyecto_titulo ||
@@ -145,6 +179,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     </div>
                   )}
 
+                  {/* Clases vinculadas (en proyecto) */}
                   {type === "proyectos" && (
                     <div className="mb-5">
                       <div className="flex items-center mb-1">
@@ -153,14 +188,21 @@ const DetailModalBook = ({ item, type, onClose }) => {
                           Clases vinculadas
                         </h3>
                       </div>
-                      {item.clase_count > 0 ? (
-                        <p className="text-gray-600">
-                          {item.clase_count} clases registradas.
-                        </p>
+                      {linkedClases.length > 0 ? (
+                        <ul className="space-y-2">
+                          {linkedClases.map((c) => (
+                            <li key={c.id}>
+                              <button
+                                onClick={() => handleNavigate(c.id, "clase")}
+                                className="text-blue-600 hover:underline font-medium"
+                              >
+                                {c.titulo}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
                       ) : (
-                        <p className="text-gray-500 italic">
-                          Sin clases vinculadas aún.
-                        </p>
+                        <p className="text-gray-500 italic">Sin clases vinculadas.</p>
                       )}
                     </div>
                   )}
@@ -204,7 +246,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                   </div>
                 </div>
 
-                {/* Galería (proyectos) */}
+                {/* Galería */}
                 {type === "proyectos" && item.imagenes?.length > 0 && (
                   <div className="mt-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">

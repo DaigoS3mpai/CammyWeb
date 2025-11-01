@@ -1,6 +1,13 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { PlusCircle, FlaskConical, Calendar, Image as ImageIcon, Upload, Loader2, X } from "lucide-react";
+import {
+  PlusCircle,
+  FlaskConical,
+  Calendar,
+  Image as ImageIcon,
+  Loader2,
+  X,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const NewProjectPage = () => {
@@ -15,41 +22,62 @@ const NewProjectPage = () => {
 
   // 🔹 Subir imagen a Cloudinary
   const uploadToCloudinary = async (file) => {
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_UPLOAD_PRESET;
+    // ✅ Usa las variables de entorno de Netlify (ya configuradas sin VITE_)
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      console.error("⚠️ Faltan variables de entorno de Cloudinary en Netlify.");
+      alert("No se pudo conectar con Cloudinary (faltan variables).");
+      return null;
+    }
 
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", uploadPreset);
 
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
-    const data = await res.json();
-    return data.secure_url;
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error?.message || "Error al subir imagen");
+      return data.secure_url;
+    } catch (err) {
+      console.error("❌ Error subiendo imagen:", err);
+      alert("No se pudo subir la imagen. Intenta nuevamente.");
+      return null;
+    }
   };
 
-  // 🔹 Manejar selección de imágenes extra
+  // 🔹 Subir imágenes adicionales
   const handleExtraImages = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
     setUploading(true);
     try {
-      const uploadPromises = files.map(uploadToCloudinary);
-      const urls = await Promise.all(uploadPromises);
+      const urls = [];
+      for (const file of files) {
+        const url = await uploadToCloudinary(file);
+        if (url) urls.push(url);
+      }
       setImagenesExtras((prev) => [...prev, ...urls]);
     } catch (err) {
-      console.error("Error al subir imágenes:", err);
+      console.error("Error al subir imágenes adicionales:", err);
       alert("❌ No se pudieron subir algunas imágenes.");
     } finally {
       setUploading(false);
     }
   };
 
-  // 🔹 Crear proyecto y guardar imágenes
+  // 🔹 Crear proyecto
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -61,7 +89,7 @@ const NewProjectPage = () => {
     setLoading(true);
 
     try {
-      // Crear proyecto
+      // 🟢 Crear proyecto
       const res = await fetch("/.netlify/functions/addProyecto", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,45 +103,55 @@ const NewProjectPage = () => {
 
       const data = await res.json();
 
-      if (res.ok) {
-        const proyectoId = data.proyecto.id;
-
-        // Subir portada a galería
-        if (imagenPortada) {
-          await fetch("/.netlify/functions/addImagen", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              imagen_url: imagenPortada,
-              descripcion: `Portada del proyecto ${titulo}`,
-              proyecto_id: proyectoId,
-            }),
-          });
-        }
-
-        // Subir imágenes extra
-        for (const url of imagenesExtras) {
-          await fetch("/.netlify/functions/addImagen", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              imagen_url: url,
-              descripcion: `Imagen adicional del proyecto ${titulo}`,
-              proyecto_id: proyectoId,
-            }),
-          });
-        }
-
-        alert("✅ Proyecto creado correctamente");
-        localStorage.setItem("reloadProyectos", "true");
-        localStorage.setItem("reloadGaleria", "true");
-
-        navigate("/category/proyectos");
-      } else {
-        alert("❌ Error: " + (data.error || "No se pudo crear el proyecto."));
+      if (!res.ok) {
+        throw new Error(data.error || "Error creando el proyecto.");
       }
+
+      const proyectoId = data.proyecto.id;
+
+      // 🖼️ Guardar portada en galería
+      if (imagenPortada) {
+        await fetch("/.netlify/functions/addImagen", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imagen_url: imagenPortada,
+            descripcion: `Portada del proyecto ${titulo}`,
+            proyecto_id: proyectoId,
+          }),
+        });
+      }
+
+      // 🖼️ Guardar imágenes adicionales
+      for (const url of imagenesExtras) {
+        await fetch("/.netlify/functions/addImagen", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imagen_url: url,
+            descripcion: `Imagen adicional del proyecto ${titulo}`,
+            proyecto_id: proyectoId,
+          }),
+        });
+      }
+
+      alert("✅ Proyecto creado correctamente.");
+
+      // 🔁 Actualizar categorías relacionadas
+      localStorage.setItem("reloadProyectos", "true");
+      localStorage.setItem("reloadGaleria", "true");
+
+      // 🔄 Limpiar formulario
+      setTitulo("");
+      setDescripcion("");
+      setFechaInicio("");
+      setImagenPortada("");
+      setImagenesExtras([]);
+
+      // 🚀 Redirigir
+      navigate("/category/proyectos");
     } catch (err) {
-      console.error("Error al crear proyecto:", err);
+      console.error("❌ Error al crear proyecto:", err);
       alert("Ocurrió un error al conectar con el servidor.");
     } finally {
       setLoading(false);
@@ -143,9 +181,11 @@ const NewProjectPage = () => {
         transition={{ delay: 0.4, duration: 0.5 }}
       >
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Título */}
+          {/* Nombre */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">Nombre del Proyecto *</label>
+            <label className="block text-gray-700 text-lg font-semibold mb-2">
+              Nombre del Proyecto *
+            </label>
             <div className="relative">
               <FlaskConical className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -161,11 +201,13 @@ const NewProjectPage = () => {
 
           {/* Descripción */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">Descripción</label>
+            <label className="block text-gray-700 text-lg font-semibold mb-2">
+              Descripción
+            </label>
             <textarea
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Describe brevemente de qué trata este proyecto..."
+              placeholder="Describe brevemente el proyecto..."
               rows="4"
               className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 text-lg resize-y"
             />
@@ -173,7 +215,9 @@ const NewProjectPage = () => {
 
           {/* Fecha */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">Fecha de Inicio *</label>
+            <label className="block text-gray-700 text-lg font-semibold mb-2">
+              Fecha de Inicio *
+            </label>
             <div className="relative">
               <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -186,29 +230,42 @@ const NewProjectPage = () => {
             </div>
           </div>
 
-          {/* Portada */}
+          {/* Imagen principal */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">Imagen principal (portada)</label>
+            <label className="block text-gray-700 text-lg font-semibold mb-2">
+              Imagen principal (portada)
+            </label>
             <input
               type="file"
               accept="image/*"
               onChange={async (e) => {
-                if (e.target.files[0]) {
+                const file = e.target.files[0];
+                if (file) {
                   setUploading(true);
-                  const url = await uploadToCloudinary(e.target.files[0]);
-                  setImagenPortada(url);
+                  const url = await uploadToCloudinary(file);
+                  if (url) setImagenPortada(url);
                   setUploading(false);
                 }
               }}
               className="w-full border border-gray-300 rounded-xl p-2"
             />
-            {uploading && <Loader2 className="animate-spin w-6 h-6 mt-2 text-green-500" />}
-            {imagenPortada && <img src={imagenPortada} alt="Portada" className="w-full mt-3 rounded-xl shadow-md" />}
+            {uploading && (
+              <Loader2 className="animate-spin w-6 h-6 mt-2 text-green-500" />
+            )}
+            {imagenPortada && (
+              <img
+                src={imagenPortada}
+                alt="Portada"
+                className="w-full mt-3 rounded-xl shadow-md"
+              />
+            )}
           </div>
 
           {/* Imágenes adicionales */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">Imágenes adicionales (opcionales)</label>
+            <label className="block text-gray-700 text-lg font-semibold mb-2">
+              Imágenes adicionales (opcionales)
+            </label>
             <input
               type="file"
               accept="image/*"
@@ -216,15 +273,25 @@ const NewProjectPage = () => {
               onChange={handleExtraImages}
               className="w-full border border-gray-300 rounded-xl p-2"
             />
-            {uploading && <Loader2 className="animate-spin w-6 h-6 mt-2 text-green-500" />}
+            {uploading && (
+              <Loader2 className="animate-spin w-6 h-6 mt-2 text-green-500" />
+            )}
             <div className="grid grid-cols-3 gap-3 mt-3">
               {imagenesExtras.map((img, i) => (
                 <div key={i} className="relative group">
-                  <img src={img} alt={`Extra ${i + 1}`} className="rounded-lg shadow-md" />
+                  <img
+                    src={img}
+                    alt={`Extra ${i + 1}`}
+                    className="rounded-lg shadow-md"
+                  />
                   <button
                     type="button"
-                    onClick={() => setImagenesExtras(imagenesExtras.filter((_, idx) => idx !== i))}
-                    className="absolute top-1 right-1 bg-white text-red-500 rounded-full p-1 shadow group-hover:opacity-100 opacity-0 transition"
+                    onClick={() =>
+                      setImagenesExtras((prev) =>
+                        prev.filter((_, idx) => idx !== i)
+                      )
+                    }
+                    className="absolute top-1 right-1 bg-white text-red-500 rounded-full p-1 shadow opacity-0 group-hover:opacity-100 transition"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -233,35 +300,7 @@ const NewProjectPage = () => {
             </div>
           </div>
 
-          {/* Vista previa del proyecto */}
-          {(titulo || descripcion || imagenPortada || imagenesExtras.length > 0) && (
-            <div className="mt-8 border-t pt-6">
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Vista previa del proyecto</h3>
-
-              {imagenPortada && (
-                <img src={imagenPortada} alt="Portada preview" className="w-full rounded-xl shadow mb-4" />
-              )}
-
-              <h4 className="text-xl font-semibold text-gray-900">{titulo || "Sin título"}</h4>
-              <p className="text-gray-600 mt-2">{descripcion || "Sin descripción"}</p>
-
-              {fechaInicio && (
-                <p className="text-sm text-gray-500 mt-2">
-                  Fecha de inicio: {new Date(fechaInicio).toLocaleDateString("es-CL")}
-                </p>
-              )}
-
-              {imagenesExtras.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
-                  {imagenesExtras.map((img, i) => (
-                    <img key={i} src={img} alt={`Preview ${i + 1}`} className="rounded-lg shadow" />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Botón crear */}
+          {/* Botón Crear */}
           <motion.button
             type="submit"
             disabled={loading || uploading}
