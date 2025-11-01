@@ -7,7 +7,6 @@ import {
   Home,
   LogOut,
   LogIn,
-  UserPlus,
   FlaskConical,
   Image,
 } from "lucide-react";
@@ -133,13 +132,6 @@ const Navbar = () => {
               className="flex items-center px-3 py-2 font-semibold border-2 rounded-md text-white border-white hover:bg-white hover:text-blue-600 transition duration-300"
             >
               <LogIn className="w-5 h-5 mr-1" /> Iniciar Sesión
-            </NavLink>
-
-            <NavLink
-              to="/register"
-              className="flex items-center px-3 py-2 font-semibold border-2 rounded-md text-white border-white hover:bg-white hover:text-green-600 transition duration-300"
-            >
-              <UserPlus className="w-5 h-5 mr-1" /> Registrarse
             </NavLink>
           </>
         )}
