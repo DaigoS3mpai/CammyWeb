@@ -68,15 +68,6 @@ className="flex flex-col items-center p-6 rounded-3xl shadow-xl border border-bl
 <h3 className="text-lg font-semibold text-gray-800">Visualizar Apuntes</h3>
 <p className="text-gray-600 text-sm mt-1">Explora el conocimiento existente 📖✨.</p>
 </Link>
-) : (
-<Link 
-to="/login"
-className="flex flex-col items-center p-6 rounded-3xl shadow-xl border border-purple-200 bg-white bg-opacity-70 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
->
-<LogIn className="w-12 h-12 text-purple-500 mb-3" />
-<h3 className="text-lg font-semibold text-gray-800">Iniciar Sesión</h3>
-<p className="text-gray-600 text-sm mt-1">Accede a todas las funcionalidades 🔑.</p>
-</Link>
 )}
 
 {isAdmin() && (
