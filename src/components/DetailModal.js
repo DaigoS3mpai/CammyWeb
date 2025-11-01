@@ -311,6 +311,20 @@ const DetailModal = ({ item, type, onClose }) => {
               </section>
             )}
 
+            {/* 🔹 Proyecto vinculado (mostrar siempre si existe) */}
+            {type === "bitacora" && formData.proyecto_id && (
+              <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
+                <div className="flex items-center mb-3">
+                  <FlaskConical className="w-5 h-5 text-purple-600 mr-2" />
+                  <h3 className="text-xl font-semibold text-gray-800">Proyecto vinculado</h3>
+                </div>
+                <p className="text-gray-700 text-lg font-medium">
+                  {item.proyecto_titulo || `Proyecto #${formData.proyecto_id}`}
+                </p>
+              </section>
+            )}
+
+
             {/* 🔹 Vincular a Proyecto */}
             {type === "bitacora" && isAdmin() && editMode && (
               <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">

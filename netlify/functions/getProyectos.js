@@ -10,7 +10,7 @@ export const handler = async () => {
   try {
     await client.connect();
 
-    // ✅ Consulta principal con subquery JSON agregada
+    // ✅ Consulta principal mejorada
     const result = await client.query(`
       SELECT 
         p.id,
@@ -18,21 +18,30 @@ export const handler = async () => {
         p.descripcion,
         p.fecha_inicio,
         p.imagen_portada,
+
+        -- 🔹 Contador de clases vinculadas (desde bitácora)
+        COUNT(DISTINCT b.id) AS clase_count,
+
+        -- 🔹 Contador de imágenes vinculadas (desde galería)
+        COUNT(DISTINCT g.id) AS imagen_count,
+
+        -- 🔹 JSON con las imágenes del proyecto
         COALESCE(
-          (
-            SELECT json_agg(
-              json_build_object(
-                'id', g.id,
-                'imagen_url', g.imagen_url,
-                'descripcion', g.descripcion
-              )
+          JSON_AGG(
+            DISTINCT JSONB_BUILD_OBJECT(
+              'id', g.id,
+              'imagen_url', g.imagen_url,
+              'descripcion', g.descripcion
             )
-            FROM galeria g
-            WHERE g.proyecto_id = p.id
-          ), '[]'
+          ) FILTER (WHERE g.id IS NOT NULL),
+          '[]'
         ) AS imagenes
+
       FROM proyectos p
-      ORDER BY p.id DESC;
+      LEFT JOIN bitacora b ON b.proyecto_id = p.id
+      LEFT JOIN galeria g ON g.proyecto_id = p.id
+      GROUP BY p.id
+      ORDER BY p.fecha_inicio DESC;
     `);
 
     await client.end();

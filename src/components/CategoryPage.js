@@ -58,12 +58,12 @@ const CategoryPage = () => {
     }
   };
 
-  // 🔁 Al montar o cambiar categoría
+  // 🔁 Cargar al montar o cambiar categoría
   useEffect(() => {
     fetchData();
   }, [categoryName]);
 
-  // 🔁 Recarga automática tras creación o edición
+  // ✅ Escucha cambios en localStorage (recarga automática tras guardar/editar)
   useEffect(() => {
     const reloadFlags = {
       bitacora: "reloadBitacora",
@@ -71,13 +71,37 @@ const CategoryPage = () => {
       galeria: "reloadGaleria",
     };
     const key = reloadFlags[categoryName];
-    if (key && localStorage.getItem(key) === "true") {
-      fetchData();
-      localStorage.removeItem(key);
-    }
+
+    const handleStorageChange = () => {
+      if (key && localStorage.getItem(key) === "true") {
+        fetchData();
+        localStorage.removeItem(key);
+      }
+    };
+
+    // Escucha cambios locales y entre pestañas
+    window.addEventListener("storage", handleStorageChange);
+    handleStorageChange();
+
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, [categoryName]);
 
-  // 🔹 Config visual por categoría
+  // 🔹 Cerrar modal (si se guardó, recarga datos)
+  const handleCloseDetail = (updated = false) => {
+    setShowModal(false);
+    setSelectedItem(null);
+    setSelectedType(null);
+    if (updated) fetchData(); // ✅ Actualiza la vista sin F5
+  };
+
+  // 🔹 Abrir detalle
+  const handleOpenDetail = (item, type = categoryName) => {
+    setSelectedItem(item);
+    setSelectedType(type);
+    setShowModal(true);
+  };
+
+  // 🔹 Config visual
   const config =
     {
       bitacora: {
@@ -113,20 +137,6 @@ const CategoryPage = () => {
       icon: <FileText className="w-12 h-12 text-gray-500" />,
       gradient: "from-gray-400 to-gray-600",
     };
-
-  // 🔹 Abrir detalle
-  const handleOpenDetail = (item, type = categoryName) => {
-    setSelectedItem(item);
-    setSelectedType(type);
-    setShowModal(true);
-  };
-
-  // 🔹 Cerrar modal
-  const handleCloseDetail = () => {
-    setShowModal(false);
-    setSelectedItem(null);
-    setSelectedType(null);
-  };
 
   return (
     <motion.div
@@ -203,8 +213,6 @@ const CategoryPage = () => {
                     alt={item.descripcion || "Imagen"}
                     className="w-full h-64 object-cover"
                   />
-
-                  {/* 🆕 Mostrar proyecto asociado en galería */}
                   <div className="p-4 border-t bg-gray-50">
                     <h4 className="text-sm font-semibold text-gray-700">
                       {item.proyecto_titulo ? (
@@ -317,7 +325,7 @@ const CategoryPage = () => {
           <DetailModal
             item={selectedItem}
             type={selectedType || categoryName}
-            onClose={handleCloseDetail}
+            onClose={(updated) => handleCloseDetail(updated)} // ✅ Recarga si hubo edición
           />
         )}
       </AnimatePresence>

@@ -7,7 +7,6 @@ export const handler = async (event) => {
 
   const { id, titulo, descripcion, fecha, proyecto_id } = JSON.parse(event.body || "{}");
 
-  // 🔹 Validación básica
   if (!id) {
     return {
       statusCode: 400,
@@ -23,7 +22,11 @@ export const handler = async (event) => {
   try {
     await client.connect();
 
-    // 🔹 Actualizar clase (permitimos desvincular proyecto)
+    // 🔹 Obtener proyecto anterior (para actualizar conteos si cambió)
+    const prev = await client.query(`SELECT proyecto_id FROM bitacora WHERE id = $1`, [id]);
+    const prevProyectoId = prev.rows[0]?.proyecto_id || null;
+
+    // 🔹 Actualizar clase
     const updateQuery = `
       UPDATE bitacora
       SET
@@ -39,17 +42,13 @@ export const handler = async (event) => {
       titulo || null,
       descripcion || null,
       fecha || null,
-      proyecto_id === "" ? null : proyecto_id, // 🧩 Si viene vacío, desvinculamos
+      proyecto_id === "" ? null : proyecto_id,
       id,
     ];
 
     const result = await client.query(updateQuery, values);
-
     if (result.rows.length === 0) {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ error: "Clase no encontrada" }),
-      };
+      return { statusCode: 404, body: JSON.stringify({ error: "Clase no encontrada" }) };
     }
 
     const updatedClass = result.rows[0];
@@ -64,6 +63,29 @@ export const handler = async (event) => {
       proyectoTitulo = projectRes.rows[0]?.titulo || null;
     }
 
+    // 🔹 Recalcular conteos si cambió el proyecto
+    if (prevProyectoId !== updatedClass.proyecto_id) {
+      if (prevProyectoId) {
+        await client.query(`
+          UPDATE proyectos p
+          SET clase_count = (
+            SELECT COUNT(*) FROM bitacora b WHERE b.proyecto_id = p.id
+          )
+          WHERE p.id = $1;
+        `, [prevProyectoId]);
+      }
+
+      if (updatedClass.proyecto_id) {
+        await client.query(`
+          UPDATE proyectos p
+          SET clase_count = (
+            SELECT COUNT(*) FROM bitacora b WHERE b.proyecto_id = p.id
+          )
+          WHERE p.id = $1;
+        `, [updatedClass.proyecto_id]);
+      }
+    }
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -76,12 +98,8 @@ export const handler = async (event) => {
     };
   } catch (err) {
     console.error("❌ Error al actualizar clase:", err);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
-    };
+    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   } finally {
-    // 🧹 Cierre seguro de conexión
     await client.end().catch(() => {});
   }
 };
