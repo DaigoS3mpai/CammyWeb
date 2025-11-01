@@ -13,7 +13,7 @@ import {
   Images,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
-import DetailModal from "./DetailModal";
+import DetailModalBook from "./DetailModalBook"; // 📘 Modal con estilo libro
 
 const CategoryPage = () => {
   const { categoryName } = useParams();
@@ -52,7 +52,7 @@ const CategoryPage = () => {
       const data = await res.json();
       setItems(data);
     } catch (err) {
-      console.error("Error al cargar datos:", err);
+      console.error("❌ Error al cargar datos:", err);
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ const CategoryPage = () => {
     fetchData();
   }, [categoryName]);
 
-  // ✅ Escucha cambios en localStorage (recarga automática tras guardar/editar)
+  // 🔁 Escucha cambios de recarga en localStorage
   useEffect(() => {
     const reloadFlags = {
       bitacora: "reloadBitacora",
@@ -79,7 +79,6 @@ const CategoryPage = () => {
       }
     };
 
-    // Escucha cambios locales y entre pestañas
     window.addEventListener("storage", handleStorageChange);
     handleStorageChange();
 
@@ -88,7 +87,6 @@ const CategoryPage = () => {
 
   // 🧭 Apertura automática de modales (proyecto o clase)
   useEffect(() => {
-    // Esperar a que se carguen los datos
     if (loading || items.length === 0) return;
 
     const openClaseId = localStorage.getItem("openClaseId");
@@ -107,15 +105,15 @@ const CategoryPage = () => {
     }
   }, [loading, items, categoryName]);
 
-  // 🔹 Cerrar modal (si se guardó, recarga datos)
+  // 🔹 Cerrar modal (recargar si se editó)
   const handleCloseDetail = (updated = false) => {
     setShowModal(false);
     setSelectedItem(null);
     setSelectedType(null);
-    if (updated) fetchData(); // ✅ Actualiza la vista sin F5
+    if (updated) fetchData();
   };
 
-  // 🔹 Abrir detalle
+  // 🔹 Abrir modal tipo libro
   const handleOpenDetail = (item, type = categoryName) => {
     setSelectedItem(item);
     setSelectedType(type);
@@ -200,7 +198,7 @@ const CategoryPage = () => {
         </div>
       )}
 
-      {/* 🔹 Contenido */}
+      {/* 🔹 Contenido principal */}
       {loading ? (
         <p className="text-center text-gray-500 mt-20 text-lg">
           Cargando contenido...
@@ -242,13 +240,9 @@ const CategoryPage = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleOpenDetail(
-                                {
-                                  id: item.proyecto_id,
-                                  titulo: item.proyecto_titulo,
-                                },
-                                "proyectos"
-                              );
+                              localStorage.setItem("openProyectoId", item.proyecto_id);
+                              localStorage.setItem("reloadProyectos", "true");
+                              navigate("/category/proyectos");
                             }}
                             className="text-purple-600 hover:underline"
                           >
@@ -274,7 +268,7 @@ const CategoryPage = () => {
                 <div className="h-2 bg-gradient-to-r from-gray-100 to-gray-200" />
               )}
 
-              {/* Texto */}
+              {/* Texto de tarjeta */}
               <div className="p-6">
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">
                   {item.titulo || item.proyecto_titulo || "Sin título"}
@@ -283,7 +277,7 @@ const CategoryPage = () => {
                   {item.descripcion || "Sin descripción"}
                 </p>
 
-                {/* 🔹 Fecha */}
+                {/* Fecha */}
                 {item.fecha || item.fecha_inicio ? (
                   <div className="flex items-center text-sm text-gray-500 mb-2">
                     <Calendar className="w-4 h-4 mr-2" />
@@ -293,7 +287,7 @@ const CategoryPage = () => {
                   </div>
                 ) : null}
 
-                {/* 🔹 Proyecto vinculado (solo para bitácoras) */}
+                {/* Proyecto vinculado (bitácora) */}
                 {categoryName === "bitacora" &&
                   (item.proyecto_titulo || item.proyecto_id) && (
                     <div className="flex items-center text-sm text-purple-600 mb-2">
@@ -316,7 +310,7 @@ const CategoryPage = () => {
                     </div>
                   )}
 
-                {/* 🔹 Estadísticas (solo proyectos) */}
+                {/* Estadísticas (proyectos) */}
                 {categoryName === "proyectos" && (
                   <div className="flex items-center text-sm text-gray-600 space-x-4 mt-2">
                     <div className="flex items-center">
@@ -335,10 +329,10 @@ const CategoryPage = () => {
         </motion.div>
       )}
 
-      {/* 🔹 Modal de detalle */}
+      {/* 🔹 Modal tipo libro */}
       <AnimatePresence>
         {showModal && selectedItem && (
-          <DetailModal
+          <DetailModalBook
             item={selectedItem}
             type={selectedType || categoryName}
             onClose={(updated) => handleCloseDetail(updated)}
