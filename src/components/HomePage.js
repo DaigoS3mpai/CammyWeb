@@ -27,25 +27,6 @@ style={{
       <div className="absolute inset-0 bg-white bg-opacity-30 backdrop-blur-[2px]"></div>
       <div className="absolute inset-0 bg-white bg-opacity-20 backdrop-blur-md"></div>
 
-{/* Imagen decorativa izquierda */}
-<motion.img
-src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSiNz4vVmcQvonDrGCLPW8L3DuTOwPrKfK3IA&s"
-alt="Imagen izquierda"
-className="absolute left-6 top-1/3 w-40 h-40 object-contain drop-shadow-lg hidden md:block"
-initial={{ x: -100, opacity: 0 }}
-animate={{ x: 0, opacity: 1 }}
-transition={{ duration: 0.8 }}
-/>
-
-{/* Imagen decorativa derecha */}
-<motion.img
-src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcStyRVVxQbm6qZDBf5KMPut30W4i2Om-eQp7g&s"
-alt="Imagen derecha"
-className="absolute right-6 top-1/3 w-40 h-40 object-contain drop-shadow-lg hidden md:block"
-initial={{ x: 100, opacity: 0 }}
-animate={{ x: 0, opacity: 1 }}
-transition={{ duration: 0.8 }}
-/>
 
 {/* Contenido central */}
 <div className="relative z-10 flex flex-col items-center">
