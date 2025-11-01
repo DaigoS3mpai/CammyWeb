@@ -16,6 +16,7 @@ import { useAuth } from "./AuthContext";
 const DetailModal = ({ item, type, onClose }) => {
   const { isAdmin } = useAuth();
   const [imagenes, setImagenes] = useState([]);
+  const [proyectos, setProyectos] = useState([]); // ✅ Nuevo estado
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({
@@ -23,6 +24,7 @@ const DetailModal = ({ item, type, onClose }) => {
     descripcion: "",
     fecha_inicio: "",
     imagen_portada: "",
+    proyecto_id: null, // ✅ Nuevo campo
   });
   const [saving, setSaving] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
@@ -35,9 +37,26 @@ const DetailModal = ({ item, type, onClose }) => {
         descripcion: item.descripcion || "",
         fecha_inicio: item.fecha_inicio || item.fecha || "",
         imagen_portada: item.imagen_portada || "",
+        proyecto_id: item.proyecto_id || null, // ✅ Asegura que se guarde el vínculo
       });
     }
   }, [item]);
+
+  // 🔹 Cargar proyectos (solo si es bitácora)
+  useEffect(() => {
+    if (type === "bitacora") {
+      const fetchProyectos = async () => {
+        try {
+          const res = await fetch("/.netlify/functions/getProyectos");
+          const data = await res.json();
+          setProyectos(data || []);
+        } catch (err) {
+          console.error("Error al cargar proyectos:", err);
+        }
+      };
+      fetchProyectos();
+    }
+  }, [type]);
 
   // 🔹 Cargar imágenes asociadas
   useEffect(() => {
@@ -145,7 +164,6 @@ const DetailModal = ({ item, type, onClose }) => {
       formDataImg.append("file", file);
       formDataImg.append("upload_preset", uploadPreset);
 
-      // Subir a Cloudinary
       const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
         method: "POST",
         body: formDataImg,
@@ -154,7 +172,6 @@ const DetailModal = ({ item, type, onClose }) => {
       const uploadData = await uploadRes.json();
       if (!uploadRes.ok) throw new Error(uploadData.error?.message || "Error subiendo a Cloudinary");
 
-      // Guardar en base de datos
       const dbRes = await fetch("/.netlify/functions/addImagen", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -269,13 +286,17 @@ const DetailModal = ({ item, type, onClose }) => {
               <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
                 <div className="flex items-center mb-3">
                   <Calendar className="w-5 h-5 text-blue-600 mr-2" />
-                  <h3 className="text-xl font-semibold text-gray-800">Fecha del proyecto</h3>
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    Fecha del proyecto
+                  </h3>
                 </div>
                 {isAdmin() && editMode ? (
                   <input
                     type="date"
                     value={formData.fecha_inicio ? formData.fecha_inicio.split("T")[0] : ""}
-                    onChange={(e) => setFormData({ ...formData, fecha_inicio: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, fecha_inicio: e.target.value })
+                    }
                     className="border border-gray-300 rounded-xl p-2"
                   />
                 ) : (
@@ -290,7 +311,34 @@ const DetailModal = ({ item, type, onClose }) => {
               </section>
             )}
 
-            {/* Imagen de portada */}
+            {/* 🔹 Vincular a Proyecto */}
+            {type === "bitacora" && isAdmin() && editMode && (
+              <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
+                <div className="flex items-center mb-3">
+                  <FlaskConical className="w-5 h-5 text-purple-600 mr-2" />
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    Vincular a Proyecto
+                  </h3>
+                </div>
+
+                <select
+                  value={formData.proyecto_id || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, proyecto_id: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">Sin proyecto</option>
+                  {proyectos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.titulo}
+                    </option>
+                  ))}
+                </select>
+              </section>
+            )}
+
+            {/* Imagen principal */}
             <section>
               <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
                 <ImageIcon className="w-6 h-6 mr-2 text-purple-500" />
