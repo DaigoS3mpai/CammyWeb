@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { UploadCloud, Eye } from 'lucide-react';
+import { UploadCloud, Eye, BookOpen, FolderOpen, Image } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
@@ -24,11 +24,11 @@ const HomePage = () => {
         WebkitBackdropFilter: 'blur(12px)',
       }}
     >
-      {/* Capas translúcidas para contraste */}
+      {/* Capas translúcidas */}
       <div className="absolute inset-0 bg-white bg-opacity-30 backdrop-blur-[2px]"></div>
       <div className="absolute inset-0 bg-white bg-opacity-20 backdrop-blur-md"></div>
 
-      {/* Contenido central */}
+      {/* Contenido */}
       <div className="relative z-10 flex flex-col items-center">
         <motion.h1
           className="text-6xl font-extrabold text-gray-900 mb-4 leading-tight drop-shadow-md"
@@ -59,7 +59,47 @@ const HomePage = () => {
         </motion.p>
 
         {/* Opciones */}
-        <div className="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-8">
+        <div className="flex flex-col md:flex-row flex-wrap justify-center space-y-6 md:space-y-0 md:space-x-8">
+
+          {/* Visible SOLO para usuarios NO logeados */}
+          {!isAuthenticated() && (
+            <>
+              <Link
+                to="/bitacora"
+                className="flex flex-col items-center p-6 rounded-3xl shadow-xl border border-pink-200 bg-white bg-opacity-70 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+              >
+                <BookOpen className="w-12 h-12 text-pink-500 mb-3" />
+                <h3 className="text-lg font-semibold text-gray-800">Bitácora</h3>
+                <p className="text-gray-600 text-sm mt-1">
+                  Revisa las experiencias y reflexiones 💭.
+                </p>
+              </Link>
+
+              <Link
+                to="/proyectos"
+                className="flex flex-col items-center p-6 rounded-3xl shadow-xl border border-yellow-200 bg-white bg-opacity-70 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+              >
+                <FolderOpen className="w-12 h-12 text-yellow-500 mb-3" />
+                <h3 className="text-lg font-semibold text-gray-800">Proyectos</h3>
+                <p className="text-gray-600 text-sm mt-1">
+                  Explora los trabajos y actividades 🧩.
+                </p>
+              </Link>
+
+              <Link
+                to="/galeria"
+                className="flex flex-col items-center p-6 rounded-3xl shadow-xl border border-purple-200 bg-white bg-opacity-70 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+              >
+                <Image className="w-12 h-12 text-purple-500 mb-3" />
+                <h3 className="text-lg font-semibold text-gray-800">Galería</h3>
+                <p className="text-gray-600 text-sm mt-1">
+                  Mira fotos y momentos destacados 📸.
+                </p>
+              </Link>
+            </>
+          )}
+
+          {/* Visible para usuarios logeados */}
           {isAuthenticated() && (
             <Link
               to="/category/bitacora"
@@ -73,6 +113,7 @@ const HomePage = () => {
             </Link>
           )}
 
+          {/* Visible solo para admin */}
           {isAdmin() && (
             <Link
               to="/new-class"
