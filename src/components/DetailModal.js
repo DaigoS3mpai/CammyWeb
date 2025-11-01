@@ -10,24 +10,27 @@ import {
   Pencil,
   Save,
   PlusCircle,
+  Layers,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 
 const DetailModal = ({ item, type, onClose }) => {
   const { isAdmin } = useAuth();
   const [imagenes, setImagenes] = useState([]);
-  const [proyectos, setProyectos] = useState([]); // ✅ Nuevo estado
+  const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+
   const [formData, setFormData] = useState({
     titulo: "",
     descripcion: "",
     fecha_inicio: "",
+    fecha: "",
     imagen_portada: "",
-    proyecto_id: null, // ✅ Nuevo campo
+    proyecto_id: null,
   });
-  const [saving, setSaving] = useState(false);
-  const [uploadingGallery, setUploadingGallery] = useState(false);
 
   // 🔹 Inicializar datos
   useEffect(() => {
@@ -35,30 +38,15 @@ const DetailModal = ({ item, type, onClose }) => {
       setFormData({
         titulo: item.titulo || "",
         descripcion: item.descripcion || "",
-        fecha_inicio: item.fecha_inicio || item.fecha || "",
+        fecha_inicio: item.fecha_inicio || "",
+        fecha: item.fecha || "",
         imagen_portada: item.imagen_portada || "",
-        proyecto_id: item.proyecto_id || null, // ✅ Asegura que se guarde el vínculo
+        proyecto_id: item.proyecto_id || null,
       });
     }
   }, [item]);
 
-  // 🔹 Cargar proyectos (solo si es bitácora)
-  useEffect(() => {
-    if (type === "bitacora") {
-      const fetchProyectos = async () => {
-        try {
-          const res = await fetch("/.netlify/functions/getProyectos");
-          const data = await res.json();
-          setProyectos(data || []);
-        } catch (err) {
-          console.error("Error al cargar proyectos:", err);
-        }
-      };
-      fetchProyectos();
-    }
-  }, [type]);
-
-  // 🔹 Cargar imágenes asociadas
+  // 🔹 Cargar imágenes asociadas si es un proyecto
   useEffect(() => {
     if (type === "proyectos" && item?.id) {
       const fetchImagenes = async () => {
@@ -68,7 +56,7 @@ const DetailModal = ({ item, type, onClose }) => {
           const relacionadas = data.filter((img) => img.proyecto_id === item.id);
           setImagenes(relacionadas);
         } catch (err) {
-          console.error("Error al cargar imágenes del proyecto:", err);
+          console.error("Error al cargar imágenes:", err);
         } finally {
           setLoading(false);
         }
@@ -78,6 +66,22 @@ const DetailModal = ({ item, type, onClose }) => {
       setLoading(false);
     }
   }, [item, type]);
+
+  // 🔹 Cargar proyectos para vincular (solo en bitácora)
+  useEffect(() => {
+    if (type === "bitacora") {
+      const fetchProyectos = async () => {
+        try {
+          const res = await fetch("/.netlify/functions/getProyectos");
+          const data = await res.json();
+          setProyectos(data);
+        } catch (err) {
+          console.error("Error al cargar proyectos:", err);
+        }
+      };
+      fetchProyectos();
+    }
+  }, [type]);
 
   // 🔹 Guardar cambios
   const handleSave = async () => {
@@ -98,10 +102,13 @@ const DetailModal = ({ item, type, onClose }) => {
 
       if (res.ok) {
         alert("✅ Cambios guardados correctamente");
-        setEditMode(false);
+
+        // 🔁 Forzar recarga de categorías relacionadas
         localStorage.setItem("reloadProyectos", "true");
         localStorage.setItem("reloadBitacora", "true");
-        onClose();
+
+        setEditMode(false);
+        onClose(true); // 🔁 Actualiza automáticamente la lista principal
       } else {
         alert("❌ Error al guardar: " + (data.error || "Error desconocido"));
       }
@@ -122,7 +129,7 @@ const DetailModal = ({ item, type, onClose }) => {
     const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      alert("⚠️ Faltan las variables de Cloudinary en Netlify.");
+      alert("⚠️ Faltan variables de Cloudinary en Netlify.");
       return;
     }
 
@@ -153,7 +160,6 @@ const DetailModal = ({ item, type, onClose }) => {
   const handleGalleryUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || !item?.id) return;
-
     setUploadingGallery(true);
 
     try {
@@ -164,14 +170,16 @@ const DetailModal = ({ item, type, onClose }) => {
       formDataImg.append("file", file);
       formDataImg.append("upload_preset", uploadPreset);
 
+      // Subir a Cloudinary
       const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
         method: "POST",
         body: formDataImg,
       });
 
       const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) throw new Error(uploadData.error?.message || "Error subiendo a Cloudinary");
+      if (!uploadRes.ok) throw new Error(uploadData.error?.message || "Error subiendo imagen");
 
+      // Guardar en DB
       const dbRes = await fetch("/.netlify/functions/addImagen", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -183,13 +191,13 @@ const DetailModal = ({ item, type, onClose }) => {
       });
 
       const dbData = await dbRes.json();
-      if (!dbRes.ok) throw new Error(dbData.error || "Error guardando en DB");
+      if (!dbRes.ok) throw new Error(dbData.error || "Error guardando en base de datos");
 
-      alert("✅ Imagen agregada correctamente a la galería.");
+      alert("✅ Imagen agregada correctamente.");
       setImagenes((prev) => [...prev, dbData.imagen]);
     } catch (err) {
       console.error("Error al agregar imagen:", err);
-      alert("❌ Error: " + err.message);
+      alert("❌ " + err.message);
     } finally {
       setUploadingGallery(false);
     }
@@ -204,7 +212,7 @@ const DetailModal = ({ item, type, onClose }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
+        onClick={() => onClose(false)}
       >
         <motion.div
           className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden relative"
@@ -213,12 +221,12 @@ const DetailModal = ({ item, type, onClose }) => {
           exit={{ scale: 0.8, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 🔹 Botones superiores */}
+          {/* Botones superiores */}
           <div className="absolute top-4 right-4 flex space-x-2">
             {isAdmin() && !editMode && (
               <button
                 onClick={() => setEditMode(true)}
-                className="bg-yellow-400 hover:bg-yellow-500 text-white rounded-full p-2 transition"
+                className="bg-yellow-400 hover:bg-yellow-500 text-white rounded-full p-2"
               >
                 <Pencil className="w-5 h-5" />
               </button>
@@ -226,21 +234,21 @@ const DetailModal = ({ item, type, onClose }) => {
             {isAdmin() && editMode && (
               <button
                 onClick={handleSave}
-                className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 transition"
+                className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2"
                 disabled={saving}
               >
                 {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
               </button>
             )}
             <button
-              onClick={onClose}
-              className="bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition"
+              onClick={() => onClose(false)}
+              className="bg-gray-100 hover:bg-gray-200 rounded-full p-2"
             >
               <X className="w-5 h-5 text-gray-700" />
             </button>
           </div>
 
-          {/* 🔹 Contenido principal */}
+          {/* Contenido principal */}
           <div className="p-8 overflow-y-auto max-h-[90vh] space-y-8">
             {/* Título */}
             <div className="flex items-center mb-4">
@@ -282,81 +290,75 @@ const DetailModal = ({ item, type, onClose }) => {
             </section>
 
             {/* Fecha */}
-            {formData.fecha_inicio && (
+            <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
+              <div className="flex items-center mb-3">
+                <Calendar className="w-5 h-5 text-blue-600 mr-2" />
+                <h3 className="text-xl font-semibold text-gray-800">Fecha</h3>
+              </div>
+              {isAdmin() && editMode ? (
+                <input
+                  type="date"
+                  value={
+                    formData.fecha_inicio
+                      ? formData.fecha_inicio.split("T")[0]
+                      : formData.fecha
+                      ? formData.fecha.split("T")[0]
+                      : ""
+                  }
+                  onChange={(e) =>
+                    setFormData({ ...formData, fecha_inicio: e.target.value, fecha: e.target.value })
+                  }
+                  className="border border-gray-300 rounded-xl p-2"
+                />
+              ) : (
+                <p className="text-gray-700 text-lg font-medium">
+                  {new Date(formData.fecha_inicio || formData.fecha).toLocaleDateString("es-CL", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </p>
+              )}
+            </section>
+
+            {/* Proyecto vinculado (solo en bitácora) */}
+            {type === "bitacora" && (
               <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
                 <div className="flex items-center mb-3">
-                  <Calendar className="w-5 h-5 text-blue-600 mr-2" />
-                  <h3 className="text-xl font-semibold text-gray-800">
-                    Fecha del proyecto
-                  </h3>
+                  <Layers className="w-5 h-5 text-purple-600 mr-2" />
+                  <h3 className="text-xl font-semibold text-gray-800">Proyecto vinculado</h3>
                 </div>
                 {isAdmin() && editMode ? (
-                  <input
-                    type="date"
-                    value={formData.fecha_inicio ? formData.fecha_inicio.split("T")[0] : ""}
+                  <select
+                    value={formData.proyecto_id || ""}
                     onChange={(e) =>
-                      setFormData({ ...formData, fecha_inicio: e.target.value })
+                      setFormData({ ...formData, proyecto_id: e.target.value || null })
                     }
-                    className="border border-gray-300 rounded-xl p-2"
-                  />
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="">Sin proyecto vinculado</option>
+                    {proyectos.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.titulo}
+                      </option>
+                    ))}
+                  </select>
                 ) : (
                   <p className="text-gray-700 text-lg font-medium">
-                    {new Date(formData.fecha_inicio).toLocaleDateString("es-CL", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {item.proyecto_titulo
+                      ? item.proyecto_titulo
+                      : formData.proyecto_id
+                      ? `Proyecto #${formData.proyecto_id}`
+                      : "Sin proyecto vinculado."}
                   </p>
                 )}
               </section>
             )}
 
-            {/* 🔹 Proyecto vinculado (mostrar siempre si existe) */}
-            {type === "bitacora" && formData.proyecto_id && (
-              <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
-                <div className="flex items-center mb-3">
-                  <FlaskConical className="w-5 h-5 text-purple-600 mr-2" />
-                  <h3 className="text-xl font-semibold text-gray-800">Proyecto vinculado</h3>
-                </div>
-                <p className="text-gray-700 text-lg font-medium">
-                  {item.proyecto_titulo || `Proyecto #${formData.proyecto_id}`}
-                </p>
-              </section>
-            )}
-
-
-            {/* 🔹 Vincular a Proyecto */}
-            {type === "bitacora" && isAdmin() && editMode && (
-              <section className="bg-gray-50 rounded-2xl p-6 shadow-inner">
-                <div className="flex items-center mb-3">
-                  <FlaskConical className="w-5 h-5 text-purple-600 mr-2" />
-                  <h3 className="text-xl font-semibold text-gray-800">
-                    Vincular a Proyecto
-                  </h3>
-                </div>
-
-                <select
-                  value={formData.proyecto_id || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, proyecto_id: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="">Sin proyecto</option>
-                  {proyectos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.titulo}
-                    </option>
-                  ))}
-                </select>
-              </section>
-            )}
-
-            {/* Imagen principal */}
+            {/* Imagen de portada */}
             <section>
               <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-                <ImageIcon className="w-6 h-6 mr-2 text-purple-500" />
-                Imagen principal
+                <ImageIcon className="w-6 h-6 mr-2 text-purple-500" /> Imagen principal
               </h3>
               {isAdmin() && editMode ? (
                 <div>
@@ -385,14 +387,12 @@ const DetailModal = ({ item, type, onClose }) => {
               )}
             </section>
 
-            {/* Galería */}
+            {/* Galería del proyecto */}
             {type === "proyectos" && (
               <section>
                 <h3 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <ImageIcon className="w-6 h-6 mr-2 text-pink-500" />
-                  Galería del Proyecto
+                  <ImageIcon className="w-6 h-6 mr-2 text-pink-500" /> Galería del Proyecto
                 </h3>
-
                 {isAdmin() && (
                   <div className="text-center mb-6">
                     <label className="inline-flex items-center bg-pink-500 text-white px-6 py-3 rounded-xl font-semibold shadow-md hover:bg-pink-600 cursor-pointer">
