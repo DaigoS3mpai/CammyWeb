@@ -86,6 +86,27 @@ const CategoryPage = () => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [categoryName]);
 
+  // 🧭 Apertura automática de modales (proyecto o clase)
+  useEffect(() => {
+    // Esperar a que se carguen los datos
+    if (loading || items.length === 0) return;
+
+    const openClaseId = localStorage.getItem("openClaseId");
+    const openProyectoId = localStorage.getItem("openProyectoId");
+
+    if (openClaseId && categoryName === "bitacora") {
+      const itemToOpen = items.find((i) => i.id === parseInt(openClaseId));
+      if (itemToOpen) handleOpenDetail(itemToOpen, "bitacora");
+      localStorage.removeItem("openClaseId");
+    }
+
+    if (openProyectoId && categoryName === "proyectos") {
+      const itemToOpen = items.find((i) => i.id === parseInt(openProyectoId));
+      if (itemToOpen) handleOpenDetail(itemToOpen, "proyectos");
+      localStorage.removeItem("openProyectoId");
+    }
+  }, [loading, items, categoryName]);
+
   // 🔹 Cerrar modal (si se guardó, recarga datos)
   const handleCloseDetail = (updated = false) => {
     setShowModal(false);
@@ -282,14 +303,9 @@ const CategoryPage = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleOpenDetail(
-                              {
-                                id: item.proyecto_id,
-                                titulo:
-                                  item.proyecto_titulo || "Proyecto vinculado",
-                              },
-                              "proyectos"
-                            );
+                            localStorage.setItem("openProyectoId", item.proyecto_id);
+                            localStorage.setItem("reloadProyectos", "true");
+                            navigate("/category/proyectos");
                           }}
                           className="font-semibold text-purple-700 hover:underline"
                         >
@@ -325,7 +341,7 @@ const CategoryPage = () => {
           <DetailModal
             item={selectedItem}
             type={selectedType || categoryName}
-            onClose={(updated) => handleCloseDetail(updated)} // ✅ Recarga si hubo edición
+            onClose={(updated) => handleCloseDetail(updated)}
           />
         )}
       </AnimatePresence>
