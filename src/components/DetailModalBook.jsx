@@ -9,6 +9,9 @@ import {
   Layers,
   BookOpen,
   Pencil,
+  Save,
+  ArrowLeftCircle,
+  ArrowRightCircle,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +22,11 @@ const DetailModalBook = ({ item, type, onClose }) => {
 
   const [proyectoTitulo, setProyectoTitulo] = useState(null);
   const [linkedClases, setLinkedClases] = useState([]);
+  const [editMode, setEditMode] = useState(false);
+  const [titulo, setTitulo] = useState(item?.titulo || "");
+  const [descripcion, setDescripcion] = useState(item?.descripcion || "");
+  const [page, setPage] = useState(1); // 1: Info, 2: Galería
+  const [saving, setSaving] = useState(false);
 
   // 🔹 Cargar título del proyecto vinculado
   useEffect(() => {
@@ -81,6 +89,43 @@ const DetailModalBook = ({ item, type, onClose }) => {
     onClose(true);
   };
 
+  // 📝 Guardar cambios
+  const handleSave = async () => {
+    if (!titulo.trim()) {
+      alert("El título no puede estar vacío.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const endpoint =
+        type === "proyectos"
+          ? "/.netlify/functions/updateProyecto"
+          : "/.netlify/functions/updateClase";
+
+      const res = await fetch(endpoint, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          titulo,
+          descripcion,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Error al guardar cambios");
+
+      alert("✅ Cambios guardados correctamente");
+      setEditMode(false);
+      onClose(true);
+    } catch (err) {
+      console.error(err);
+      alert("❌ No se pudieron guardar los cambios.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       {item && (
@@ -96,7 +141,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
             onClick={(e) => e.stopPropagation()}
           >
             <motion.div
-              className="relative bg-gradient-to-br from-[#f9f8f5] to-[#f3f2ee] shadow-2xl rounded-2xl w-full max-w-6xl flex overflow-hidden border border-[#d8d5cc]"
+              className="relative bg-gradient-to-br from-[#f9f8f5] to-[#f3f2ee] shadow-2xl rounded-2xl w-full max-w-7xl flex overflow-hidden border border-[#d8d5cc]"
               variants={bookVariants}
               initial="hidden"
               animate="visible"
@@ -105,13 +150,30 @@ const DetailModalBook = ({ item, type, onClose }) => {
             >
               {/* Botones superiores */}
               <div className="absolute top-4 right-4 flex space-x-2 z-20">
-                {isAdmin() && (
+                {isAdmin() && !editMode && (
                   <button
-                    onClick={() => alert("🛠️ Editar próximamente aquí")}
+                    onClick={() => setEditMode(true)}
                     className="bg-yellow-400 hover:bg-yellow-500 text-white rounded-full p-2 shadow-md"
                   >
                     <Pencil className="w-5 h-5" />
                   </button>
+                )}
+                {editMode && (
+                  <>
+                    <button
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 shadow-md"
+                    >
+                      <Save className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => setEditMode(false)}
+                      className="bg-gray-300 hover:bg-gray-400 rounded-full p-2 shadow-md"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </>
                 )}
                 <button
                   onClick={() => onClose(false)}
@@ -127,7 +189,6 @@ const DetailModalBook = ({ item, type, onClose }) => {
                 initial={{ rotateY: 180, opacity: 0 }}
                 animate={{ rotateY: 0, opacity: 1 }}
                 transition={{ delay: 0.15, duration: 0.6, ease: "easeOut" }}
-                style={{ transformOrigin: "right center", backfaceVisibility: "hidden" }}
               >
                 <div>
                   <div className="flex items-center mb-6">
@@ -136,18 +197,22 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     ) : (
                       <BookOpen className="w-8 h-8 text-blue-600 mr-3" />
                     )}
-                    <h2 className="text-3xl font-extrabold text-gray-800">
-                      {item.titulo}
-                    </h2>
+                    {editMode ? (
+                      <input
+                        value={titulo}
+                        onChange={(e) => setTitulo(e.target.value)}
+                        className="text-3xl font-bold text-gray-800 border-b border-gray-400 focus:outline-none bg-transparent w-full"
+                      />
+                    ) : (
+                      <h2 className="text-3xl font-extrabold text-gray-800">{titulo}</h2>
+                    )}
                   </div>
 
                   {fecha && (
                     <div className="mb-5">
                       <div className="flex items-center mb-1">
                         <Calendar className="w-5 h-5 text-blue-600 mr-2" />
-                        <h3 className="text-lg font-semibold text-gray-700">
-                          Fecha
-                        </h3>
+                        <h3 className="text-lg font-semibold text-gray-700">Fecha</h3>
                       </div>
                       <p className="text-gray-600">{fecha}</p>
                     </div>
@@ -211,13 +276,12 @@ const DetailModalBook = ({ item, type, onClose }) => {
                 {/* Imagen principal */}
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold text-gray-700 flex items-center mb-2">
-                    <ImageIcon className="w-5 h-5 text-purple-500 mr-2" /> Imagen
-                    principal
+                    <ImageIcon className="w-5 h-5 text-purple-500 mr-2" /> Imagen principal
                   </h3>
                   {item.imagen_portada ? (
                     <img
                       src={item.imagen_portada}
-                      alt={item.titulo}
+                      alt={titulo}
                       className="w-full rounded-xl shadow-md border border-gray-200 object-cover max-h-[300px]"
                     />
                   ) : (
@@ -232,39 +296,68 @@ const DetailModalBook = ({ item, type, onClose }) => {
                 initial={{ rotateY: -180, opacity: 0 }}
                 animate={{ rotateY: 0, opacity: 1 }}
                 transition={{ delay: 0.25, duration: 0.6, ease: "easeOut" }}
-                style={{ transformOrigin: "left center", backfaceVisibility: "hidden" }}
               >
-                <div>
-                  <div className="flex items-center mb-3">
-                    <FileText className="w-5 h-5 text-green-600 mr-2" />
-                    <h3 className="text-2xl font-semibold text-gray-800">
-                      Descripción
-                    </h3>
-                  </div>
-                  <div className="bg-white border border-[#e5e2d9] shadow-inner rounded-xl p-4 text-gray-700 leading-relaxed min-h-[300px]">
-                    {item.descripcion || "Sin descripción disponible."}
-                  </div>
-                </div>
-
-                {/* Galería */}
-                {type === "proyectos" && item.imagenes?.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                      <ImageIcon className="w-5 h-5 text-pink-500 mr-2" /> Galería
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {item.imagenes.slice(0, 4).map((img) => (
-                        <motion.img
-                          key={img.id}
-                          src={img.imagen_url}
-                          alt={img.descripcion || "Imagen"}
-                          className="rounded-lg shadow-sm border border-gray-200 object-cover h-32 w-full"
-                          whileHover={{ scale: 1.05 }}
-                        />
-                      ))}
+                {page === 1 ? (
+                  <div>
+                    <div className="flex items-center mb-3">
+                      <FileText className="w-5 h-5 text-green-600 mr-2" />
+                      <h3 className="text-2xl font-semibold text-gray-800">Descripción</h3>
                     </div>
+                    {editMode ? (
+                      <textarea
+                        value={descripcion}
+                        onChange={(e) => setDescripcion(e.target.value)}
+                        rows="10"
+                        className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 resize-none"
+                      />
+                    ) : (
+                      <div className="bg-white border border-[#e5e2d9] shadow-inner rounded-xl p-4 text-gray-700 leading-relaxed min-h-[300px]">
+                        {descripcion || "Sin descripción disponible."}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                      <ImageIcon className="w-5 h-5 text-pink-500 mr-2" /> Galería completa
+                    </h3>
+                    {item.imagenes?.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        {item.imagenes.map((img) => (
+                          <motion.img
+                            key={img.id}
+                            src={img.imagen_url}
+                            alt={img.descripcion || "Imagen"}
+                            className="rounded-lg shadow-sm border border-gray-200 object-cover h-40 w-full"
+                            whileHover={{ scale: 1.05 }}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 italic">Sin imágenes adicionales.</p>
+                    )}
                   </div>
                 )}
+
+                {/* 📖 Control de páginas */}
+                <div className="flex justify-center mt-6 space-x-6">
+                  <button
+                    onClick={() => setPage(1)}
+                    className={`flex items-center text-sm font-semibold ${
+                      page === 1 ? "text-blue-600" : "text-gray-500"
+                    }`}
+                  >
+                    <ArrowLeftCircle className="w-5 h-5 mr-1" /> Página 1
+                  </button>
+                  <button
+                    onClick={() => setPage(2)}
+                    className={`flex items-center text-sm font-semibold ${
+                      page === 2 ? "text-blue-600" : "text-gray-500"
+                    }`}
+                  >
+                    Página 2 <ArrowRightCircle className="w-5 h-5 ml-1" />
+                  </button>
+                </div>
               </motion.div>
             </motion.div>
           </motion.div>
