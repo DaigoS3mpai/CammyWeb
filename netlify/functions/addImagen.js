@@ -1,14 +1,25 @@
-// netlify/functions/addImagen.js
 import { Client } from "pg";
 
 export const handler = async (event) => {
+  // 🧩 Solo permitir POST
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Método no permitido" };
   }
 
-  const { imagen_url, descripcion, proyecto_id, clase_id, tipo } = JSON.parse(event.body || "{}");
+  // 🧩 Parsear body de forma segura
+  let bodyData = {};
+  try {
+    bodyData = JSON.parse(event.body || "{}");
+  } catch (err) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Cuerpo JSON inválido en la solicitud." }),
+    };
+  }
 
-  // ✅ Validación básica
+  const { imagen_url, descripcion, proyecto_id, clase_id, tipo } = bodyData;
+
+  // ✅ Validación de campos obligatorios
   if (!imagen_url || (!proyecto_id && !clase_id)) {
     return {
       statusCode: 400,
@@ -32,6 +43,11 @@ export const handler = async (event) => {
     };
   }
 
+  // ✅ Detección automática del tipo de archivo (imagen o video)
+  const fileType =
+    tipo ||
+    (/\.(mp4|webm|mov|avi|mkv)$/i.test(imagen_url) ? "video" : "imagen");
+
   const client = new Client({
     connectionString: process.env.NETLIFY_DATABASE_URL,
     ssl: { rejectUnauthorized: false },
@@ -40,7 +56,6 @@ export const handler = async (event) => {
   try {
     await client.connect();
 
-    // ✅ Insertar según el tipo de relación
     const query = `
       INSERT INTO galeria (imagen_url, descripcion, proyecto_id, clase_id, tipo)
       VALUES ($1, $2, $3, $4, $5)
@@ -52,26 +67,33 @@ export const handler = async (event) => {
       descripcion || null,
       proyecto_id || null,
       clase_id || null,
-      tipo || (imagen_url.match(/\.(mp4|webm|mov)$/i) ? "video" : "imagen"),
+      fileType,
     ];
 
     const result = await client.query(query, values);
-    const nuevaImagen = result.rows[0];
-
-    await client.end();
+    const nuevoRegistro = result.rows?.[0] || null;
 
     return {
       statusCode: 200,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        message: "✅ Multimedia guardado correctamente en la base de datos.",
-        imagen: nuevaImagen,
+        message: "✅ Archivo multimedia guardado correctamente en la base de datos.",
+        multimedia: nuevoRegistro,
       }),
     };
   } catch (err) {
-    console.error("❌ Error al guardar imagen/video:", err);
+    console.error("❌ Error al guardar multimedia:", err.message);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Error interno al guardar el archivo multimedia." }),
     };
+  } finally {
+    // 🔹 Cerrar conexión siempre
+    try {
+      await client.end();
+    } catch (closeErr) {
+      console.warn("⚠️ Error al cerrar conexión con la base de datos:", closeErr.message);
+    }
   }
 };

@@ -7,9 +7,13 @@ export const handler = async () => {
   });
 
   try {
+    console.log("🚀 Conectando a la base de datos...");
+
     await client.connect();
 
-    const query = `
+    console.log("✅ Conexión establecida. Ejecutando consulta...");
+
+    const result = await client.query(`
       SELECT 
         g.id,
         g.imagen_url,
@@ -23,33 +27,33 @@ export const handler = async () => {
       LEFT JOIN proyectos p ON g.proyecto_id = p.id
       LEFT JOIN clases c ON g.clase_id = c.id
       ORDER BY g.id DESC;
-    `;
+    `);
 
-    const result = await client.query(query);
+    console.log("🧠 Filas obtenidas:", result?.rows?.length);
 
-    // 🔹 Garantizar siempre un array
-    const rows = Array.isArray(result?.rows) ? result.rows : [];
+    await client.end();
 
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(rows),
+      body: JSON.stringify(result.rows || []),
     };
   } catch (err) {
-    console.error("❌ Error al obtener galería:", err.message);
+    console.error("❌ ERROR DETECTADO EN getGaleria.js:");
+    console.error("Mensaje:", err.message);
+    console.error("Stack:", err.stack);
 
-    // 🔹 Respuesta segura incluso si hay error
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify([]),
+      body: JSON.stringify({
+        error: err.message,
+        detail: err.stack,
+      }),
     };
   } finally {
-    // 🔹 Cerrar conexión aunque haya error
     try {
       await client.end();
-    } catch (closeErr) {
-      console.warn("⚠️ Error al cerrar conexión con la base de datos:", closeErr.message);
-    }
+    } catch {}
   }
 };
