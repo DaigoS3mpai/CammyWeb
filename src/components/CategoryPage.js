@@ -8,9 +8,6 @@ import {
   PlusCircle,
   Calendar,
   FileText,
-  BookOpen,
-  Layers,
-  Images,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import DetailModalBook from "./DetailModalBook";
@@ -26,6 +23,7 @@ const CategoryPage = () => {
   const [selectedType, setSelectedType] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
+  // 🔹 Cargar datos según categoría
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -61,6 +59,7 @@ const CategoryPage = () => {
     fetchData();
   }, [categoryName]);
 
+  // 🔁 Recarga dinámica desde localStorage
   useEffect(() => {
     const reloadFlags = {
       bitacora: "reloadBitacora",
@@ -82,25 +81,7 @@ const CategoryPage = () => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [categoryName]);
 
-  useEffect(() => {
-    if (loading || items.length === 0) return;
-
-    const openClaseId = localStorage.getItem("openClaseId");
-    const openProyectoId = localStorage.getItem("openProyectoId");
-
-    if (openClaseId && categoryName === "bitacora") {
-      const itemToOpen = items.find((i) => i.id === parseInt(openClaseId));
-      if (itemToOpen) handleOpenDetail(itemToOpen, "bitacora");
-      localStorage.removeItem("openClaseId");
-    }
-
-    if (openProyectoId && categoryName === "proyectos") {
-      const itemToOpen = items.find((i) => i.id === parseInt(openProyectoId));
-      if (itemToOpen) handleOpenDetail(itemToOpen, "proyectos");
-      localStorage.removeItem("openProyectoId");
-    }
-  }, [loading, items, categoryName]);
-
+  // 🔹 Abrir / cerrar detalle
   const handleCloseDetail = (updated = false) => {
     setShowModal(false);
     setSelectedItem(null);
@@ -114,6 +95,7 @@ const CategoryPage = () => {
     setShowModal(true);
   };
 
+  // 🔹 Config visual
   const config =
     {
       bitacora: {
@@ -121,7 +103,6 @@ const CategoryPage = () => {
         description:
           "Aquí encontrarás el registro completo de todas las clases realizadas.",
         icon: <BookOpenText className="w-12 h-12 text-blue-300" />,
-        gradient: "from-blue-400 to-cyan-500",
         buttonText: "Nueva Clase",
         buttonRoute: "/new-class",
       },
@@ -130,7 +111,6 @@ const CategoryPage = () => {
         description:
           "Explora todos los proyectos desarrollados durante las clases.",
         icon: <FlaskConical className="w-12 h-12 text-purple-300" />,
-        gradient: "from-purple-400 to-pink-500",
         buttonText: "Nuevo Proyecto",
         buttonRoute: "/newproject",
       },
@@ -139,7 +119,6 @@ const CategoryPage = () => {
         description:
           "Disfruta de todas las imágenes capturadas de tus proyectos y clases.",
         icon: <ImageIcon className="w-12 h-12 text-pink-300" />,
-        gradient: "from-pink-400 to-rose-500",
         buttonText: "Ver Galería Completa",
         buttonRoute: "/gallery",
       },
@@ -147,20 +126,16 @@ const CategoryPage = () => {
       title: "Categoría no encontrada",
       description: "La sección que buscas no existe.",
       icon: <FileText className="w-12 h-12 text-gray-300" />,
-      gradient: "from-gray-400 to-gray-600",
     };
 
   return (
     <motion.div
-      className="flex-1 p-10 overflow-y-auto text-white"
+      className="flex-1 p-10 overflow-y-auto text-white min-h-screen bg-cover bg-center bg-fixed"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
       style={{
         backgroundImage: "url('/bc.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
       }}
     >
       {/* 🔹 Encabezado */}
@@ -249,6 +224,7 @@ const CategoryPage = () => {
         </motion.div>
       )}
 
+      {/* 🔹 Modal tipo libro */}
       <AnimatePresence>
         {showModal && selectedItem && (
           <DetailModalBook
