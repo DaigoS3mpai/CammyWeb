@@ -167,9 +167,12 @@ const CategoryPage = () => {
         <div className="inline-flex items-center justify-center mb-4 p-4 rounded-full border border-white/50 bg-black/40 backdrop-blur-sm shadow-lg">
           {config.icon}
         </div>
-        <h1 className="text-5xl font-extrabold text-white mb-3 drop-shadow-lg">
+
+        {/* ✨ Título con mismo degradado que Home */}
+        <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-fuchsia-400 to-purple-500 mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
           {config.title}
         </h1>
+
         <p className="text-gray-200 max-w-2xl mx-auto text-lg drop-shadow-sm">
           {config.description}
         </p>

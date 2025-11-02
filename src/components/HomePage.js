@@ -14,7 +14,7 @@ const HomePage = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
       style={{
-        backgroundImage: "url('/bc.png')", // 🖼️ solo fondo con tu imagen
+        backgroundImage: "url('/bc.png')", // 🖼️ fondo de imagen
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
@@ -22,16 +22,14 @@ const HomePage = () => {
     >
       {/* 🔹 Contenido principal */}
       <div className="relative z-10 flex flex-col items-center">
+        {/* ✨ Título con degradado completo */}
         <motion.h1
-          className="text-6xl font-extrabold text-white mb-4 leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]"
+          className="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-fuchsia-400 to-purple-500 mb-4 leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]"
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
         >
-          Bienvenido a{' '}
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-purple-500 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
-            Gotchi
-          </span>
+          Bienvenido a Cammy-Gotchi
         </motion.h1>
 
         <motion.p
