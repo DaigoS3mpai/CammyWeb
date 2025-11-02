@@ -2,7 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { UploadCloud, Eye, BookOpenText, FlaskConical, Image } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useAuth } from "./AuthContext";
+import { useAuth } from "./components/AuthContext";
+
 
 const HomePage = () => {
   const { isAdmin, isAuthenticated } = useAuth();
