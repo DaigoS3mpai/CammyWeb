@@ -8,6 +8,8 @@ import {
   PlusCircle,
   Calendar,
   FileText,
+  Layers,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import DetailModalBook from "./DetailModalBook";
@@ -207,18 +209,42 @@ const CategoryPage = () => {
               <h3 className="text-xl font-semibold text-white mb-2">
                 {item.titulo || item.proyecto_titulo || "Sin título"}
               </h3>
+
               <p className="text-gray-200 mb-3 line-clamp-3">
                 {item.descripcion || "Sin descripción"}
               </p>
 
-              {item.fecha || item.fecha_inicio ? (
-                <div className="flex items-center text-sm text-gray-300 mb-2">
+              {/* 📅 Fecha */}
+              {(item.fecha || item.fecha_inicio) && (
+                <div className="flex items-center text-sm text-gray-300 mb-1">
                   <Calendar className="w-4 h-4 mr-2" />
                   {new Date(
                     item.fecha || item.fecha_inicio
                   ).toLocaleDateString("es-CL")}
                 </div>
-              ) : null}
+              )}
+
+              {/* 🔗 Proyecto asociado (solo en bitácora) */}
+              {categoryName === "bitacora" && item.proyecto_titulo && (
+                <div className="flex items-center text-sm text-pink-200 italic">
+                  <Layers className="w-4 h-4 mr-2 text-pink-300" />
+                  {item.proyecto_titulo}
+                </div>
+              )}
+
+              {/* 🔗 Clases vinculadas (solo en proyectos) */}
+              {categoryName === "proyectos" && item.clases_vinculadas?.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm text-blue-200 font-semibold mb-1">
+                    Clases asociadas:
+                  </p>
+                  <ul className="text-sm text-gray-200 list-disc list-inside space-y-1">
+                    {item.clases_vinculadas.map((clase) => (
+                      <li key={clase.id}>{clase.titulo}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </motion.div>
           ))}
         </motion.div>
