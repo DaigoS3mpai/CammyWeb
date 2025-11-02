@@ -63,15 +63,10 @@ const AnimatedRoutes = () => {
   );
 };
 
-// 🔹 Layout principal
+// 🔹 Layout principal sin fondo global
 const AppContent = () => {
   return (
-    <div
-      className="flex flex-col min-h-screen"
-      style={{
-        background: "linear-gradient(to bottom right, #b3e5fc, #c8e6c9)",
-      }}
-    >
+    <div className="flex flex-col min-h-screen bg-transparent">
       {/* ✅ Navbar siempre visible */}
       <Navbar />
       <main className="flex-1">
