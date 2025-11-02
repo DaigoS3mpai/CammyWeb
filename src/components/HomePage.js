@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { UploadCloud, Eye, BookOpenText, FlaskConical, Image } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useAuth } from './AuthContext'; // ✅ ruta corregida
+import { useAuth } from './AuthContext';
 
 const HomePage = () => {
   const { isAdmin, isAuthenticated } = useAuth();
@@ -14,31 +14,28 @@ const HomePage = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
       style={{
-        backgroundImage: "url('/bc.png')", // 🖼️ ahora usa tu nueva imagen PNG
+        backgroundImage: "url('/bc.png')", // 🖼️ solo fondo con tu imagen
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
       }}
     >
-      {/* 🌫️ Capa translúcida para mejorar el contraste del texto */}
-      <div className="absolute inset-0 bg-black bg-opacity-40 backdrop-blur-[2px]"></div>
-
       {/* 🔹 Contenido principal */}
       <div className="relative z-10 flex flex-col items-center">
         <motion.h1
-          className="text-6xl font-extrabold text-white mb-4 leading-tight drop-shadow-lg"
+          className="text-6xl font-extrabold text-white mb-4 leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]"
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
         >
           Bienvenido a{' '}
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-purple-500 drop-shadow-lg">
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-purple-500 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
             CammyGotchi
           </span>
         </motion.h1>
 
         <motion.p
-          className="text-lg md:text-xl text-white mb-10 max-w-3xl leading-relaxed bg-white bg-opacity-10 p-6 rounded-3xl shadow-lg border border-white/30 backdrop-blur-sm"
+          className="text-lg md:text-xl text-white mb-10 max-w-3xl leading-relaxed bg-black/40 p-6 rounded-3xl shadow-lg border border-white/30 backdrop-blur-sm"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.6 }}
@@ -59,7 +56,7 @@ const HomePage = () => {
             <>
               <Link
                 to="/category/bitacora"
-                className="flex flex-col items-center p-6 rounded-3xl border border-white/40 bg-white/10 backdrop-blur-sm shadow-lg hover:bg-white/20 transition-all duration-300 transform hover:-translate-y-2"
+                className="flex flex-col items-center p-6 rounded-3xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all duration-300 transform hover:-translate-y-2"
               >
                 <Eye className="w-12 h-12 text-blue-300 mb-3" />
                 <h3 className="text-lg font-semibold text-white">Visualizar Apuntes</h3>
@@ -71,7 +68,7 @@ const HomePage = () => {
               {isAdmin() && (
                 <Link
                   to="/new-class"
-                  className="flex flex-col items-center p-6 rounded-3xl border border-white/40 bg-white/10 backdrop-blur-sm shadow-lg hover:bg-white/20 transition-all duration-300 transform hover:-translate-y-2"
+                  className="flex flex-col items-center p-6 rounded-3xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all duration-300 transform hover:-translate-y-2"
                 >
                   <UploadCloud className="w-12 h-12 text-green-300 mb-3" />
                   <h3 className="text-lg font-semibold text-white">Subir Contenidos</h3>
@@ -87,7 +84,7 @@ const HomePage = () => {
             <>
               <Link
                 to="/category/bitacora"
-                className="flex flex-col items-center p-6 rounded-3xl border border-white/40 bg-white/10 backdrop-blur-sm shadow-lg hover:bg-white/20 transition-all duration-300 transform hover:-translate-y-2"
+                className="flex flex-col items-center p-6 rounded-3xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all duration-300 transform hover:-translate-y-2"
               >
                 <BookOpenText className="w-12 h-12 text-blue-300 mb-3" />
                 <h3 className="text-lg font-semibold text-white">Bitácora</h3>
@@ -98,7 +95,7 @@ const HomePage = () => {
 
               <Link
                 to="/category/proyectos"
-                className="flex flex-col items-center p-6 rounded-3xl border border-white/40 bg-white/10 backdrop-blur-sm shadow-lg hover:bg-white/20 transition-all duration-300 transform hover:-translate-y-2"
+                className="flex flex-col items-center p-6 rounded-3xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all duration-300 transform hover:-translate-y-2"
               >
                 <FlaskConical className="w-12 h-12 text-purple-300 mb-3" />
                 <h3 className="text-lg font-semibold text-white">Proyectos</h3>
@@ -109,7 +106,7 @@ const HomePage = () => {
 
               <Link
                 to="/category/galeria"
-                className="flex flex-col items-center p-6 rounded-3xl border border-white/40 bg-white/10 backdrop-blur-sm shadow-lg hover:bg-white/20 transition-all duration-300 transform hover:-translate-y-2"
+                className="flex flex-col items-center p-6 rounded-3xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all duration-300 transform hover:-translate-y-2"
               >
                 <Image className="w-12 h-12 text-pink-300 mb-3" />
                 <h3 className="text-lg font-semibold text-white">Galería</h3>
