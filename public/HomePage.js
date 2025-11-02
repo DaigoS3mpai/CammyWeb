@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { UploadCloud, Eye, BookOpenText, FlaskConical, Image } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useAuth } from './AuthContext';
+import { useAuth } from './AuthContext'; // ✅ ruta corregida
 
 const HomePage = () => {
   const { isAdmin, isAuthenticated } = useAuth();
@@ -14,7 +14,7 @@ const HomePage = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
       style={{
-        backgroundImage: "url('/bc.jfif')",
+        backgroundImage: "url('/bc.png')", // 🖼️ ahora usa tu nueva imagen PNG
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
