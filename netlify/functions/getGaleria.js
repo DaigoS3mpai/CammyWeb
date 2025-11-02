@@ -7,11 +7,8 @@ export const handler = async () => {
   });
 
   try {
-    console.log("🚀 Conectando a la base de datos...");
-
+    console.log("🚀 Conectando a base de datos...");
     await client.connect();
-
-    console.log("✅ Conexión establecida. Ejecutando consulta...");
 
     const result = await client.query(`
       SELECT 
@@ -29,7 +26,7 @@ export const handler = async () => {
       ORDER BY g.id DESC;
     `);
 
-    console.log("🧠 Filas obtenidas:", result?.rows?.length);
+    console.log("✅ Consulta completada. Filas:", result?.rows?.length || 0);
 
     await client.end();
 
@@ -39,7 +36,7 @@ export const handler = async () => {
       body: JSON.stringify(result.rows || []),
     };
   } catch (err) {
-    console.error("❌ ERROR DETECTADO EN getGaleria.js:");
+    console.error("❌ Error en getGaleria.js:");
     console.error("Mensaje:", err.message);
     console.error("Stack:", err.stack);
 
@@ -48,7 +45,6 @@ export const handler = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         error: err.message,
-        detail: err.stack,
       }),
     };
   } finally {
