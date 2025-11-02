@@ -13,7 +13,7 @@ import {
   Images,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
-import DetailModalBook from "./DetailModalBook"; // 📘 Modal con estilo libro
+import DetailModalBook from "./DetailModalBook";
 
 const CategoryPage = () => {
   const { categoryName } = useParams();
@@ -26,7 +26,6 @@ const CategoryPage = () => {
   const [selectedType, setSelectedType] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  // 🔹 Cargar datos según categoría
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -58,12 +57,10 @@ const CategoryPage = () => {
     }
   };
 
-  // 🔁 Cargar al montar o cambiar categoría
   useEffect(() => {
     fetchData();
   }, [categoryName]);
 
-  // 🔁 Escucha cambios de recarga en localStorage
   useEffect(() => {
     const reloadFlags = {
       bitacora: "reloadBitacora",
@@ -85,7 +82,6 @@ const CategoryPage = () => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [categoryName]);
 
-  // 🧭 Apertura automática de modales (proyecto o clase)
   useEffect(() => {
     if (loading || items.length === 0) return;
 
@@ -105,7 +101,6 @@ const CategoryPage = () => {
     }
   }, [loading, items, categoryName]);
 
-  // 🔹 Cerrar modal (recargar si se editó)
   const handleCloseDetail = (updated = false) => {
     setShowModal(false);
     setSelectedItem(null);
@@ -113,22 +108,20 @@ const CategoryPage = () => {
     if (updated) fetchData();
   };
 
-  // 🔹 Abrir modal tipo libro
   const handleOpenDetail = (item, type = categoryName) => {
     setSelectedItem(item);
     setSelectedType(type);
     setShowModal(true);
   };
 
-  // 🔹 Config visual
   const config =
     {
       bitacora: {
         title: "Bitácora de Clases",
         description:
           "Aquí encontrarás el registro completo de todas las clases realizadas.",
-        icon: <BookOpenText className="w-12 h-12 text-blue-500" />,
-        gradient: "from-blue-500 to-cyan-600",
+        icon: <BookOpenText className="w-12 h-12 text-blue-300" />,
+        gradient: "from-blue-400 to-cyan-500",
         buttonText: "Nueva Clase",
         buttonRoute: "/new-class",
       },
@@ -136,8 +129,8 @@ const CategoryPage = () => {
         title: "Proyectos Realizados",
         description:
           "Explora todos los proyectos desarrollados durante las clases.",
-        icon: <FlaskConical className="w-12 h-12 text-purple-500" />,
-        gradient: "from-purple-500 to-indigo-600",
+        icon: <FlaskConical className="w-12 h-12 text-purple-300" />,
+        gradient: "from-purple-400 to-pink-500",
         buttonText: "Nuevo Proyecto",
         buttonRoute: "/newproject",
       },
@@ -145,33 +138,30 @@ const CategoryPage = () => {
         title: "Galería de Imágenes",
         description:
           "Disfruta de todas las imágenes capturadas de tus proyectos y clases.",
-        icon: <ImageIcon className="w-12 h-12 text-pink-500" />,
-        gradient: "from-pink-500 to-rose-600",
+        icon: <ImageIcon className="w-12 h-12 text-pink-300" />,
+        gradient: "from-pink-400 to-rose-500",
         buttonText: "Ver Galería Completa",
         buttonRoute: "/gallery",
       },
     }[categoryName] || {
       title: "Categoría no encontrada",
       description: "La sección que buscas no existe.",
-      icon: <FileText className="w-12 h-12 text-gray-500" />,
+      icon: <FileText className="w-12 h-12 text-gray-300" />,
       gradient: "from-gray-400 to-gray-600",
     };
 
-  // 🎨 Fondo dinámico según categoría
-  const backgroundStyle =
-    categoryName === "bitacora" ||
-    categoryName === "proyectos" ||
-    categoryName === "galeria"
-      ? { background: "linear-gradient(to bottom right, #b3e5fc, #c8e6c9)" }
-      : { background: "linear-gradient(to bottom right, #f9fafb, #f3f4f6)" };
-
   return (
     <motion.div
-      className="flex-1 p-10 overflow-y-auto"
+      className="flex-1 p-10 overflow-y-auto text-white"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
-      style={backgroundStyle}
+      style={{
+        backgroundImage: "url('/bc.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
     >
       {/* 🔹 Encabezado */}
       <motion.div
@@ -179,15 +169,13 @@ const CategoryPage = () => {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
       >
-        <div
-          className={`inline-flex items-center justify-center mb-4 p-4 rounded-full bg-gradient-to-br ${config.gradient} text-white shadow-md`}
-        >
+        <div className="inline-flex items-center justify-center mb-4 p-4 rounded-full border border-white/50 bg-black/40 backdrop-blur-sm shadow-lg">
           {config.icon}
         </div>
-        <h1 className="text-5xl font-extrabold text-gray-900 mb-3">
+        <h1 className="text-5xl font-extrabold text-white mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
           {config.title}
         </h1>
-        <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+        <p className="text-gray-200 max-w-2xl mx-auto text-lg drop-shadow-sm">
           {config.description}
         </p>
       </motion.div>
@@ -197,11 +185,11 @@ const CategoryPage = () => {
         <div className="flex justify-center mb-8">
           <motion.button
             onClick={() => navigate(config.buttonRoute)}
-            className={`flex items-center px-6 py-3 text-white rounded-xl font-semibold shadow-lg bg-gradient-to-r ${config.gradient} hover:opacity-90 transition-all`}
+            className="flex items-center px-6 py-3 rounded-xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all text-white font-semibold"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <PlusCircle className="w-5 h-5 mr-2" />
+            <PlusCircle className="w-5 h-5 mr-2 text-pink-300" />
             {config.buttonText}
           </motion.button>
         </div>
@@ -209,11 +197,11 @@ const CategoryPage = () => {
 
       {/* 🔹 Contenido principal */}
       {loading ? (
-        <p className="text-center text-gray-500 mt-20 text-lg">
+        <p className="text-center text-gray-200 mt-20 text-lg">
           Cargando contenido...
         </p>
       ) : items.length === 0 ? (
-        <p className="text-center text-gray-500 mt-20 text-lg">
+        <p className="text-center text-gray-200 mt-20 text-lg">
           No hay registros en esta categoría.
         </p>
       ) : (
@@ -229,122 +217,38 @@ const CategoryPage = () => {
           {items.map((item, index) => (
             <motion.div
               key={item.id || index}
-              className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-gray-100 overflow-hidden transition-all cursor-pointer"
+              className="p-6 rounded-2xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all cursor-pointer"
               whileHover={{ scale: 1.02 }}
               onClick={() => handleOpenDetail(item)}
             >
-              {/* Imagen portada */}
-              {categoryName === "galeria" && item.imagen_url ? (
-                <>
-                  <img
-                    src={item.imagen_url}
-                    alt={item.descripcion || "Imagen"}
-                    className="w-full h-64 object-cover"
-                  />
-                  <div className="p-4 border-t bg-gray-50">
-                    <h4 className="text-sm font-semibold text-gray-700">
-                      {item.proyecto_titulo ? (
-                        <>
-                          Proyecto:&nbsp;
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              localStorage.setItem(
-                                "openProyectoId",
-                                item.proyecto_id
-                              );
-                              localStorage.setItem("reloadProyectos", "true");
-                              navigate("/category/proyectos");
-                            }}
-                            className="text-purple-600 hover:underline"
-                          >
-                            {item.proyecto_titulo}
-                          </button>
-                        </>
-                      ) : (
-                        "Imagen sin proyecto vinculado"
-                      )}
-                    </h4>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {item.descripcion || "Sin descripción"}
-                    </p>
-                  </div>
-                </>
-              ) : categoryName === "proyectos" && item.imagen_portada ? (
+              {categoryName === "galeria" && item.imagen_url && (
                 <img
-                  src={item.imagen_portada}
-                  alt={item.titulo}
-                  className="w-full h-64 object-cover"
+                  src={item.imagen_url}
+                  alt={item.descripcion || "Imagen"}
+                  className="w-full h-64 object-cover rounded-xl mb-4"
                 />
-              ) : (
-                <div className="h-2 bg-gradient-to-r from-gray-100 to-gray-200" />
               )}
 
-              {/* Texto de tarjeta */}
-              <div className="p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  {item.titulo || item.proyecto_titulo || "Sin título"}
-                </h3>
-                <p className="text-gray-600 mb-3 line-clamp-3">
-                  {item.descripcion || "Sin descripción"}
-                </p>
+              <h3 className="text-xl font-semibold text-white mb-2">
+                {item.titulo || item.proyecto_titulo || "Sin título"}
+              </h3>
+              <p className="text-gray-200 mb-3 line-clamp-3">
+                {item.descripcion || "Sin descripción"}
+              </p>
 
-                {/* Fecha */}
-                {item.fecha || item.fecha_inicio ? (
-                  <div className="flex items-center text-sm text-gray-500 mb-2">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    {new Date(
-                      item.fecha || item.fecha_inicio
-                    ).toLocaleDateString("es-CL")}
-                  </div>
-                ) : null}
-
-                {/* Proyecto vinculado (bitácora) */}
-                {categoryName === "bitacora" &&
-                  (item.proyecto_titulo || item.proyecto_id) && (
-                    <div className="flex items-center text-sm text-purple-600 mb-2">
-                      <Layers className="w-4 h-4 mr-2" />
-                      <span>
-                        Vinculado a:{" "}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            localStorage.setItem(
-                              "openProyectoId",
-                              item.proyecto_id
-                            );
-                            localStorage.setItem("reloadProyectos", "true");
-                            navigate("/category/proyectos");
-                          }}
-                          className="font-semibold text-purple-700 hover:underline"
-                        >
-                          {item.proyecto_titulo ||
-                            `Proyecto #${item.proyecto_id}`}
-                        </button>
-                      </span>
-                    </div>
-                  )}
-
-                {/* Estadísticas (proyectos) */}
-                {categoryName === "proyectos" && (
-                  <div className="flex items-center text-sm text-gray-600 space-x-4 mt-2">
-                    <div className="flex items-center">
-                      <BookOpen className="w-4 h-4 mr-1 text-blue-500" />
-                      <span>{item.clase_count || 0} clases</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Images className="w-4 h-4 mr-1 text-pink-500" />
-                      <span>{item.imagen_count || 0} imágenes</span>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {item.fecha || item.fecha_inicio ? (
+                <div className="flex items-center text-sm text-gray-300 mb-2">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  {new Date(
+                    item.fecha || item.fecha_inicio
+                  ).toLocaleDateString("es-CL")}
+                </div>
+              ) : null}
             </motion.div>
           ))}
         </motion.div>
       )}
 
-      {/* 🔹 Modal tipo libro */}
       <AnimatePresence>
         {showModal && selectedItem && (
           <DetailModalBook
