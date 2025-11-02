@@ -21,7 +21,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  const [linkedClases, setLinkedClases] = useState([]); // 🔹 Clases vinculadas a proyectos
+  const [linkedClases, setLinkedClases] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [titulo, setTitulo] = useState(item?.titulo || "");
   const [descripcion, setDescripcion] = useState(item?.descripcion || "");
@@ -31,7 +31,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
   const [proyectoId, setProyectoId] = useState(item?.proyecto_id || "");
   const [nuevasImagenes, setNuevasImagenes] = useState([]);
 
-  // 🔹 Cargar lista de proyectos (solo si estamos editando una clase)
+  // 🔹 Cargar lista de proyectos (solo si estamos en clase)
   useEffect(() => {
     if (type === "bitacora") {
       fetch("/.netlify/functions/getProyectos")
@@ -41,7 +41,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
     }
   }, [type]);
 
-  // 🔹 Cargar clases vinculadas al proyecto actual
+  // 🔹 Cargar clases vinculadas al proyecto
   useEffect(() => {
     if (type === "proyectos" && item?.id) {
       fetch("/.netlify/functions/getClases")
@@ -143,6 +143,13 @@ const DetailModalBook = ({ item, type, onClose }) => {
     }
   };
 
+  // 🔗 Navegar a clase desde proyecto
+  const openLinkedClase = (claseId) => {
+    localStorage.setItem("openClaseId", claseId);
+    localStorage.setItem("reloadBitacora", "true");
+    navigate("/category/bitacora");
+  };
+
   return (
     <AnimatePresence>
       {item && (
@@ -172,7 +179,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
               {/* 📘 Encuadernado */}
               <div className="absolute inset-y-0 left-1/2 w-[3px] bg-[#c8b49d] shadow-inner z-10"></div>
 
-              {/* Botones superiores */}
+              {/* 🔹 Botones superiores */}
               <div className="absolute top-4 right-4 flex space-x-2 z-20">
                 {isAdmin() && !editMode && (
                   <button
@@ -211,10 +218,9 @@ const DetailModalBook = ({ item, type, onClose }) => {
                 </button>
               </div>
 
-              {/* Página izquierda */}
+              {/* 🔹 Página izquierda */}
               <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-between border-r border-[#d9c6ab]">
                 <div>
-                  {/* 🔹 Título */}
                   <div className="flex items-center mb-6">
                     {type === "proyectos" ? (
                       <FlaskConical className="w-8 h-8 text-[#7a4e27] mr-3" />
@@ -234,7 +240,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     )}
                   </div>
 
-                  {/* 🔹 Fecha */}
+                  {/* Fecha */}
                   {fecha && (
                     <div className="mb-5">
                       <div className="flex items-center mb-1">
@@ -247,7 +253,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     </div>
                   )}
 
-                  {/* 🔹 Proyecto vinculado (solo en bitácora) */}
+                  {/* Proyecto vinculado */}
                   {type === "bitacora" && (
                     <div className="mb-5">
                       <div className="flex items-center mb-1">
@@ -260,9 +266,9 @@ const DetailModalBook = ({ item, type, onClose }) => {
                         <select
                           value={proyectoId || ""}
                           onChange={(e) => setProyectoId(e.target.value)}
-                          className="w-full border border-gray-300 rounded-xl p-2"
+                          className="w-full border border-gray-400 text-black rounded-xl p-2 bg-white focus:ring-2 focus:ring-amber-600"
                         >
-                          <option value="">Sin vincular</option>
+                          <option value="">Selecciona un proyecto...</option>
                           {allProyectos.map((p) => (
                             <option key={p.id} value={p.id}>
                               {p.titulo}
@@ -281,23 +287,29 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     </div>
                   )}
 
-                  {/* 🔹 Clases vinculadas (solo en proyectos) */}
-                  {type === "proyectos" &&
-                    linkedClases.length > 0 && (
-                      <div className="mt-4">
-                        <div className="flex items-center mb-2">
-                          <BookOpen className="w-5 h-5 text-[#7a4e27] mr-2" />
-                          <h3 className="text-lg font-semibold text-[#5b4532]">
-                            Clases vinculadas
-                          </h3>
-                        </div>
-                        <ul className="list-disc list-inside text-[#4e3c2b] space-y-1">
-                          {linkedClases.map((clase) => (
-                            <li key={clase.id}>{clase.titulo}</li>
-                          ))}
-                        </ul>
+                  {/* Clases vinculadas */}
+                  {type === "proyectos" && linkedClases.length > 0 && (
+                    <div className="mt-4">
+                      <div className="flex items-center mb-2">
+                        <BookOpen className="w-5 h-5 text-[#7a4e27] mr-2" />
+                        <h3 className="text-lg font-semibold text-[#5b4532]">
+                          Clases vinculadas
+                        </h3>
                       </div>
-                    )}
+                      <ul className="list-disc list-inside text-[#4e3c2b] space-y-1">
+                        {linkedClases.map((clase) => (
+                          <li key={clase.id}>
+                            <button
+                              onClick={() => openLinkedClase(clase.id)}
+                              className="text-blue-700 hover:underline font-medium"
+                            >
+                              {clase.titulo}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
 
                 {/* Imagen principal */}
@@ -313,7 +325,9 @@ const DetailModalBook = ({ item, type, onClose }) => {
                       className="w-full rounded-xl shadow-md border border-[#d1bda1] object-cover max-h-[300px]"
                     />
                   ) : (
-                    <p className="text-[#9c8973] italic">Sin imagen de portada.</p>
+                    <p className="text-[#9c8973] italic">
+                      Sin imagen de portada.
+                    </p>
                   )}
                 </div>
               </div>
@@ -347,7 +361,6 @@ const DetailModalBook = ({ item, type, onClose }) => {
                       <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" /> Galería completa
                     </h3>
 
-                    {/* 👇 Input de nuevas imágenes (solo modo edición) */}
                     {type === "proyectos" && editMode && (
                       <div className="mb-4">
                         <label className="block text-sm font-semibold text-[#5b4532] mb-1">
