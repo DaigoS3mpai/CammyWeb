@@ -350,7 +350,8 @@ const DetailModalBook = ({ item, type, onClose }) => {
                         className="w-full h-[350px] p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
                       />
                     ) : (
-                      <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] max-h-[450px] overflow-y-auto">
+                      // 🆕 Cambiado: se añadió whitespace-pre-line
+                      <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] max-h-[450px] overflow-y-auto whitespace-pre-line">
                         {descripcion || "Sin descripción disponible."}
                       </div>
                     )}
