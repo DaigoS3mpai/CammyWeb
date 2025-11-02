@@ -41,17 +41,24 @@ const GalleryPage = () => {
 
   // 🖼️ Subir imagen a Cloudinary
   const uploadToCloudinary = async (file) => {
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_UPLOAD_PRESET;
+    const cloudName =
+      import.meta.env.VITE_CLOUDINARY_CLOUD_NAME ||
+      process.env.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset =
+      import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ||
+      process.env.CLOUDINARY_UPLOAD_PRESET;
 
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", uploadPreset);
 
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-      method: "POST",
-      body: formData,
-    });
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
 
     const data = await res.json();
     return data.secure_url;
@@ -109,10 +116,13 @@ const GalleryPage = () => {
 
   return (
     <motion.div
-      className="flex-1 p-10 bg-gradient-to-br from-pink-50 to-purple-50 overflow-y-auto"
+      className="flex-1 p-10 overflow-y-auto"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
+      style={{
+        background: "linear-gradient(to bottom right, #b3e5fc, #c8e6c9)",
+      }}
     >
       <motion.h1
         className="text-5xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-700 mb-10"
@@ -158,7 +168,9 @@ const GalleryPage = () => {
                   disabled={uploading}
                   className="border border-gray-300 rounded-xl p-2 w-full"
                 />
-                {uploading && <Loader2 className="animate-spin w-6 h-6 text-pink-600" />}
+                {uploading && (
+                  <Loader2 className="animate-spin w-6 h-6 text-pink-600" />
+                )}
               </div>
               {nuevaImagen.imagen_url && (
                 <img
@@ -177,7 +189,10 @@ const GalleryPage = () => {
               <textarea
                 value={nuevaImagen.descripcion}
                 onChange={(e) =>
-                  setNuevaImagen({ ...nuevaImagen, descripcion: e.target.value })
+                  setNuevaImagen({
+                    ...nuevaImagen,
+                    descripcion: e.target.value,
+                  })
                 }
                 placeholder="Describe brevemente la imagen..."
                 rows="3"
@@ -193,7 +208,10 @@ const GalleryPage = () => {
               <select
                 value={nuevaImagen.proyecto_id}
                 onChange={(e) =>
-                  setNuevaImagen({ ...nuevaImagen, proyecto_id: e.target.value })
+                  setNuevaImagen({
+                    ...nuevaImagen,
+                    proyecto_id: e.target.value,
+                  })
                 }
                 className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
                 required

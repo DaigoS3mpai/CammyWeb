@@ -157,12 +157,21 @@ const CategoryPage = () => {
       gradient: "from-gray-400 to-gray-600",
     };
 
+  // 🎨 Fondo dinámico según categoría
+  const backgroundStyle =
+    categoryName === "bitacora" ||
+    categoryName === "proyectos" ||
+    categoryName === "galeria"
+      ? { background: "linear-gradient(to bottom right, #b3e5fc, #c8e6c9)" }
+      : { background: "linear-gradient(to bottom right, #f9fafb, #f3f4f6)" };
+
   return (
     <motion.div
-      className="flex-1 p-10 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto"
+      className="flex-1 p-10 overflow-y-auto"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
+      style={backgroundStyle}
     >
       {/* 🔹 Encabezado */}
       <motion.div
@@ -240,7 +249,10 @@ const CategoryPage = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              localStorage.setItem("openProyectoId", item.proyecto_id);
+                              localStorage.setItem(
+                                "openProyectoId",
+                                item.proyecto_id
+                              );
                               localStorage.setItem("reloadProyectos", "true");
                               navigate("/category/proyectos");
                             }}
@@ -297,7 +309,10 @@ const CategoryPage = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            localStorage.setItem("openProyectoId", item.proyecto_id);
+                            localStorage.setItem(
+                              "openProyectoId",
+                              item.proyecto_id
+                            );
                             localStorage.setItem("reloadProyectos", "true");
                             navigate("/category/proyectos");
                           }}
