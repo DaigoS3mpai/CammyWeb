@@ -5,6 +5,7 @@ import {
   BookOpenText,
   FlaskConical,
   Image as ImageIcon,
+  Video,
   PlusCircle,
   Calendar,
   FileText,
@@ -85,6 +86,7 @@ const CategoryPage = () => {
     if (loading || items.length === 0) return;
     const openClaseId = localStorage.getItem("openClaseId");
     const openProyectoId = localStorage.getItem("openProyectoId");
+    const openGaleriaId = localStorage.getItem("openGaleriaId");
 
     if (openClaseId && categoryName === "bitacora") {
       const itemToOpen = items.find((i) => i.id === parseInt(openClaseId));
@@ -95,6 +97,11 @@ const CategoryPage = () => {
       const itemToOpen = items.find((i) => i.id === parseInt(openProyectoId));
       if (itemToOpen) handleOpenDetail(itemToOpen, "proyectos");
       localStorage.removeItem("openProyectoId");
+    }
+    if (openGaleriaId && categoryName === "galeria") {
+      const itemToOpen = items.find((i) => i.id === parseInt(openGaleriaId));
+      if (itemToOpen) handleOpenDetail(itemToOpen, "galeria");
+      localStorage.removeItem("openGaleriaId");
     }
   }, [loading, items, categoryName]);
 
@@ -131,9 +138,9 @@ const CategoryPage = () => {
         buttonRoute: "/newproject",
       },
       galeria: {
-        title: "Galería de Imágenes",
+        title: "Galería Multimedia",
         description:
-          "Disfruta de todas las imágenes capturadas de tus proyectos y clases.",
+          "Disfruta de las imágenes y videos capturados de tus proyectos y clases.",
         icon: <ImageIcon className="w-12 h-12 text-pink-500" />,
         buttonText: "Ver Galería Completa",
         buttonRoute: "/gallery",
@@ -154,7 +161,7 @@ const CategoryPage = () => {
         backgroundImage: "url('/bc.png')",
       }}
     >
-      {/* 🔹 Estilos de animación de degradado */}
+      {/* 🔹 Estilos de degradado animado */}
       <style>{`
         @keyframes gradientFlow {
           0% { background-position: 0% 50%; }
@@ -177,7 +184,6 @@ const CategoryPage = () => {
           {config.icon}
         </div>
 
-        {/* ✨ Título con degradado animado */}
         <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-fuchsia-400 to-purple-500 animate-gradient mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
           {config.title}
         </h1>
@@ -228,7 +234,7 @@ const CategoryPage = () => {
               whileHover={{ scale: 1.02 }}
               onClick={() => handleOpenDetail(item)}
             >
-              {/* Imagen principal */}
+              {/* 🖼️ Imagen o 🎥 Video según categoría */}
               {categoryName === "proyectos" && item.imagen_portada && (
                 <img
                   src={item.imagen_portada}
@@ -236,17 +242,34 @@ const CategoryPage = () => {
                   className="w-full h-48 object-cover rounded-lg mb-4"
                 />
               )}
-              {categoryName === "galeria" && item.imagen_url && (
-                <img
-                  src={item.imagen_url}
-                  alt={item.descripcion || "Imagen"}
-                  className="w-full h-64 object-cover rounded-lg mb-4"
-                />
+
+              {categoryName === "galeria" && (
+                <>
+                  {item.video_url ? (
+                    <video
+                      src={item.video_url}
+                      className="w-full h-64 object-cover rounded-lg mb-4"
+                      muted
+                      autoPlay
+                      loop
+                    />
+                  ) : (
+                    item.imagen_url && (
+                      <img
+                        src={item.imagen_url}
+                        alt={item.descripcion || "Imagen"}
+                        className="w-full h-64 object-cover rounded-lg mb-4"
+                      />
+                    )
+                  )}
+                </>
               )}
 
               {/* Título */}
               <h3 className="text-xl font-semibold text-white mb-2">
-                {item.titulo || item.proyecto_titulo || "Sin título"}
+                {item.titulo ||
+                  item.proyecto_titulo ||
+                  (item.video_url ? "Video" : "Sin título")}
               </h3>
 
               {/* Descripción */}
@@ -293,7 +316,10 @@ const CategoryPage = () => {
                   </div>
                   <div className="flex items-center">
                     <Images className="w-4 h-4 mr-1 text-pink-300" />
-                    <span>{item.imagen_count || 0} imágenes</span>
+                    <span>
+                      {(item.imagen_count || 0) + (item.video_count || 0)}{" "}
+                      multimedia
+                    </span>
                   </div>
                 </div>
               )}

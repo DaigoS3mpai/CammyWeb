@@ -227,39 +227,21 @@ const DetailModalBook = ({ item, type, onClose }) => {
               </div>
 
               {/* 🔹 Página izquierda */}
-              <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-center items-center border-r border-[#d9c6ab] relative">
+              <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-between border-r border-[#d9c6ab]">
                 {/* 🖼️ Imagen desde galería */}
                 {type === "galeria" ? (
-                  <>
+                  <div className="flex flex-col items-center text-center space-y-4">
                     {item.imagen_url ? (
-                      <>
-                        {/* Fondo borroso al hacer zoom */}
-                        <AnimatePresence>
-                          {zoomed && (
-                            <motion.div
-                              className="absolute inset-0 bg-black/40 backdrop-blur-md rounded-2xl z-10"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              onClick={() => setZoomed(false)}
-                            />
-                          )}
-                        </AnimatePresence>
-
-                        {/* Imagen principal */}
-                        <motion.img
-                          src={item.imagen_url}
-                          alt={item.descripcion || "Imagen"}
-                          onClick={() => setZoomed(!zoomed)}
-                          className={`rounded-xl shadow-md border border-[#d1bda1] object-contain cursor-pointer transition-all duration-300 z-20 ${
-                            zoomed
-                              ? "max-h-[600px] scale-110"
-                              : "max-h-[400px] hover:scale-[1.02]"
-                          }`}
-                          layout
-                          transition={{ type: "spring", stiffness: 100 }}
-                        />
-                      </>
+                      <motion.img
+                        src={item.imagen_url}
+                        alt={item.descripcion || "Imagen"}
+                        onClick={() => setZoomed(!zoomed)}
+                        className={`rounded-xl shadow-md border border-[#d1bda1] object-contain cursor-pointer transition-all duration-300 ${
+                          zoomed
+                            ? "max-h-[550px] scale-105"
+                            : "max-h-[400px] hover:scale-[1.02]"
+                        }`}
+                      />
                     ) : (
                       <p className="text-gray-500 italic">
                         Sin imagen disponible.
@@ -267,7 +249,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     )}
 
                     {item.proyecto_id && item.proyecto_titulo && (
-                      <div className="mt-6 text-center z-30">
+                      <div>
                         <h3 className="text-lg font-semibold text-[#5b4532] mb-1">
                           Proyecto vinculado
                         </h3>
@@ -279,10 +261,10 @@ const DetailModalBook = ({ item, type, onClose }) => {
                         </button>
                       </div>
                     )}
-                  </>
+                  </div>
                 ) : (
                   <>
-                    <div className="w-full">
+                    <div>
                       <div className="flex items-center mb-6">
                         {type === "proyectos" ? (
                           <FlaskConical className="w-8 h-8 text-[#7a4e27] mr-3" />
@@ -382,7 +364,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     </div>
 
                     {/* Imagen principal */}
-                    <div className="mt-6 w-full">
+                    <div className="mt-6">
                       <h3 className="text-lg font-semibold text-[#5b4532] flex items-center mb-2">
                         <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" />{" "}
                         Imagen principal
