@@ -30,7 +30,7 @@ const HomePage = () => {
         >
           Bienvenido a{' '}
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-purple-500 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
-            CammyGotchi
+            Gotchi
           </span>
         </motion.h1>
 

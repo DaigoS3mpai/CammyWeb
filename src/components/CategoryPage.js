@@ -8,8 +8,9 @@ import {
   PlusCircle,
   Calendar,
   FileText,
-  Layers,
   BookOpen,
+  Layers,
+  Images,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import DetailModalBook from "./DetailModalBook";
@@ -25,12 +26,11 @@ const CategoryPage = () => {
   const [selectedType, setSelectedType] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  // 🔹 Cargar datos según categoría
+  // 🔹 Cargar datos
   const fetchData = async () => {
     setLoading(true);
     try {
       let endpoint = "";
-
       switch (categoryName) {
         case "bitacora":
           endpoint = "/.netlify/functions/getClases";
@@ -46,7 +46,6 @@ const CategoryPage = () => {
           setLoading(false);
           return;
       }
-
       const res = await fetch(endpoint);
       const data = await res.json();
       setItems(data);
@@ -61,7 +60,7 @@ const CategoryPage = () => {
     fetchData();
   }, [categoryName]);
 
-  // 🔁 Recarga dinámica desde localStorage
+  // 🔁 Recarga desde localStorage
   useEffect(() => {
     const reloadFlags = {
       bitacora: "reloadBitacora",
@@ -76,14 +75,29 @@ const CategoryPage = () => {
         localStorage.removeItem(key);
       }
     };
-
     window.addEventListener("storage", handleStorageChange);
     handleStorageChange();
-
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [categoryName]);
 
-  // 🔹 Abrir / cerrar detalle
+  // 🧭 Apertura automática de modales
+  useEffect(() => {
+    if (loading || items.length === 0) return;
+    const openClaseId = localStorage.getItem("openClaseId");
+    const openProyectoId = localStorage.getItem("openProyectoId");
+
+    if (openClaseId && categoryName === "bitacora") {
+      const itemToOpen = items.find((i) => i.id === parseInt(openClaseId));
+      if (itemToOpen) handleOpenDetail(itemToOpen, "bitacora");
+      localStorage.removeItem("openClaseId");
+    }
+    if (openProyectoId && categoryName === "proyectos") {
+      const itemToOpen = items.find((i) => i.id === parseInt(openProyectoId));
+      if (itemToOpen) handleOpenDetail(itemToOpen, "proyectos");
+      localStorage.removeItem("openProyectoId");
+    }
+  }, [loading, items, categoryName]);
+
   const handleCloseDetail = (updated = false) => {
     setShowModal(false);
     setSelectedItem(null);
@@ -97,14 +111,15 @@ const CategoryPage = () => {
     setShowModal(true);
   };
 
-  // 🔹 Config visual
+  // 🎨 Config visual
   const config =
     {
       bitacora: {
         title: "Bitácora de Clases",
         description:
           "Aquí encontrarás el registro completo de todas las clases realizadas.",
-        icon: <BookOpenText className="w-12 h-12 text-blue-300" />,
+        icon: <BookOpenText className="w-12 h-12 text-blue-500" />,
+        gradient: "from-blue-500 to-cyan-600",
         buttonText: "Nueva Clase",
         buttonRoute: "/new-class",
       },
@@ -112,7 +127,8 @@ const CategoryPage = () => {
         title: "Proyectos Realizados",
         description:
           "Explora todos los proyectos desarrollados durante las clases.",
-        icon: <FlaskConical className="w-12 h-12 text-purple-300" />,
+        icon: <FlaskConical className="w-12 h-12 text-purple-500" />,
+        gradient: "from-purple-500 to-indigo-600",
         buttonText: "Nuevo Proyecto",
         buttonRoute: "/newproject",
       },
@@ -120,19 +136,21 @@ const CategoryPage = () => {
         title: "Galería de Imágenes",
         description:
           "Disfruta de todas las imágenes capturadas de tus proyectos y clases.",
-        icon: <ImageIcon className="w-12 h-12 text-pink-300" />,
+        icon: <ImageIcon className="w-12 h-12 text-pink-500" />,
+        gradient: "from-pink-500 to-rose-600",
         buttonText: "Ver Galería Completa",
         buttonRoute: "/gallery",
       },
     }[categoryName] || {
       title: "Categoría no encontrada",
       description: "La sección que buscas no existe.",
-      icon: <FileText className="w-12 h-12 text-gray-300" />,
+      icon: <FileText className="w-12 h-12 text-gray-500" />,
+      gradient: "from-gray-400 to-gray-600",
     };
 
   return (
     <motion.div
-      className="flex-1 p-10 overflow-y-auto text-white min-h-screen bg-cover bg-center bg-fixed"
+      className="flex-1 p-10 bg-cover bg-center bg-fixed text-white min-h-screen"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
@@ -149,7 +167,7 @@ const CategoryPage = () => {
         <div className="inline-flex items-center justify-center mb-4 p-4 rounded-full border border-white/50 bg-black/40 backdrop-blur-sm shadow-lg">
           {config.icon}
         </div>
-        <h1 className="text-5xl font-extrabold text-white mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
+        <h1 className="text-5xl font-extrabold text-white mb-3 drop-shadow-lg">
           {config.title}
         </h1>
         <p className="text-gray-200 max-w-2xl mx-auto text-lg drop-shadow-sm">
@@ -172,13 +190,13 @@ const CategoryPage = () => {
         </div>
       )}
 
-      {/* 🔹 Contenido principal */}
+      {/* 🔹 Contenido */}
       {loading ? (
-        <p className="text-center text-gray-200 mt-20 text-lg">
+        <p className="text-center text-gray-300 mt-20 text-lg">
           Cargando contenido...
         </p>
       ) : items.length === 0 ? (
-        <p className="text-center text-gray-200 mt-20 text-lg">
+        <p className="text-center text-gray-300 mt-20 text-lg">
           No hay registros en esta categoría.
         </p>
       ) : (
@@ -198,23 +216,33 @@ const CategoryPage = () => {
               whileHover={{ scale: 1.02 }}
               onClick={() => handleOpenDetail(item)}
             >
+              {/* Imagen principal */}
+              {categoryName === "proyectos" && item.imagen_portada && (
+                <img
+                  src={item.imagen_portada}
+                  alt={item.titulo}
+                  className="w-full h-48 object-cover rounded-lg mb-4"
+                />
+              )}
               {categoryName === "galeria" && item.imagen_url && (
                 <img
                   src={item.imagen_url}
                   alt={item.descripcion || "Imagen"}
-                  className="w-full h-64 object-cover rounded-xl mb-4"
+                  className="w-full h-64 object-cover rounded-lg mb-4"
                 />
               )}
 
+              {/* Título */}
               <h3 className="text-xl font-semibold text-white mb-2">
                 {item.titulo || item.proyecto_titulo || "Sin título"}
               </h3>
 
+              {/* Descripción */}
               <p className="text-gray-200 mb-3 line-clamp-3">
                 {item.descripcion || "Sin descripción"}
               </p>
 
-              {/* 📅 Fecha */}
+              {/* Fecha */}
               {(item.fecha || item.fecha_inicio) && (
                 <div className="flex items-center text-sm text-gray-300 mb-1">
                   <Calendar className="w-4 h-4 mr-2" />
@@ -224,25 +252,37 @@ const CategoryPage = () => {
                 </div>
               )}
 
-              {/* 🔗 Proyecto asociado (solo en bitácora) */}
-              {categoryName === "bitacora" && item.proyecto_titulo && (
-                <div className="flex items-center text-sm text-pink-200 italic">
-                  <Layers className="w-4 h-4 mr-2 text-pink-300" />
-                  {item.proyecto_titulo}
-                </div>
-              )}
+              {/* Proyecto vinculado (bitácora) */}
+              {categoryName === "bitacora" &&
+                (item.proyecto_titulo || item.proyecto_id) && (
+                  <div className="flex items-center text-sm text-pink-200 italic">
+                    <Layers className="w-4 h-4 mr-2 text-pink-300" />
+                    Vinculado a:{" "}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        localStorage.setItem("openProyectoId", item.proyecto_id);
+                        localStorage.setItem("reloadProyectos", "true");
+                        navigate("/category/proyectos");
+                      }}
+                      className="text-pink-100 hover:underline ml-1"
+                    >
+                      {item.proyecto_titulo || `Proyecto #${item.proyecto_id}`}
+                    </button>
+                  </div>
+                )}
 
-              {/* 🔗 Clases vinculadas (solo en proyectos) */}
-              {categoryName === "proyectos" && item.clases_vinculadas?.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-sm text-blue-200 font-semibold mb-1">
-                    Clases asociadas:
-                  </p>
-                  <ul className="text-sm text-gray-200 list-disc list-inside space-y-1">
-                    {item.clases_vinculadas.map((clase) => (
-                      <li key={clase.id}>{clase.titulo}</li>
-                    ))}
-                  </ul>
+              {/* Estadísticas (proyectos) */}
+              {categoryName === "proyectos" && (
+                <div className="flex items-center text-sm text-gray-200 space-x-4 mt-2">
+                  <div className="flex items-center">
+                    <BookOpen className="w-4 h-4 mr-1 text-blue-300" />
+                    <span>{item.clase_count || 0} clases</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Images className="w-4 h-4 mr-1 text-pink-300" />
+                    <span>{item.imagen_count || 0} imágenes</span>
+                  </div>
                 </div>
               )}
             </motion.div>

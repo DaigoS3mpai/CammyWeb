@@ -34,7 +34,7 @@ const Navbar = () => {
         onClick={() => navigate("/")}
       >
         <h1 className="text-3xl font-extrabold text-white drop-shadow-lg">
-          CammyGotchi
+          Gotchi
         </h1>
       </div>
 
