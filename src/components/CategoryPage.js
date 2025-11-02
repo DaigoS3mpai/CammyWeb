@@ -12,6 +12,7 @@ import {
   BookOpen,
   Layers,
   Images,
+  PlayCircle,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import DetailModalBook from "./DetailModalBook";
@@ -157,11 +158,9 @@ const CategoryPage = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
-      style={{
-        backgroundImage: "url('/bc.png')",
-      }}
+      style={{ backgroundImage: "url('/bc.png')" }}
     >
-      {/* 🔹 Estilos de degradado animado */}
+      {/* 🔹 Animación degradada */}
       <style>{`
         @keyframes gradientFlow {
           0% { background-position: 0% 50%; }
@@ -183,11 +182,9 @@ const CategoryPage = () => {
         <div className="inline-flex items-center justify-center mb-4 p-4 rounded-full border border-white/50 bg-black/40 backdrop-blur-sm shadow-lg">
           {config.icon}
         </div>
-
         <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-fuchsia-400 to-purple-500 animate-gradient mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
           {config.title}
         </h1>
-
         <p className="text-gray-200 max-w-2xl mx-auto text-lg drop-shadow-sm">
           {config.description}
         </p>
@@ -230,11 +227,34 @@ const CategoryPage = () => {
           {items.map((item, index) => (
             <motion.div
               key={item.id || index}
-              className="p-6 rounded-2xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all cursor-pointer"
+              className="relative p-6 rounded-2xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all cursor-pointer"
               whileHover={{ scale: 1.02 }}
               onClick={() => handleOpenDetail(item)}
             >
-              {/* 🖼️ Imagen o 🎥 Video según categoría */}
+              {/* 🖼️ Imagen o 🎥 Video */}
+              {categoryName === "galeria" && (
+                <>
+                  {item.tipo === "video" ? (
+                    <div className="relative">
+                      <video
+                        src={item.imagen_url}
+                        className="w-full h-64 object-cover rounded-lg mb-4"
+                        muted
+                        loop
+                      />
+                      <PlayCircle className="absolute top-2 left-2 text-white/90 w-8 h-8 drop-shadow-lg" />
+                    </div>
+                  ) : (
+                    <img
+                      src={item.imagen_url}
+                      alt={item.descripcion || "Imagen"}
+                      className="w-full h-64 object-cover rounded-lg mb-4"
+                    />
+                  )}
+                </>
+              )}
+
+              {/* 🧩 Imagen portada proyectos */}
               {categoryName === "proyectos" && item.imagen_portada && (
                 <img
                   src={item.imagen_portada}
@@ -243,36 +263,12 @@ const CategoryPage = () => {
                 />
               )}
 
-              {categoryName === "galeria" && (
-                <>
-                  {item.video_url ? (
-                    <video
-                      src={item.video_url}
-                      className="w-full h-64 object-cover rounded-lg mb-4"
-                      muted
-                      autoPlay
-                      loop
-                    />
-                  ) : (
-                    item.imagen_url && (
-                      <img
-                        src={item.imagen_url}
-                        alt={item.descripcion || "Imagen"}
-                        className="w-full h-64 object-cover rounded-lg mb-4"
-                      />
-                    )
-                  )}
-                </>
-              )}
-
-              {/* Título */}
+              {/* Título y descripción */}
               <h3 className="text-xl font-semibold text-white mb-2">
                 {item.titulo ||
                   item.proyecto_titulo ||
-                  (item.video_url ? "Video" : "Sin título")}
+                  (item.tipo === "video" ? "Video" : "Sin título")}
               </h3>
-
-              {/* Descripción */}
               <p className="text-gray-200 mb-3 line-clamp-3">
                 {item.descripcion || "Sin descripción"}
               </p>
@@ -287,7 +283,7 @@ const CategoryPage = () => {
                 </div>
               )}
 
-              {/* Proyecto vinculado (bitácora) */}
+              {/* Vinculados */}
               {categoryName === "bitacora" &&
                 (item.proyecto_titulo || item.proyecto_id) && (
                   <div className="flex items-center text-sm text-pink-200 italic">
@@ -307,7 +303,7 @@ const CategoryPage = () => {
                   </div>
                 )}
 
-              {/* Estadísticas (proyectos) */}
+              {/* 📊 Estadísticas */}
               {categoryName === "proyectos" && (
                 <div className="flex items-center text-sm text-gray-200 space-x-4 mt-2">
                   <div className="flex items-center">

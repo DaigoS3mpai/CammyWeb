@@ -15,9 +15,13 @@ export const handler = async () => {
         g.imagen_url,
         g.descripcion,
         g.proyecto_id,
-        p.titulo AS proyecto_titulo
+        g.clase_id,
+        g.tipo,
+        p.titulo AS proyecto_titulo,
+        c.titulo AS clase_titulo
       FROM galeria g
       LEFT JOIN proyectos p ON g.proyecto_id = p.id
+      LEFT JOIN clases c ON g.clase_id = c.id
       ORDER BY g.id DESC;
     `);
 
@@ -25,7 +29,7 @@ export const handler = async () => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify(result.rows || []), // 🧩 aseguramos siempre array
+      body: JSON.stringify(result.rows || []),
     };
   } catch (err) {
     console.error("❌ Error al obtener galería:", err);

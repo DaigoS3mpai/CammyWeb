@@ -13,6 +13,7 @@ import {
   ArrowLeftCircle,
   ArrowRightCircle,
   Loader2,
+  PlayCircle,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -29,15 +30,16 @@ const DetailModalBook = ({ item, type, onClose }) => {
   const [saving, setSaving] = useState(false);
   const [allProyectos, setAllProyectos] = useState([]);
   const [proyectoId, setProyectoId] = useState(item?.proyecto_id || "");
-  const [nuevasImagenes, setNuevasImagenes] = useState([]);
+  const [mediaFiles, setMediaFiles] = useState([]);
   const [zoomed, setZoomed] = useState(false);
+  const [mediaList, setMediaList] = useState([]);
 
-  // 🔹 Cargar lista de proyectos (solo si estamos en clase)
+  // 🔹 Cargar proyectos si es clase
   useEffect(() => {
     if (type === "bitacora") {
       fetch("/.netlify/functions/getProyectos")
-        .then((res) => res.json())
-        .then((data) => setAllProyectos(data))
+        .then((r) => r.json())
+        .then(setAllProyectos)
         .catch(() => setAllProyectos([]));
     }
   }, [type]);
@@ -46,7 +48,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
   useEffect(() => {
     if (type === "proyectos" && item?.id) {
       fetch("/.netlify/functions/getClases")
-        .then((res) => res.json())
+        .then((r) => r.json())
         .then((data) => {
           const relacionadas = data.filter((c) => c.proyecto_id === item.id);
           setLinkedClases(relacionadas);
@@ -55,6 +57,30 @@ const DetailModalBook = ({ item, type, onClose }) => {
     }
   }, [item, type]);
 
+  // 🔹 Cargar galería asociada
+  useEffect(() => {
+    if (!item?.id) return;
+    fetch("/.netlify/functions/getGaleria")
+      .then((r) => r.json())
+      .then((data) => {
+        const filtradas =
+          type === "proyectos"
+            ? data.filter((g) => g.proyecto_id === item.id)
+            : data.filter((g) => g.clase_id === item.id);
+        setMediaList(filtradas);
+      })
+      .catch(() => setMediaList([]));
+  }, [item, type]);
+
+  // 🧮 Paginación dinámica
+  const mediaPerPage = 5;
+  const totalPages = 1 + Math.ceil(mediaList.length / mediaPerPage);
+  const paginatedMedia =
+    page > 1
+      ? mediaList.slice((page - 2) * mediaPerPage, (page - 1) * mediaPerPage)
+      : [];
+
+  // 🗓️ Fecha
   const fecha =
     item.fecha_inicio || item.fecha
       ? new Date(item.fecha_inicio || item.fecha).toLocaleDateString("es-CL", {
@@ -65,14 +91,9 @@ const DetailModalBook = ({ item, type, onClose }) => {
       : null;
 
   const bookVariants = {
-    hidden: { rotateY: 90, opacity: 0, scale: 0.9 },
-    visible: {
-      rotateY: 0,
-      opacity: 1,
-      scale: 1,
-      transition: { type: "spring", stiffness: 90, damping: 15 },
-    },
-    exit: { rotateY: -90, opacity: 0, scale: 0.9 },
+    hidden: { rotateY: 90, opacity: 0 },
+    visible: { rotateY: 0, opacity: 1 },
+    exit: { rotateY: -90, opacity: 0 },
   };
 
   const uploadToCloudinary = async (file) => {
@@ -80,15 +101,19 @@ const DetailModalBook = ({ item, type, onClose }) => {
     const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
     if (!cloudName || !uploadPreset) return null;
 
+    const isVideo = file.type.startsWith("video/");
+    const resourceType = isVideo ? "video" : "image";
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", uploadPreset);
+
     const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
       { method: "POST", body: formData }
     );
     const data = await res.json();
-    return data.secure_url;
+    return { url: data.secure_url, tipo: isVideo ? "video" : "imagen" };
   };
 
   const handleSave = async () => {
@@ -109,28 +134,27 @@ const DetailModalBook = ({ item, type, onClose }) => {
           ? { id: item.id, titulo, descripcion, proyecto_id: proyectoId }
           : { id: item.id, titulo, descripcion };
 
-      const res = await fetch(endpoint, {
+      await fetch(endpoint, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Error al guardar");
-
-      if (type === "proyectos" && nuevasImagenes.length > 0) {
-        for (const file of nuevasImagenes) {
-          const url = await uploadToCloudinary(file);
-          if (url) {
-            await fetch("/.netlify/functions/addImagen", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                imagen_url: url,
-                descripcion: `Imagen agregada a ${titulo}`,
-                proyecto_id: item.id,
-              }),
-            });
-          }
+      // 🔹 Subir nuevos archivos multimedia
+      for (const file of mediaFiles) {
+        const { url, tipo } = await uploadToCloudinary(file);
+        if (url) {
+          await fetch("/.netlify/functions/addImagen", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              imagen_url: url,
+              descripcion: `Archivo agregado a ${titulo}`,
+              tipo,
+              proyecto_id: type === "proyectos" ? item.id : null,
+              clase_id: type === "bitacora" ? item.id : null,
+            }),
+          });
         }
       }
 
@@ -138,22 +162,21 @@ const DetailModalBook = ({ item, type, onClose }) => {
       setEditMode(false);
       onClose(true);
     } catch (err) {
-      alert("❌ No se pudieron guardar los cambios.");
+      alert("❌ Error al guardar cambios.");
     } finally {
       setSaving(false);
     }
   };
 
-  // 🔗 Navegar a clase desde proyecto
-  const openLinkedClase = (claseId) => {
-    localStorage.setItem("openClaseId", claseId);
+  // 🔗 Navegar entre vínculos
+  const openLinkedClase = (id) => {
+    localStorage.setItem("openClaseId", id);
     localStorage.setItem("reloadBitacora", "true");
     navigate("/category/bitacora");
   };
 
-  // 🔗 Navegar a proyecto desde clase o galería
-  const openLinkedProyecto = (proyectoId) => {
-    localStorage.setItem("openProyectoId", proyectoId);
+  const openLinkedProyecto = (id) => {
+    localStorage.setItem("openProyectoId", id);
     localStorage.setItem("reloadProyectos", "true");
     navigate("/category/proyectos");
   };
@@ -226,167 +249,103 @@ const DetailModalBook = ({ item, type, onClose }) => {
                 </button>
               </div>
 
-              {/* 🔹 Página izquierda */}
-              <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-between border-r border-[#d9c6ab]">
-                {/* 🖼️ Imagen desde galería */}
-                {type === "galeria" ? (
-                  <div className="flex flex-col items-center text-center space-y-4">
-                    {item.imagen_url ? (
-                      <motion.img
-                        src={item.imagen_url}
-                        alt={item.descripcion || "Imagen"}
-                        onClick={() => setZoomed(!zoomed)}
-                        className={`rounded-xl shadow-md border border-[#d1bda1] object-contain cursor-pointer transition-all duration-300 ${
-                          zoomed
-                            ? "max-h-[550px] scale-105"
-                            : "max-h-[400px] hover:scale-[1.02]"
-                        }`}
+              {/* Página izquierda */}
+              <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-between border-r border-[#d9c6ab] overflow-y-auto">
+                <div>
+                  <div className="flex items-center mb-6">
+                    {type === "proyectos" ? (
+                      <FlaskConical className="w-8 h-8 text-[#7a4e27] mr-3" />
+                    ) : (
+                      <BookOpen className="w-8 h-8 text-[#795548] mr-3" />
+                    )}
+                    {editMode ? (
+                      <input
+                        value={titulo}
+                        onChange={(e) => setTitulo(e.target.value)}
+                        className="text-3xl font-bold text-[#4e3c2b] border-b border-[#bca988] bg-transparent focus:outline-none w-full"
                       />
                     ) : (
-                      <p className="text-gray-500 italic">
-                        Sin imagen disponible.
-                      </p>
+                      <h2 className="text-3xl font-extrabold text-[#4e3c2b]">
+                        {titulo}
+                      </h2>
                     )}
+                  </div>
 
-                    {item.proyecto_id && item.proyecto_titulo && (
-                      <div>
-                        <h3 className="text-lg font-semibold text-[#5b4532] mb-1">
+                  {fecha && (
+                    <div className="mb-5">
+                      <div className="flex items-center mb-1">
+                        <Calendar className="w-5 h-5 text-[#795548] mr-2" />
+                        <h3 className="text-lg font-semibold text-[#5b4532]">
+                          Fecha
+                        </h3>
+                      </div>
+                      <p className="text-[#6a5846] italic">{fecha}</p>
+                    </div>
+                  )}
+
+                  {type === "bitacora" && (
+                    <div className="mb-5">
+                      <div className="flex items-center mb-1">
+                        <Layers className="w-5 h-5 text-[#7a4e27] mr-2" />
+                        <h3 className="text-lg font-semibold text-[#5b4532]">
                           Proyecto vinculado
                         </h3>
+                      </div>
+                      {editMode ? (
+                        <select
+                          value={proyectoId || ""}
+                          onChange={(e) => setProyectoId(e.target.value)}
+                          className="w-full border border-gray-400 text-black rounded-xl p-2 bg-white focus:ring-2 focus:ring-amber-600"
+                        >
+                          <option value="">Selecciona un proyecto...</option>
+                          {allProyectos.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.titulo}
+                            </option>
+                          ))}
+                        </select>
+                      ) : item.proyecto_titulo ? (
                         <button
                           onClick={() => openLinkedProyecto(item.proyecto_id)}
                           className="text-blue-700 hover:underline font-semibold"
                         >
                           {item.proyecto_titulo}
                         </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <div className="flex items-center mb-6">
-                        {type === "proyectos" ? (
-                          <FlaskConical className="w-8 h-8 text-[#7a4e27] mr-3" />
-                        ) : (
-                          <BookOpen className="w-8 h-8 text-[#795548] mr-3" />
-                        )}
-                        {editMode ? (
-                          <input
-                            value={titulo}
-                            onChange={(e) => setTitulo(e.target.value)}
-                            className="text-3xl font-bold text-[#4e3c2b] border-b border-[#bca988] bg-transparent focus:outline-none w-full"
-                          />
-                        ) : (
-                          <h2 className="text-3xl font-extrabold text-[#4e3c2b]">
-                            {titulo}
-                          </h2>
-                        )}
-                      </div>
-
-                      {/* Fecha */}
-                      {fecha && (
-                        <div className="mb-5">
-                          <div className="flex items-center mb-1">
-                            <Calendar className="w-5 h-5 text-[#795548] mr-2" />
-                            <h3 className="text-lg font-semibold text-[#5b4532]">
-                              Fecha
-                            </h3>
-                          </div>
-                          <p className="text-[#6a5846] italic">{fecha}</p>
-                        </div>
-                      )}
-
-                      {/* Proyecto vinculado */}
-                      {type === "bitacora" && (
-                        <div className="mb-5">
-                          <div className="flex items-center mb-1">
-                            <Layers className="w-5 h-5 text-[#7a4e27] mr-2" />
-                            <h3 className="text-lg font-semibold text-[#5b4532]">
-                              Proyecto vinculado
-                            </h3>
-                          </div>
-                          {editMode ? (
-                            <select
-                              value={proyectoId || ""}
-                              onChange={(e) => setProyectoId(e.target.value)}
-                              className="w-full border border-gray-400 text-black rounded-xl p-2 bg-white focus:ring-2 focus:ring-amber-600"
-                            >
-                              <option value="">
-                                Selecciona un proyecto...
-                              </option>
-                              {allProyectos.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.titulo}
-                                </option>
-                              ))}
-                            </select>
-                          ) : item.proyecto_titulo ? (
-                            <button
-                              onClick={() =>
-                                openLinkedProyecto(item.proyecto_id)
-                              }
-                              className="text-blue-700 hover:underline font-semibold"
-                            >
-                              {item.proyecto_titulo}
-                            </button>
-                          ) : (
-                            <p className="text-gray-500 italic">
-                              Sin proyecto vinculado.
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Clases vinculadas */}
-                      {type === "proyectos" && linkedClases.length > 0 && (
-                        <div className="mt-4">
-                          <div className="flex items-center mb-2">
-                            <BookOpen className="w-5 h-5 text-[#7a4e27] mr-2" />
-                            <h3 className="text-lg font-semibold text-[#5b4532]">
-                              Clases vinculadas
-                            </h3>
-                          </div>
-                          <ul className="list-disc list-inside text-[#4e3c2b] space-y-1">
-                            {linkedClases.map((clase) => (
-                              <li key={clase.id}>
-                                <button
-                                  onClick={() => openLinkedClase(clase.id)}
-                                  className="text-blue-700 hover:underline font-medium"
-                                >
-                                  {clase.titulo}
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Imagen principal */}
-                    <div className="mt-6">
-                      <h3 className="text-lg font-semibold text-[#5b4532] flex items-center mb-2">
-                        <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" />{" "}
-                        Imagen principal
-                      </h3>
-                      {item.imagen_portada ? (
-                        <img
-                          src={item.imagen_portada}
-                          alt={titulo}
-                          className="w-full rounded-xl shadow-md border border-[#d1bda1] object-cover max-h-[300px]"
-                        />
                       ) : (
-                        <p className="text-[#9c8973] italic">
-                          Sin imagen de portada.
+                        <p className="text-gray-500 italic">
+                          Sin proyecto vinculado.
                         </p>
                       )}
                     </div>
-                  </>
-                )}
+                  )}
+
+                  {type === "proyectos" && linkedClases.length > 0 && (
+                    <div className="mt-4">
+                      <div className="flex items-center mb-2">
+                        <BookOpen className="w-5 h-5 text-[#7a4e27] mr-2" />
+                        <h3 className="text-lg font-semibold text-[#5b4532]">
+                          Clases vinculadas
+                        </h3>
+                      </div>
+                      <ul className="list-disc list-inside text-[#4e3c2b] space-y-1">
+                        {linkedClases.map((clase) => (
+                          <li key={clase.id}>
+                            <button
+                              onClick={() => openLinkedClase(clase.id)}
+                              className="text-blue-700 hover:underline font-medium"
+                            >
+                              {clase.titulo}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Página derecha */}
-              <div className="w-1/2 p-8 bg-[#fefbf6] flex flex-col justify-between">
+              <div className="w-1/2 p-8 bg-[#fefbf6] flex flex-col justify-between overflow-y-auto">
                 {page === 1 ? (
                   <>
                     <div className="flex items-center mb-3">
@@ -403,7 +362,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                         className="w-full h-[350px] p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
                       />
                     ) : (
-                      <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] max-h-[450px] overflow-y-auto whitespace-pre-line">
+                      <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] whitespace-pre-line">
                         {descripcion || "Sin descripción disponible."}
                       </div>
                     )}
@@ -412,71 +371,99 @@ const DetailModalBook = ({ item, type, onClose }) => {
                   <>
                     <h3 className="text-lg font-semibold text-[#5b4532] mb-3 flex items-center">
                       <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" />{" "}
-                      Galería completa
+                      Galería multimedia
                     </h3>
 
-                    {type === "proyectos" && editMode && (
+                    {editMode && (
                       <div className="mb-4">
                         <label className="block text-sm font-semibold text-[#5b4532] mb-1">
-                          Agregar imágenes nuevas:
+                          Agregar archivos (imágenes o videos):
                         </label>
                         <input
                           type="file"
-                          accept="image/*"
+                          accept={
+                            type === "proyectos"
+                              ? "image/*,video/*"
+                              : "image/*"
+                          }
                           multiple
                           onChange={(e) =>
-                            setNuevasImagenes(Array.from(e.target.files))
+                            setMediaFiles(Array.from(e.target.files))
                           }
                           className="border border-gray-300 rounded-lg p-2 w-full"
                         />
                       </div>
                     )}
 
-                    {item.imagenes?.length > 0 ? (
+                    {paginatedMedia.length > 0 ? (
                       <div className="grid grid-cols-2 gap-3">
-                        {item.imagenes.map((img) => (
-                          <motion.img
-                            key={img.id}
-                            src={img.imagen_url}
-                            alt={img.descripcion || "Imagen"}
-                            className="rounded-lg shadow-sm border border-[#d1bda1] object-cover h-40 w-full cursor-pointer"
-                            whileHover={{ scale: 1.05 }}
-                            onClick={() => {
-                              localStorage.setItem("openGaleriaId", img.id);
-                              localStorage.setItem("reloadGaleria", "true");
-                              navigate("/category/galeria");
-                            }}
-                          />
-                        ))}
+                        {paginatedMedia.map((media) =>
+                          media.tipo === "video" ? (
+                            <motion.div
+                              key={media.id}
+                              className="relative rounded-lg overflow-hidden border border-[#d1bda1]"
+                              whileHover={{ scale: 1.05 }}
+                            >
+                              <video
+                                controls
+                                src={media.imagen_url}
+                                className="w-full h-40 object-cover rounded-lg"
+                              />
+                              <PlayCircle className="absolute top-2 left-2 text-white drop-shadow-md" />
+                            </motion.div>
+                          ) : (
+                            <motion.img
+                              key={media.id}
+                              src={media.imagen_url}
+                              alt={media.descripcion || "Imagen"}
+                              className="rounded-lg border border-[#d1bda1] object-cover h-40 w-full cursor-pointer"
+                              whileHover={{ scale: 1.05 }}
+                              onClick={() => {
+                                localStorage.setItem("openGaleriaId", media.id);
+                                localStorage.setItem("reloadGaleria", "true");
+                                navigate("/category/galeria");
+                              }}
+                            />
+                          )
+                        )}
                       </div>
                     ) : (
                       <p className="text-[#9c8973] italic">
-                        Sin imágenes adicionales.
+                        Sin archivos multimedia.
                       </p>
                     )}
                   </>
                 )}
 
-                {/* 📖 Control de páginas */}
+                {/* 📖 Controles de páginas */}
                 <div className="flex justify-center mt-6 space-x-6">
                   <button
-                    onClick={() => setPage(1)}
+                    onClick={() => setPage(Math.max(1, page - 1))}
+                    disabled={page === 1}
                     className={`flex items-center text-sm font-semibold ${
-                      page === 1 ? "text-[#7a4e27]" : "text-[#9c8973]"
+                      page === 1
+                        ? "text-[#c7b9a7]"
+                        : "text-[#7a4e27] hover:underline"
                     }`}
                   >
-                    <ArrowLeftCircle className="w-5 h-5 mr-1" /> Página 1
+                    <ArrowLeftCircle className="w-5 h-5 mr-1" /> Anterior
                   </button>
-                  {type === "proyectos" && (
-                    <button
-                      onClick={() => setPage(2)}
-                      className={`flex items-center text-sm font-semibold ${
-                        page === 2 ? "text-[#7a4e27]" : "text-[#9c8973]"
-                      }`}
-                    >
-                      Página 2 <ArrowRightCircle className="w-5 h-5 ml-1" />
-                    </button>
-                  )}
+                  <span className="text-[#5b4532] font-semibold">
+                    Página {page}/{totalPages}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setPage(Math.min(totalPages, page + 1))
+                    }
+                    disabled={page === totalPages}
+                    className={`flex items-center text-sm font-semibold ${
+                      page === totalPages
+                        ? "text-[#c7b9a7]"
+                        : "text-[#7a4e27] hover:underline"
+                    }`}
+                  >
+                    Siguiente <ArrowRightCircle className="w-5 h-5 ml-1" />
+                  </button>
                 </div>
               </div>
             </motion.div>
