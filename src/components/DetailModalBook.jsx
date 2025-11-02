@@ -30,6 +30,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
   const [allProyectos, setAllProyectos] = useState([]);
   const [proyectoId, setProyectoId] = useState(item?.proyecto_id || "");
   const [nuevasImagenes, setNuevasImagenes] = useState([]);
+  const [zoomed, setZoomed] = useState(false);
 
   // 🔹 Cargar lista de proyectos (solo si estamos en clase)
   useEffect(() => {
@@ -150,7 +151,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
     navigate("/category/bitacora");
   };
 
-  // 🔗 Navegar a proyecto desde clase
+  // 🔗 Navegar a proyecto desde clase o galería
   const openLinkedProyecto = (proyectoId) => {
     localStorage.setItem("openProyectoId", proyectoId);
     localStorage.setItem("reloadProyectos", "true");
@@ -227,119 +228,161 @@ const DetailModalBook = ({ item, type, onClose }) => {
 
               {/* 🔹 Página izquierda */}
               <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-between border-r border-[#d9c6ab]">
-                <div>
-                  <div className="flex items-center mb-6">
-                    {type === "proyectos" ? (
-                      <FlaskConical className="w-8 h-8 text-[#7a4e27] mr-3" />
-                    ) : (
-                      <BookOpen className="w-8 h-8 text-[#795548] mr-3" />
-                    )}
-                    {editMode ? (
-                      <input
-                        value={titulo}
-                        onChange={(e) => setTitulo(e.target.value)}
-                        className="text-3xl font-bold text-[#4e3c2b] border-b border-[#bca988] bg-transparent focus:outline-none w-full"
+                {/* 🖼️ Imagen desde galería */}
+                {type === "galeria" ? (
+                  <div className="flex flex-col items-center text-center space-y-4">
+                    {item.imagen_url ? (
+                      <motion.img
+                        src={item.imagen_url}
+                        alt={item.descripcion || "Imagen"}
+                        onClick={() => setZoomed(!zoomed)}
+                        className={`rounded-xl shadow-md border border-[#d1bda1] object-contain cursor-pointer transition-all duration-300 ${
+                          zoomed
+                            ? "max-h-[550px] scale-105"
+                            : "max-h-[400px] hover:scale-[1.02]"
+                        }`}
                       />
                     ) : (
-                      <h2 className="text-3xl font-extrabold text-[#4e3c2b]">
-                        {titulo}
-                      </h2>
+                      <p className="text-gray-500 italic">
+                        Sin imagen disponible.
+                      </p>
                     )}
-                  </div>
 
-                  {/* Fecha */}
-                  {fecha && (
-                    <div className="mb-5">
-                      <div className="flex items-center mb-1">
-                        <Calendar className="w-5 h-5 text-[#795548] mr-2" />
-                        <h3 className="text-lg font-semibold text-[#5b4532]">
-                          Fecha
-                        </h3>
-                      </div>
-                      <p className="text-[#6a5846] italic">{fecha}</p>
-                    </div>
-                  )}
-
-                  {/* Proyecto vinculado */}
-                  {type === "bitacora" && (
-                    <div className="mb-5">
-                      <div className="flex items-center mb-1">
-                        <Layers className="w-5 h-5 text-[#7a4e27] mr-2" />
-                        <h3 className="text-lg font-semibold text-[#5b4532]">
+                    {item.proyecto_id && item.proyecto_titulo && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-[#5b4532] mb-1">
                           Proyecto vinculado
                         </h3>
-                      </div>
-                      {editMode ? (
-                        <select
-                          value={proyectoId || ""}
-                          onChange={(e) => setProyectoId(e.target.value)}
-                          className="w-full border border-gray-400 text-black rounded-xl p-2 bg-white focus:ring-2 focus:ring-amber-600"
-                        >
-                          <option value="">Selecciona un proyecto...</option>
-                          {allProyectos.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.titulo}
-                            </option>
-                          ))}
-                        </select>
-                      ) : item.proyecto_titulo ? (
                         <button
                           onClick={() => openLinkedProyecto(item.proyecto_id)}
                           className="text-blue-700 hover:underline font-semibold"
                         >
                           {item.proyecto_titulo}
                         </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <div className="flex items-center mb-6">
+                        {type === "proyectos" ? (
+                          <FlaskConical className="w-8 h-8 text-[#7a4e27] mr-3" />
+                        ) : (
+                          <BookOpen className="w-8 h-8 text-[#795548] mr-3" />
+                        )}
+                        {editMode ? (
+                          <input
+                            value={titulo}
+                            onChange={(e) => setTitulo(e.target.value)}
+                            className="text-3xl font-bold text-[#4e3c2b] border-b border-[#bca988] bg-transparent focus:outline-none w-full"
+                          />
+                        ) : (
+                          <h2 className="text-3xl font-extrabold text-[#4e3c2b]">
+                            {titulo}
+                          </h2>
+                        )}
+                      </div>
+
+                      {/* Fecha */}
+                      {fecha && (
+                        <div className="mb-5">
+                          <div className="flex items-center mb-1">
+                            <Calendar className="w-5 h-5 text-[#795548] mr-2" />
+                            <h3 className="text-lg font-semibold text-[#5b4532]">
+                              Fecha
+                            </h3>
+                          </div>
+                          <p className="text-[#6a5846] italic">{fecha}</p>
+                        </div>
+                      )}
+
+                      {/* Proyecto vinculado */}
+                      {type === "bitacora" && (
+                        <div className="mb-5">
+                          <div className="flex items-center mb-1">
+                            <Layers className="w-5 h-5 text-[#7a4e27] mr-2" />
+                            <h3 className="text-lg font-semibold text-[#5b4532]">
+                              Proyecto vinculado
+                            </h3>
+                          </div>
+                          {editMode ? (
+                            <select
+                              value={proyectoId || ""}
+                              onChange={(e) => setProyectoId(e.target.value)}
+                              className="w-full border border-gray-400 text-black rounded-xl p-2 bg-white focus:ring-2 focus:ring-amber-600"
+                            >
+                              <option value="">
+                                Selecciona un proyecto...
+                              </option>
+                              {allProyectos.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.titulo}
+                                </option>
+                              ))}
+                            </select>
+                          ) : item.proyecto_titulo ? (
+                            <button
+                              onClick={() =>
+                                openLinkedProyecto(item.proyecto_id)
+                              }
+                              className="text-blue-700 hover:underline font-semibold"
+                            >
+                              {item.proyecto_titulo}
+                            </button>
+                          ) : (
+                            <p className="text-gray-500 italic">
+                              Sin proyecto vinculado.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Clases vinculadas */}
+                      {type === "proyectos" && linkedClases.length > 0 && (
+                        <div className="mt-4">
+                          <div className="flex items-center mb-2">
+                            <BookOpen className="w-5 h-5 text-[#7a4e27] mr-2" />
+                            <h3 className="text-lg font-semibold text-[#5b4532]">
+                              Clases vinculadas
+                            </h3>
+                          </div>
+                          <ul className="list-disc list-inside text-[#4e3c2b] space-y-1">
+                            {linkedClases.map((clase) => (
+                              <li key={clase.id}>
+                                <button
+                                  onClick={() => openLinkedClase(clase.id)}
+                                  className="text-blue-700 hover:underline font-medium"
+                                >
+                                  {clase.titulo}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Imagen principal */}
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold text-[#5b4532] flex items-center mb-2">
+                        <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" />{" "}
+                        Imagen principal
+                      </h3>
+                      {item.imagen_portada ? (
+                        <img
+                          src={item.imagen_portada}
+                          alt={titulo}
+                          className="w-full rounded-xl shadow-md border border-[#d1bda1] object-cover max-h-[300px]"
+                        />
                       ) : (
-                        <p className="text-gray-500 italic">
-                          Sin proyecto vinculado.
+                        <p className="text-[#9c8973] italic">
+                          Sin imagen de portada.
                         </p>
                       )}
                     </div>
-                  )}
-
-                  {/* Clases vinculadas */}
-                  {type === "proyectos" && linkedClases.length > 0 && (
-                    <div className="mt-4">
-                      <div className="flex items-center mb-2">
-                        <BookOpen className="w-5 h-5 text-[#7a4e27] mr-2" />
-                        <h3 className="text-lg font-semibold text-[#5b4532]">
-                          Clases vinculadas
-                        </h3>
-                      </div>
-                      <ul className="list-disc list-inside text-[#4e3c2b] space-y-1">
-                        {linkedClases.map((clase) => (
-                          <li key={clase.id}>
-                            <button
-                              onClick={() => openLinkedClase(clase.id)}
-                              className="text-blue-700 hover:underline font-medium"
-                            >
-                              {clase.titulo}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-
-                {/* Imagen principal */}
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-[#5b4532] flex items-center mb-2">
-                    <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" /> Imagen
-                    principal
-                  </h3>
-                  {item.imagen_portada ? (
-                    <img
-                      src={item.imagen_portada}
-                      alt={titulo}
-                      className="w-full rounded-xl shadow-md border border-[#d1bda1] object-cover max-h-[300px]"
-                    />
-                  ) : (
-                    <p className="text-[#9c8973] italic">
-                      Sin imagen de portada.
-                    </p>
-                  )}
-                </div>
+                  </>
+                )}
               </div>
 
               {/* Página derecha */}
@@ -368,7 +411,8 @@ const DetailModalBook = ({ item, type, onClose }) => {
                 ) : (
                   <>
                     <h3 className="text-lg font-semibold text-[#5b4532] mb-3 flex items-center">
-                      <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" /> Galería completa
+                      <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" />{" "}
+                      Galería completa
                     </h3>
 
                     {type === "proyectos" && editMode && (
@@ -395,8 +439,13 @@ const DetailModalBook = ({ item, type, onClose }) => {
                             key={img.id}
                             src={img.imagen_url}
                             alt={img.descripcion || "Imagen"}
-                            className="rounded-lg shadow-sm border border-[#d1bda1] object-cover h-40 w-full"
+                            className="rounded-lg shadow-sm border border-[#d1bda1] object-cover h-40 w-full cursor-pointer"
                             whileHover={{ scale: 1.05 }}
+                            onClick={() => {
+                              localStorage.setItem("openGaleriaId", img.id);
+                              localStorage.setItem("reloadGaleria", "true");
+                              navigate("/category/galeria");
+                            }}
                           />
                         ))}
                       </div>
