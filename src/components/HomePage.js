@@ -14,16 +14,43 @@ const HomePage = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
       style={{
-        backgroundImage: "url('/fondo-floral.png')", // 🖼️ Coloca tu imagen en /public/fondo-floral.png
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
+        background: 'linear-gradient(to bottom right, #b3e5fc, #a8edea)',
       }}
     >
-      {/* ✅ Capa translúcida para mantener la legibilidad */}
-      <div className="absolute inset-0 bg-white bg-opacity-30 backdrop-blur-[3px]"></div>
+      {/* 🌸 Ramas decorativas simuladas con CSS */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: '320px',
+          height: '320px',
+          background:
+            'radial-gradient(circle at bottom left, rgba(255,255,255,0.7) 0%, transparent 70%)',
+          borderTopLeftRadius: '100%',
+          filter: 'blur(8px)',
+          pointerEvents: 'none',
+        }}
+      ></div>
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          width: '380px',
+          height: '380px',
+          background:
+            'radial-gradient(circle at top right, rgba(255,255,255,0.7) 0%, transparent 70%)',
+          borderBottomRightRadius: '100%',
+          filter: 'blur(8px)',
+          pointerEvents: 'none',
+        }}
+      ></div>
 
-      {/* Contenido central */}
+      {/* ✅ Capa translúcida sutil para legibilidad */}
+      <div className="absolute inset-0 bg-white bg-opacity-20 backdrop-blur-[2px]"></div>
+
+      {/* Contenido principal */}
       <div className="relative z-10 flex flex-col items-center">
         <motion.h1
           className="text-6xl font-extrabold text-gray-900 mb-4 leading-tight drop-shadow-md"
