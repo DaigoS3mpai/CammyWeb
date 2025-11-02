@@ -119,7 +119,6 @@ const CategoryPage = () => {
         description:
           "Aquí encontrarás el registro completo de todas las clases realizadas.",
         icon: <BookOpenText className="w-12 h-12 text-blue-500" />,
-        gradient: "from-blue-500 to-cyan-600",
         buttonText: "Nueva Clase",
         buttonRoute: "/new-class",
       },
@@ -128,7 +127,6 @@ const CategoryPage = () => {
         description:
           "Explora todos los proyectos desarrollados durante las clases.",
         icon: <FlaskConical className="w-12 h-12 text-purple-500" />,
-        gradient: "from-purple-500 to-indigo-600",
         buttonText: "Nuevo Proyecto",
         buttonRoute: "/newproject",
       },
@@ -137,7 +135,6 @@ const CategoryPage = () => {
         description:
           "Disfruta de todas las imágenes capturadas de tus proyectos y clases.",
         icon: <ImageIcon className="w-12 h-12 text-pink-500" />,
-        gradient: "from-pink-500 to-rose-600",
         buttonText: "Ver Galería Completa",
         buttonRoute: "/gallery",
       },
@@ -145,7 +142,6 @@ const CategoryPage = () => {
       title: "Categoría no encontrada",
       description: "La sección que buscas no existe.",
       icon: <FileText className="w-12 h-12 text-gray-500" />,
-      gradient: "from-gray-400 to-gray-600",
     };
 
   return (
@@ -158,6 +154,19 @@ const CategoryPage = () => {
         backgroundImage: "url('/bc.png')",
       }}
     >
+      {/* 🔹 Estilos de animación de degradado */}
+      <style>{`
+        @keyframes gradientFlow {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradientFlow 6s ease infinite;
+        }
+      `}</style>
+
       {/* 🔹 Encabezado */}
       <motion.div
         className="text-center mb-10"
@@ -168,8 +177,8 @@ const CategoryPage = () => {
           {config.icon}
         </div>
 
-        {/* ✨ Título con mismo degradado que Home */}
-        <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-fuchsia-400 to-purple-500 mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
+        {/* ✨ Título con degradado animado */}
+        <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-fuchsia-400 to-purple-500 animate-gradient mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
           {config.title}
         </h1>
 
