@@ -244,6 +244,46 @@ const DetailModalBook = ({ item, type, onClose }) => {
                       <p className="text-[#6a5846] italic">{fecha}</p>
                     </div>
                   )}
+
+                  {/* Proyecto vinculado */}
+                  {type === "bitacora" && (
+                    <div className="mb-5 mt-3">
+                      <div className="flex items-center mb-1">
+                        <Layers className="w-5 h-5 text-[#8b5e3c] mr-2" />
+                        <h3 className="text-lg font-semibold text-[#5b4532]">
+                          Proyecto vinculado
+                        </h3>
+                      </div>
+                      {editMode ? (
+                        <select
+                          value={proyectoId || ""}
+                          onChange={(e) => setProyectoId(e.target.value)}
+                          className="w-full border border-[#d3c2aa] rounded-xl p-2 bg-[#fffdf9] text-[#4e3c2b] focus:ring-2 focus:ring-amber-600"
+                        >
+                          <option value="">Sin vincular</option>
+                          {allProyectos.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.titulo}
+                            </option>
+                          ))}
+                        </select>
+                      ) : item.proyecto_id ? (
+                        <button
+                          onClick={() => {
+                            localStorage.setItem("openProyectoId", item.proyecto_id);
+                            localStorage.setItem("reloadProyectos", "true");
+                            navigate("/category/proyectos");
+                            onClose(true);
+                          }}
+                          className="text-[#7a4e27] hover:underline font-semibold"
+                        >
+                          {item.proyecto_titulo || `Proyecto #${item.proyecto_id}`}
+                        </button>
+                      ) : (
+                        <p className="text-[#9c8973] italic">Sin proyecto vinculado.</p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Imagen principal */}
@@ -265,51 +305,61 @@ const DetailModalBook = ({ item, type, onClose }) => {
 
               {/* Página derecha */}
               <div className="w-1/2 p-8 bg-[#fefbf6] flex flex-col justify-between">
-                {page === 1 ? (
-                  <>
-                    <div className="flex items-center mb-3">
-                      <FileText className="w-5 h-5 text-[#795548] mr-2" />
-                      <h3 className="text-2xl font-semibold text-[#4e3c2b]">
-                        Descripción
-                      </h3>
-                    </div>
-                    {editMode ? (
-                      <textarea
-                        value={descripcion}
-                        onChange={(e) => setDescripcion(e.target.value)}
-                        rows="15"
-                        className="w-full h-[350px] p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
-                      />
-                    ) : (
-                      <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] max-h-[450px] overflow-y-auto">
-                        {descripcion || "Sin descripción disponible."}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <h3 className="text-lg font-semibold text-[#5b4532] mb-3 flex items-center">
-                      <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" /> Galería completa
-                    </h3>
-                    {item.imagenes?.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-3">
-                        {item.imagenes.map((img) => (
-                          <motion.img
-                            key={img.id}
-                            src={img.imagen_url}
-                            alt={img.descripcion || "Imagen"}
-                            className="rounded-lg shadow-sm border border-[#d1bda1] object-cover h-40 w-full"
-                            whileHover={{ scale: 1.05 }}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={page}
+                    initial={{ rotateY: 90, opacity: 0 }}
+                    animate={{ rotateY: 0, opacity: 1 }}
+                    exit={{ rotateY: -90, opacity: 0 }}
+                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                  >
+                    {page === 1 ? (
+                      <>
+                        <div className="flex items-center mb-3">
+                          <FileText className="w-5 h-5 text-[#795548] mr-2" />
+                          <h3 className="text-2xl font-semibold text-[#4e3c2b]">
+                            Descripción
+                          </h3>
+                        </div>
+                        {editMode ? (
+                          <textarea
+                            value={descripcion}
+                            onChange={(e) => setDescripcion(e.target.value)}
+                            rows="15"
+                            className="w-full h-[350px] p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
                           />
-                        ))}
-                      </div>
+                        ) : (
+                          <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] max-h-[450px] overflow-y-auto">
+                            {descripcion || "Sin descripción disponible."}
+                          </div>
+                        )}
+                      </>
                     ) : (
-                      <p className="text-[#9c8973] italic">
-                        Sin imágenes adicionales.
-                      </p>
+                      <>
+                        <h3 className="text-lg font-semibold text-[#5b4532] mb-3 flex items-center">
+                          <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" /> Galería completa
+                        </h3>
+                        {item.imagenes?.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            {item.imagenes.map((img) => (
+                              <motion.img
+                                key={img.id}
+                                src={img.imagen_url}
+                                alt={img.descripcion || "Imagen"}
+                                className="rounded-lg shadow-sm border border-[#d1bda1] object-cover h-40 w-full"
+                                whileHover={{ scale: 1.05 }}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[#9c8973] italic">
+                            Sin imágenes adicionales.
+                          </p>
+                        )}
+                      </>
                     )}
-                  </>
-                )}
+                  </motion.div>
+                </AnimatePresence>
 
                 {/* 📖 Control de páginas */}
                 <div className="flex justify-center mt-6 space-x-6">
