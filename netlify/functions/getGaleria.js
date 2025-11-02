@@ -9,7 +9,7 @@ export const handler = async () => {
   try {
     await client.connect();
 
-    const result = await client.query(`
+    const query = `
       SELECT 
         g.id,
         g.imagen_url,
@@ -23,19 +23,33 @@ export const handler = async () => {
       LEFT JOIN proyectos p ON g.proyecto_id = p.id
       LEFT JOIN clases c ON g.clase_id = c.id
       ORDER BY g.id DESC;
-    `);
+    `;
 
-    await client.end();
+    const result = await client.query(query);
+
+    // 🔹 Garantizar siempre un array
+    const rows = Array.isArray(result?.rows) ? result.rows : [];
 
     return {
       statusCode: 200,
-      body: JSON.stringify(result.rows || []),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rows),
     };
   } catch (err) {
-    console.error("❌ Error al obtener galería:", err);
+    console.error("❌ Error al obtener galería:", err.message);
+
+    // 🔹 Respuesta segura incluso si hay error
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify([]),
     };
+  } finally {
+    // 🔹 Cerrar conexión aunque haya error
+    try {
+      await client.end();
+    } catch (closeErr) {
+      console.warn("⚠️ Error al cerrar conexión con la base de datos:", closeErr.message);
+    }
   }
 };

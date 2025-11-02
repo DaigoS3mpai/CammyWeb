@@ -31,38 +31,40 @@ const DetailModalBook = ({ item, type, onClose }) => {
   const [allProyectos, setAllProyectos] = useState([]);
   const [proyectoId, setProyectoId] = useState(item?.proyecto_id || "");
   const [mediaFiles, setMediaFiles] = useState([]);
-  const [zoomed, setZoomed] = useState(false);
   const [mediaList, setMediaList] = useState([]);
 
-  // 🔹 Cargar proyectos si es clase
+  // 🔹 Cargar lista de proyectos si es clase
   useEffect(() => {
     if (type === "bitacora") {
       fetch("/.netlify/functions/getProyectos")
         .then((r) => r.json())
-        .then(setAllProyectos)
+        .then((data) => Array.isArray(data) && setAllProyectos(data))
         .catch(() => setAllProyectos([]));
     }
   }, [type]);
 
-  // 🔹 Cargar clases vinculadas al proyecto
+  // 🔹 Cargar clases vinculadas si es proyecto
   useEffect(() => {
     if (type === "proyectos" && item?.id) {
       fetch("/.netlify/functions/getClases")
         .then((r) => r.json())
         .then((data) => {
-          const relacionadas = data.filter((c) => c.proyecto_id === item.id);
-          setLinkedClases(relacionadas);
+          if (Array.isArray(data)) {
+            const relacionadas = data.filter((c) => c.proyecto_id === item.id);
+            setLinkedClases(relacionadas);
+          } else setLinkedClases([]);
         })
         .catch(() => setLinkedClases([]));
     }
   }, [item, type]);
 
-  // 🔹 Cargar galería asociada
+  // 🔹 Cargar galería (siempre array)
   useEffect(() => {
     if (!item?.id) return;
     fetch("/.netlify/functions/getGaleria")
       .then((r) => r.json())
       .then((data) => {
+        if (!Array.isArray(data)) return setMediaList([]);
         const filtradas =
           type === "proyectos"
             ? data.filter((g) => g.proyecto_id === item.id)
@@ -80,7 +82,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
       ? mediaList.slice((page - 2) * mediaPerPage, (page - 1) * mediaPerPage)
       : [];
 
-  // 🗓️ Fecha
+  // 📅 Fecha formateada
   const fecha =
     item.fecha_inicio || item.fecha
       ? new Date(item.fecha_inicio || item.fecha).toLocaleDateString("es-CL", {
@@ -96,6 +98,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
     exit: { rotateY: -90, opacity: 0 },
   };
 
+  // 🔼 Subida a Cloudinary
   const uploadToCloudinary = async (file) => {
     const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
@@ -116,11 +119,9 @@ const DetailModalBook = ({ item, type, onClose }) => {
     return { url: data.secure_url, tipo: isVideo ? "video" : "imagen" };
   };
 
+  // 💾 Guardar cambios
   const handleSave = async () => {
-    if (!titulo.trim()) {
-      alert("El título no puede estar vacío.");
-      return;
-    }
+    if (!titulo.trim()) return alert("El título no puede estar vacío.");
 
     setSaving(true);
     try {
@@ -140,7 +141,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
         body: JSON.stringify(payload),
       });
 
-      // 🔹 Subir nuevos archivos multimedia
+      // 📤 Subida multimedia
       for (const file of mediaFiles) {
         const { url, tipo } = await uploadToCloudinary(file);
         if (url) {
@@ -162,19 +163,19 @@ const DetailModalBook = ({ item, type, onClose }) => {
       setEditMode(false);
       onClose(true);
     } catch (err) {
+      console.error(err);
       alert("❌ Error al guardar cambios.");
     } finally {
       setSaving(false);
     }
   };
 
-  // 🔗 Navegar entre vínculos
+  // 🔗 Navegación entre vínculos
   const openLinkedClase = (id) => {
     localStorage.setItem("openClaseId", id);
     localStorage.setItem("reloadBitacora", "true");
     navigate("/category/bitacora");
   };
-
   const openLinkedProyecto = (id) => {
     localStorage.setItem("openProyectoId", id);
     localStorage.setItem("reloadProyectos", "true");
@@ -185,18 +186,18 @@ const DetailModalBook = ({ item, type, onClose }) => {
     <AnimatePresence>
       {item && (
         <motion.div
-          className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-6"
+          className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4 md:p-6 overflow-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => onClose(false)}
         >
           <motion.div
-            className="relative perspective-1000"
+            className="relative perspective-1000 w-full max-w-[950px] min-h-[550px] max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <motion.div
-              className="relative shadow-2xl rounded-2xl w-full max-w-[1100px] min-h-[650px] flex overflow-hidden border border-[#b29d84]"
+              className="relative shadow-2xl rounded-2xl w-full h-full flex flex-col md:flex-row overflow-hidden border border-[#b29d84]"
               variants={bookVariants}
               initial="hidden"
               animate="visible"
@@ -208,10 +209,10 @@ const DetailModalBook = ({ item, type, onClose }) => {
               }}
             >
               {/* 📘 Encuadernado */}
-              <div className="absolute inset-y-0 left-1/2 w-[3px] bg-[#c8b49d] shadow-inner z-10"></div>
+              <div className="absolute inset-y-0 left-1/2 w-[3px] bg-[#c8b49d] shadow-inner z-10 hidden md:block"></div>
 
-              {/* 🔹 Botones superiores */}
-              <div className="absolute top-4 right-4 flex space-x-2 z-20">
+              {/* 🔹 Botones */}
+              <div className="absolute top-3 right-3 flex space-x-2 z-20">
                 {isAdmin() && !editMode && (
                   <button
                     onClick={() => setEditMode(true)}
@@ -249,8 +250,8 @@ const DetailModalBook = ({ item, type, onClose }) => {
                 </button>
               </div>
 
-              {/* Página izquierda */}
-              <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-between border-r border-[#d9c6ab] overflow-y-auto">
+              {/* 📄 Página izquierda */}
+              <div className="md:w-1/2 p-6 md:p-8 bg-[#faf6f1] flex flex-col justify-between border-b md:border-b-0 md:border-r border-[#d9c6ab] overflow-y-auto">
                 <div>
                   <div className="flex items-center mb-6">
                     {type === "proyectos" ? (
@@ -262,17 +263,17 @@ const DetailModalBook = ({ item, type, onClose }) => {
                       <input
                         value={titulo}
                         onChange={(e) => setTitulo(e.target.value)}
-                        className="text-3xl font-bold text-[#4e3c2b] border-b border-[#bca988] bg-transparent focus:outline-none w-full"
+                        className="text-2xl md:text-3xl font-bold text-[#4e3c2b] border-b border-[#bca988] bg-transparent focus:outline-none w-full"
                       />
                     ) : (
-                      <h2 className="text-3xl font-extrabold text-[#4e3c2b]">
+                      <h2 className="text-2xl md:text-3xl font-extrabold text-[#4e3c2b]">
                         {titulo}
                       </h2>
                     )}
                   </div>
 
                   {fecha && (
-                    <div className="mb-5">
+                    <div className="mb-4">
                       <div className="flex items-center mb-1">
                         <Calendar className="w-5 h-5 text-[#795548] mr-2" />
                         <h3 className="text-lg font-semibold text-[#5b4532]">
@@ -283,6 +284,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     </div>
                   )}
 
+                  {/* 🔗 Proyecto vinculado */}
                   {type === "bitacora" && (
                     <div className="mb-5">
                       <div className="flex items-center mb-1">
@@ -319,6 +321,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     </div>
                   )}
 
+                  {/* 📚 Clases vinculadas */}
                   {type === "proyectos" && linkedClases.length > 0 && (
                     <div className="mt-4">
                       <div className="flex items-center mb-2">
@@ -344,8 +347,8 @@ const DetailModalBook = ({ item, type, onClose }) => {
                 </div>
               </div>
 
-              {/* Página derecha */}
-              <div className="w-1/2 p-8 bg-[#fefbf6] flex flex-col justify-between overflow-y-auto">
+              {/* 📄 Página derecha */}
+              <div className="md:w-1/2 p-6 md:p-8 bg-[#fefbf6] flex flex-col justify-between overflow-y-auto">
                 {page === 1 ? (
                   <>
                     <div className="flex items-center mb-3">
@@ -358,8 +361,8 @@ const DetailModalBook = ({ item, type, onClose }) => {
                       <textarea
                         value={descripcion}
                         onChange={(e) => setDescripcion(e.target.value)}
-                        rows="15"
-                        className="w-full h-[350px] p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
+                        rows="12"
+                        className="w-full p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
                       />
                     ) : (
                       <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] whitespace-pre-line">
@@ -370,26 +373,19 @@ const DetailModalBook = ({ item, type, onClose }) => {
                 ) : (
                   <>
                     <h3 className="text-lg font-semibold text-[#5b4532] mb-3 flex items-center">
-                      <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" />{" "}
-                      Galería multimedia
+                      <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" /> Galería multimedia
                     </h3>
 
                     {editMode && (
                       <div className="mb-4">
                         <label className="block text-sm font-semibold text-[#5b4532] mb-1">
-                          Agregar archivos (imágenes o videos):
+                          Agregar archivos (imágenes{type === "proyectos" ? " o videos" : ""}):
                         </label>
                         <input
                           type="file"
-                          accept={
-                            type === "proyectos"
-                              ? "image/*,video/*"
-                              : "image/*"
-                          }
+                          accept={type === "proyectos" ? "image/*,video/*" : "image/*"}
                           multiple
-                          onChange={(e) =>
-                            setMediaFiles(Array.from(e.target.files))
-                          }
+                          onChange={(e) => setMediaFiles(Array.from(e.target.files))}
                           className="border border-gray-300 rounded-lg p-2 w-full"
                         />
                       </div>
@@ -404,11 +400,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                               className="relative rounded-lg overflow-hidden border border-[#d1bda1]"
                               whileHover={{ scale: 1.05 }}
                             >
-                              <video
-                                controls
-                                src={media.imagen_url}
-                                className="w-full h-40 object-cover rounded-lg"
-                              />
+                              <video controls src={media.imagen_url} className="w-full h-40 object-cover rounded-lg" />
                               <PlayCircle className="absolute top-2 left-2 text-white drop-shadow-md" />
                             </motion.div>
                           ) : (
@@ -428,9 +420,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                         )}
                       </div>
                     ) : (
-                      <p className="text-[#9c8973] italic">
-                        Sin archivos multimedia.
-                      </p>
+                      <p className="text-[#9c8973] italic">Sin archivos multimedia.</p>
                     )}
                   </>
                 )}
@@ -441,9 +431,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page === 1}
                     className={`flex items-center text-sm font-semibold ${
-                      page === 1
-                        ? "text-[#c7b9a7]"
-                        : "text-[#7a4e27] hover:underline"
+                      page === 1 ? "text-[#c7b9a7]" : "text-[#7a4e27] hover:underline"
                     }`}
                   >
                     <ArrowLeftCircle className="w-5 h-5 mr-1" /> Anterior
@@ -452,14 +440,10 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     Página {page}/{totalPages}
                   </span>
                   <button
-                    onClick={() =>
-                      setPage(Math.min(totalPages, page + 1))
-                    }
+                    onClick={() => setPage(Math.min(totalPages, page + 1))}
                     disabled={page === totalPages}
                     className={`flex items-center text-sm font-semibold ${
-                      page === totalPages
-                        ? "text-[#c7b9a7]"
-                        : "text-[#7a4e27] hover:underline"
+                      page === totalPages ? "text-[#c7b9a7]" : "text-[#7a4e27] hover:underline"
                     }`}
                   >
                     Siguiente <ArrowRightCircle className="w-5 h-5 ml-1" />
