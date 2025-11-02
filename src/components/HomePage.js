@@ -14,19 +14,11 @@ const HomePage = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
       style={{
-        backgroundImage:
-          "url('https://media.istockphoto.com/id/1451763983/es/foto/fondo-de-textura-de-papel-blanco.jpg?s=612x612&w=0&k=20&c=DKziAxjjLEt5ChPqT5pmpL13Q1FVl6tGB7n7x16xorY=')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        background: 'transparent', // 👈 ya no sobreescribe el fondo global
       }}
     >
-      {/* Capas translúcidas para contraste */}
-      <div className="absolute inset-0 bg-white bg-opacity-30 backdrop-blur-[2px]"></div>
-      <div className="absolute inset-0 bg-white bg-opacity-20 backdrop-blur-md"></div>
+      {/* ✅ Capa translúcida sutil para legibilidad sobre el fondo pastel */}
+      <div className="absolute inset-0 bg-white bg-opacity-30 backdrop-blur-[3px]"></div>
 
       {/* Contenido central */}
       <div className="relative z-10 flex flex-col items-center">
@@ -60,7 +52,6 @@ const HomePage = () => {
 
         {/* Opciones dinámicas */}
         <div className="flex flex-col md:flex-row flex-wrap justify-center gap-8">
-          {/* 👤 Si el usuario está logueado */}
           {isAuthenticated() && (
             <>
               <Link
@@ -89,7 +80,6 @@ const HomePage = () => {
             </>
           )}
 
-          {/* 🚪 Si el usuario NO está logueado */}
           {!isAuthenticated() && (
             <>
               <Link
