@@ -14,10 +14,13 @@ const HomePage = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
       style={{
-        background: 'transparent', // 👈 ya no sobreescribe el fondo global
+        backgroundImage: "url('/fondo-floral.png')", // 🖼️ Coloca tu imagen en /public/fondo-floral.png
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
       }}
     >
-      {/* ✅ Capa translúcida sutil para legibilidad sobre el fondo pastel */}
+      {/* ✅ Capa translúcida para mantener la legibilidad */}
       <div className="absolute inset-0 bg-white bg-opacity-30 backdrop-blur-[3px]"></div>
 
       {/* Contenido central */}
