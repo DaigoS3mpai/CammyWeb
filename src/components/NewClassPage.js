@@ -55,7 +55,6 @@ const NewClassPage = () => {
 
       if (res.ok && data.clase && data.clase.id) {
         alert("✅ Clase creada correctamente");
-        // 🔹 Redirigir directamente a la clase recién creada
         navigate(`/class/${data.clase.id}/bitacora`);
       } else {
         alert(`❌ Error: ${data.error || "No se pudo crear la clase correctamente"}`);
@@ -70,13 +69,16 @@ const NewClassPage = () => {
 
   return (
     <motion.div
-      className="flex-1 p-10 bg-gradient-to-br from-blue-50 to-purple-50 overflow-y-auto"
+      className="flex-1 p-10 overflow-y-auto min-h-screen bg-cover bg-center bg-fixed text-white"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
+      style={{
+        backgroundImage: "url('/bc.png')",
+      }}
     >
       <motion.h1
-        className="text-5xl font-extrabold text-gray-900 mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600"
+        className="text-5xl font-extrabold text-center mb-8 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.5 }}
@@ -85,7 +87,7 @@ const NewClassPage = () => {
       </motion.h1>
 
       <motion.div
-        className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 w-full max-w-2xl mx-auto"
+        className="bg-black/40 backdrop-blur-sm border border-white/30 rounded-3xl shadow-2xl p-8 md:p-12 w-full max-w-2xl mx-auto"
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.4, duration: 0.5 }}
@@ -93,25 +95,25 @@ const NewClassPage = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* 🔹 Título */}
           <div>
-            <label htmlFor="titulo" className="block text-gray-700 text-lg font-semibold mb-2">
+            <label htmlFor="titulo" className="block text-white text-lg font-semibold mb-2">
               Título de la Clase *
             </label>
             <div className="relative">
-              <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
               <input
                 id="titulo"
                 type="text"
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
                 placeholder="Ej: Clase sobre circuitos eléctricos"
-                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-white/40 bg-transparent text-white placeholder-gray-300 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-lg"
               />
             </div>
           </div>
 
           {/* 🔹 Descripción */}
           <div>
-            <label htmlFor="descripcion" className="block text-gray-700 text-lg font-semibold mb-2">
+            <label htmlFor="descripcion" className="block text-white text-lg font-semibold mb-2">
               Descripción
             </label>
             <textarea
@@ -120,13 +122,13 @@ const NewClassPage = () => {
               onChange={(e) => setDescripcion(e.target.value)}
               placeholder="Breve descripción de lo que se hizo en clase..."
               rows="4"
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg resize-y"
+              className="w-full px-4 py-3 rounded-xl border border-white/40 bg-transparent text-white placeholder-gray-300 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-lg resize-y"
             />
           </div>
 
           {/* 🔹 Fecha */}
           <div>
-            <label htmlFor="fecha" className="block text-gray-700 text-lg font-semibold mb-2">
+            <label htmlFor="fecha" className="block text-white text-lg font-semibold mb-2">
               Fecha de realización *
             </label>
             <input
@@ -134,27 +136,27 @@ const NewClassPage = () => {
               type="date"
               value={fecha}
               onChange={(e) => setFecha(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+              className="w-full px-4 py-3 rounded-xl border border-white/40 bg-transparent text-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-lg"
             />
           </div>
 
           {/* 🔹 Vincular a proyecto */}
           <div>
-            <label htmlFor="proyecto" className="block text-gray-700 text-lg font-semibold mb-2">
+            <label htmlFor="proyecto" className="block text-white text-lg font-semibold mb-2">
               Vincular a un proyecto (opcional)
             </label>
             <div className="relative">
-              <FlaskConical className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <FlaskConical className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
               <select
                 id="proyecto"
                 value={proyectoSeleccionado}
                 onChange={(e) => setProyectoSeleccionado(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-lg"
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-white/40 bg-transparent text-white focus:ring-2 focus:ring-purple-400 focus:border-purple-400 text-lg"
               >
                 <option value="">Sin proyecto</option>
                 {proyectos.length > 0 ? (
                   proyectos.map((p) => (
-                    <option key={p.id} value={p.id}>
+                    <option key={p.id} value={p.id} className="text-gray-800">
                       {p.titulo}
                     </option>
                   ))
@@ -169,15 +171,15 @@ const NewClassPage = () => {
           <motion.button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 rounded-xl font-bold text-xl text-white shadow-lg flex items-center justify-center ${
+            className={`w-full py-3 rounded-xl font-bold text-xl text-white shadow-lg flex items-center justify-center border border-white/40 ${
               loading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-blue-500 to-purple-600 hover:shadow-xl transform hover:scale-105 transition-all"
+                ? "bg-white/20 cursor-not-allowed"
+                : "bg-black/40 hover:bg-black/60 transition-all"
             }`}
             whileHover={{ scale: loading ? 1 : 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <PlusCircle className="w-6 h-6 mr-3" />
+            <PlusCircle className="w-6 h-6 mr-3 text-pink-300" />
             {loading ? "Guardando..." : "Crear Clase"}
           </motion.button>
         </form>

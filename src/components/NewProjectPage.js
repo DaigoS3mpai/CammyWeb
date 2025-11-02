@@ -20,46 +20,39 @@ const NewProjectPage = () => {
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
 
-// 🔹 Subir imagen a Cloudinary (compatible con CRA y Netlify)
-const uploadToCloudinary = async (file) => {
-  const cloudName =
-    process.env.REACT_APP_CLOUDINARY_CLOUD_NAME ||
-    process.env.CLOUDINARY_CLOUD_NAME;
-  const uploadPreset =
-    process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET ||
-    process.env.CLOUDINARY_UPLOAD_PRESET;
+  // 🔹 Subir imagen a Cloudinary
+  const uploadToCloudinary = async (file) => {
+    const cloudName =
+      process.env.REACT_APP_CLOUDINARY_CLOUD_NAME ||
+      process.env.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset =
+      process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET ||
+      process.env.CLOUDINARY_UPLOAD_PRESET;
 
-  console.log("🌐 Cloudinary vars:", { cloudName, uploadPreset });
+    if (!cloudName || !uploadPreset) {
+      alert("❌ No se pudo conectar con Cloudinary. Verifica las variables en Netlify.");
+      return null;
+    }
 
-  if (!cloudName || !uploadPreset) {
-    console.error("⚠️ Faltan variables de entorno de Cloudinary.");
-    alert("No se pudo conectar con Cloudinary. Verifica las variables en Netlify.");
-    return null;
-  }
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
 
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", uploadPreset);
+    try {
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: formData,
+      });
 
-  try {
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.error?.message || "Error al subir imagen");
-    console.log("✅ Imagen subida a Cloudinary:", data.secure_url);
-    return data.secure_url;
-  } catch (err) {
-    console.error("❌ Error subiendo imagen:", err);
-    alert("No se pudo subir la imagen. Intenta nuevamente.");
-    return null;
-  }
-};
-
-
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || "Error al subir imagen");
+      return data.secure_url;
+    } catch (err) {
+      console.error("❌ Error subiendo imagen:", err);
+      alert("Error al subir la imagen. Intenta nuevamente.");
+      return null;
+    }
+  };
 
   // 🔹 Subir imágenes adicionales
   const handleExtraImages = async (e) => {
@@ -74,8 +67,7 @@ const uploadToCloudinary = async (file) => {
         if (url) urls.push(url);
       }
       setImagenesExtras((prev) => [...prev, ...urls]);
-    } catch (err) {
-      console.error("Error al subir imágenes adicionales:", err);
+    } catch {
       alert("❌ No se pudieron subir algunas imágenes.");
     } finally {
       setUploading(false);
@@ -94,7 +86,6 @@ const uploadToCloudinary = async (file) => {
     setLoading(true);
 
     try {
-      // 🟢 Crear proyecto
       const res = await fetch("/.netlify/functions/addProyecto", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -107,14 +98,11 @@ const uploadToCloudinary = async (file) => {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Error creando el proyecto.");
-      }
+      if (!res.ok) throw new Error(data.error || "Error creando el proyecto.");
 
       const proyectoId = data.proyecto.id;
 
-      // 🖼️ Guardar portada en galería
+      // 🖼️ Guardar portada
       if (imagenPortada) {
         await fetch("/.netlify/functions/addImagen", {
           method: "POST",
@@ -141,19 +129,8 @@ const uploadToCloudinary = async (file) => {
       }
 
       alert("✅ Proyecto creado correctamente.");
-
-      // 🔁 Actualizar categorías relacionadas
       localStorage.setItem("reloadProyectos", "true");
       localStorage.setItem("reloadGaleria", "true");
-
-      // 🔄 Limpiar formulario
-      setTitulo("");
-      setDescripcion("");
-      setFechaInicio("");
-      setImagenPortada("");
-      setImagenesExtras([]);
-
-      // 🚀 Redirigir
       navigate("/category/proyectos");
     } catch (err) {
       console.error("❌ Error al crear proyecto:", err);
@@ -165,13 +142,16 @@ const uploadToCloudinary = async (file) => {
 
   return (
     <motion.div
-      className="flex-1 p-10 bg-gradient-to-br from-green-50 to-emerald-100 overflow-y-auto"
+      className="flex-1 p-10 overflow-y-auto min-h-screen bg-cover bg-center bg-fixed text-white"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
+      style={{
+        backgroundImage: "url('/bc.png')",
+      }}
     >
       <motion.h1
-        className="text-5xl font-extrabold text-gray-900 mb-8 bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-700 text-center"
+        className="text-5xl font-extrabold text-center mb-8 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.5 }}
@@ -180,7 +160,7 @@ const uploadToCloudinary = async (file) => {
       </motion.h1>
 
       <motion.div
-        className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 w-full max-w-2xl mx-auto"
+        className="bg-black/40 backdrop-blur-sm border border-white/30 rounded-3xl shadow-2xl p-8 md:p-12 w-full max-w-2xl mx-auto"
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.4, duration: 0.5 }}
@@ -188,17 +168,17 @@ const uploadToCloudinary = async (file) => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Nombre */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">
+            <label className="block text-white text-lg font-semibold mb-2">
               Nombre del Proyecto *
             </label>
             <div className="relative">
-              <FlaskConical className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <FlaskConical className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
               <input
                 type="text"
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
                 placeholder="Ej: Proyecto de Robótica Educativa"
-                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 text-lg"
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-white/40 bg-transparent text-white placeholder-gray-300 focus:ring-2 focus:ring-pink-400 focus:border-pink-400 text-lg"
                 required
               />
             </div>
@@ -206,7 +186,7 @@ const uploadToCloudinary = async (file) => {
 
           {/* Descripción */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">
+            <label className="block text-white text-lg font-semibold mb-2">
               Descripción
             </label>
             <textarea
@@ -214,22 +194,22 @@ const uploadToCloudinary = async (file) => {
               onChange={(e) => setDescripcion(e.target.value)}
               placeholder="Describe brevemente el proyecto..."
               rows="4"
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 text-lg resize-y"
+              className="w-full px-4 py-3 rounded-xl border border-white/40 bg-transparent text-white placeholder-gray-300 focus:ring-2 focus:ring-pink-400 focus:border-pink-400 text-lg resize-y"
             />
           </div>
 
           {/* Fecha */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">
+            <label className="block text-white text-lg font-semibold mb-2">
               Fecha de Inicio *
             </label>
             <div className="relative">
-              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
               <input
                 type="date"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-green-500 text-lg"
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-white/40 bg-transparent text-white focus:ring-2 focus:ring-pink-400 focus:border-pink-400 text-lg"
                 required
               />
             </div>
@@ -237,7 +217,7 @@ const uploadToCloudinary = async (file) => {
 
           {/* Imagen principal */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">
+            <label className="block text-white text-lg font-semibold mb-2">
               Imagen principal (portada)
             </label>
             <input
@@ -252,11 +232,9 @@ const uploadToCloudinary = async (file) => {
                   setUploading(false);
                 }
               }}
-              className="w-full border border-gray-300 rounded-xl p-2"
+              className="w-full border border-white/40 rounded-xl p-2 bg-transparent text-white"
             />
-            {uploading && (
-              <Loader2 className="animate-spin w-6 h-6 mt-2 text-green-500" />
-            )}
+            {uploading && <Loader2 className="animate-spin w-6 h-6 mt-2 text-pink-400" />}
             {imagenPortada && (
               <img
                 src={imagenPortada}
@@ -268,7 +246,7 @@ const uploadToCloudinary = async (file) => {
 
           {/* Imágenes adicionales */}
           <div>
-            <label className="block text-gray-700 text-lg font-semibold mb-2">
+            <label className="block text-white text-lg font-semibold mb-2">
               Imágenes adicionales (opcionales)
             </label>
             <input
@@ -276,11 +254,9 @@ const uploadToCloudinary = async (file) => {
               accept="image/*"
               multiple
               onChange={handleExtraImages}
-              className="w-full border border-gray-300 rounded-xl p-2"
+              className="w-full border border-white/40 rounded-xl p-2 bg-transparent text-white"
             />
-            {uploading && (
-              <Loader2 className="animate-spin w-6 h-6 mt-2 text-green-500" />
-            )}
+            {uploading && <Loader2 className="animate-spin w-6 h-6 mt-2 text-pink-400" />}
             <div className="grid grid-cols-3 gap-3 mt-3">
               {imagenesExtras.map((img, i) => (
                 <div key={i} className="relative group">
@@ -292,9 +268,7 @@ const uploadToCloudinary = async (file) => {
                   <button
                     type="button"
                     onClick={() =>
-                      setImagenesExtras((prev) =>
-                        prev.filter((_, idx) => idx !== i)
-                      )
+                      setImagenesExtras((prev) => prev.filter((_, idx) => idx !== i))
                     }
                     className="absolute top-1 right-1 bg-white text-red-500 rounded-full p-1 shadow opacity-0 group-hover:opacity-100 transition"
                   >
@@ -309,11 +283,15 @@ const uploadToCloudinary = async (file) => {
           <motion.button
             type="submit"
             disabled={loading || uploading}
-            className="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white py-3 rounded-xl font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center disabled:opacity-70 mt-6"
-            whileHover={{ scale: 1.02 }}
+            className={`w-full py-3 rounded-xl font-bold text-xl text-white shadow-lg flex items-center justify-center border border-white/40 ${
+              loading
+                ? "bg-white/20 cursor-not-allowed"
+                : "bg-black/40 hover:bg-black/60 transition-all"
+            }`}
+            whileHover={{ scale: loading ? 1 : 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <PlusCircle className="w-6 h-6 mr-3" />
+            <PlusCircle className="w-6 h-6 mr-3 text-pink-300" />
             {loading ? "Creando..." : "Crear Proyecto"}
           </motion.button>
         </form>
