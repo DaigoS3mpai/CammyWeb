@@ -30,7 +30,7 @@ const AnimatedRoutes = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* 🌍 Rutas visibles para todos (autenticados o no) */}
+        {/* 🌍 Rutas visibles para todos */}
         <Route path="/category/:categoryName" element={<CategoryPage />} />
         <Route path="/gallery" element={<GalleryPage />} />
 
@@ -42,7 +42,7 @@ const AnimatedRoutes = () => {
           </>
         )}
 
-        {/* 🚫 Protección: si no está logueado e intenta acceder a páginas admin */}
+        {/* 🚫 Protección: redirigir si no está autenticado */}
         {!isAuthenticated() && (
           <>
             <Route
@@ -66,8 +66,13 @@ const AnimatedRoutes = () => {
 // 🔹 Layout principal
 const AppContent = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
-      {/* ✅ Navbar siempre visible (muestra login/logout dinámicamente) */}
+    <div
+      className="flex flex-col min-h-screen"
+      style={{
+        background: "linear-gradient(to bottom right, #b3e5fc, #c8e6c9)",
+      }}
+    >
+      {/* ✅ Navbar siempre visible */}
       <Navbar />
       <main className="flex-1">
         <AnimatedRoutes />
