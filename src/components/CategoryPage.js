@@ -126,6 +126,7 @@ const CategoryPage = () => {
         titleGradient: "from-sky-600 via-blue-600 to-cyan-500",
         description:
           "Aquí encontrarás el registro completo de todas las clases realizadas.",
+        textColor: "#8ED6FF",
         icon: <BookOpenText className="w-12 h-12 text-blue-400" />,
         buttonText: "Nueva Clase",
         buttonRoute: "/new-class",
@@ -135,6 +136,7 @@ const CategoryPage = () => {
         titleGradient: "from-purple-700 via-violet-700 to-fuchsia-600",
         description:
           "Explora todos los proyectos desarrollados durante las clases.",
+        textColor: "#C59BFF",
         icon: <FlaskConical className="w-12 h-12 text-purple-400" />,
         buttonText: "Nuevo Proyecto",
         buttonRoute: "/newproject",
@@ -144,6 +146,7 @@ const CategoryPage = () => {
         titleGradient: "from-pink-600 via-fuchsia-600 to-purple-700",
         description:
           "Disfruta de las imágenes y videos capturados de tus proyectos y clases.",
+        textColor: "#FF8DCB",
         icon: <ImageIcon className="w-12 h-12 text-pink-400" />,
         buttonText: "Ver Galería Completa",
         buttonRoute: "/gallery",
@@ -152,6 +155,7 @@ const CategoryPage = () => {
       title: "Categoría no encontrada",
       titleGradient: "from-gray-400 to-gray-500",
       description: "La sección que buscas no existe.",
+      textColor: "#DDD",
       icon: <FileText className="w-12 h-12 text-gray-500" />,
     };
 
@@ -188,19 +192,19 @@ const CategoryPage = () => {
           {config.icon}
         </div>
 
-        {/* Título animado con borde negro */}
+        {/* Título animado */}
         <h1
-          className={`text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r ${config.titleGradient} animate-gradient 
-          drop-shadow-[0_3px_6px_rgba(0,0,0,0.9)]`}
+          className={`text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r ${config.titleGradient} animate-gradient`}
+          style={{ textShadow: "0 3px 6px rgba(0,0,0,0.8)" }}
         >
           {config.title}
         </h1>
 
-        {/* Descripción con mismo degradado, negrita y borde */}
+        {/* Descripción */}
         <p
           className="max-w-2xl mx-auto text-lg text-center font-semibold"
           style={{
-            color: "#A60E5C",
+            color: "#9b0050ff",
             textShadow: "0 1px 3px rgba(0,0,0,0.8)",
           }}
         >
@@ -249,7 +253,7 @@ const CategoryPage = () => {
               whileHover={{ scale: 1.02 }}
               onClick={() => handleOpenDetail(item)}
             >
-              {/* 🖼️ Imagen o 🎥 Video según categoría */}
+              {/* 🖼️ Imagen o 🎥 Video */}
               {categoryName === "proyectos" && item.imagen_portada && (
                 <img
                   src={item.imagen_portada}
@@ -280,15 +284,21 @@ const CategoryPage = () => {
                 </>
               )}
 
-              {/* Título con negrita + borde */}
-              <h3 className="text-xl font-bold text-white mb-2 drop-shadow-[0_2px_3px_rgba(0,0,0,1)]">
+              {/* 🔸 Título sin negrita ni borde */}
+              <h3
+                className="text-xl mb-2"
+                style={{ color: config.textColor, fontWeight: "400" }}
+              >
                 {item.titulo ||
                   item.proyecto_titulo ||
                   (item.video_url ? "Video" : "Sin título")}
               </h3>
 
-              {/* Descripción */}
-              <p className="text-gray-200 mb-3 line-clamp-3 font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+              {/* 🔸 Descripción sin borde */}
+              <p
+                className="mb-3 line-clamp-3"
+                style={{ color: config.textColor, fontWeight: "300" }}
+              >
                 {item.descripcion || "Sin descripción"}
               </p>
 
@@ -332,8 +342,7 @@ const CategoryPage = () => {
                   <div className="flex items-center">
                     <Images className="w-4 h-4 mr-1 text-blue-300" />
                     <span>
-                      {(item.imagen_count || 0) + (item.video_count || 0)}{" "}
-                      multimedia
+                      {(item.imagen_count || 0) + (item.video_count || 0)} multimedia
                     </span>
                   </div>
                 </div>
