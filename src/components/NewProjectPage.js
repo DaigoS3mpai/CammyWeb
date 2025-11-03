@@ -4,7 +4,6 @@ import {
   PlusCircle,
   FlaskConical,
   Calendar,
-  Image as ImageIcon,
   Loader2,
   X,
 } from "lucide-react";
@@ -16,11 +15,12 @@ const NewProjectPage = () => {
   const [fechaInicio, setFechaInicio] = useState("");
   const [imagenPortada, setImagenPortada] = useState("");
   const [imagenesExtras, setImagenesExtras] = useState([]);
+  const [videosExtras, setVideosExtras] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
 
-  // 🔹 Subir imagen a Cloudinary
+  // 🔹 Subir archivo (auto-detecta imagen o video)
   const uploadToCloudinary = async (file) => {
     const cloudName =
       process.env.REACT_APP_CLOUDINARY_CLOUD_NAME ||
@@ -34,22 +34,26 @@ const NewProjectPage = () => {
       return null;
     }
 
+    const isVideo = file.type.startsWith("video/");
+    const uploadType = isVideo ? "video/upload" : "image/upload";
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", uploadPreset);
 
     try {
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${uploadType}`, {
         method: "POST",
         body: formData,
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || "Error al subir imagen");
-      return data.secure_url;
+      if (!res.ok) throw new Error(data.error?.message || "Error al subir archivo");
+
+      return { url: data.secure_url, type: isVideo ? "video" : "image" };
     } catch (err) {
-      console.error("❌ Error subiendo imagen:", err);
-      alert("Error al subir la imagen. Intenta nuevamente.");
+      console.error("❌ Error subiendo archivo:", err);
+      alert("Error al subir el archivo. Intenta nuevamente.");
       return null;
     }
   };
@@ -63,12 +67,28 @@ const NewProjectPage = () => {
     try {
       const urls = [];
       for (const file of files) {
-        const url = await uploadToCloudinary(file);
-        if (url) urls.push(url);
+        const result = await uploadToCloudinary(file);
+        if (result?.url && result.type === "image") urls.push(result.url);
       }
       setImagenesExtras((prev) => [...prev, ...urls]);
-    } catch {
-      alert("❌ No se pudieron subir algunas imágenes.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 🔹 Subir videos adicionales
+  const handleExtraVideos = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const urls = [];
+      for (const file of files) {
+        const result = await uploadToCloudinary(file);
+        if (result?.url && result.type === "video") urls.push(result.url);
+      }
+      setVideosExtras((prev) => [...prev, ...urls]);
     } finally {
       setUploading(false);
     }
@@ -126,6 +146,37 @@ const NewProjectPage = () => {
             proyecto_id: proyectoId,
           }),
         });
+      }
+
+      // 🎥 Guardar videos adicionales con miniatura automática
+      for (const url of videosExtras) {
+        try {
+          // 🧠 Extraer public_id del video
+          const publicIdMatch = url.match(/\/upload\/(?:v\d+\/)?([^.]*)/);
+          const publicId = publicIdMatch ? publicIdMatch[1] : null;
+
+          // 🎞️ Generar miniatura desde segundo 2
+          const thumbnailUrl = publicId
+            ? `https://res.cloudinary.com/${
+                process.env.REACT_APP_CLOUDINARY_CLOUD_NAME ||
+                process.env.CLOUDINARY_CLOUD_NAME
+              }/video/upload/so_2/${publicId}.jpg`
+            : null;
+
+          await fetch("/.netlify/functions/addImagen", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              video_url: url,
+              imagen_url: thumbnailUrl,
+              descripcion: `Video del proyecto ${titulo}`,
+              proyecto_id: proyectoId,
+              tipo: "video",
+            }),
+          });
+        } catch (err) {
+          console.error("⚠️ Error generando miniatura de video:", err);
+        }
       }
 
       alert("✅ Proyecto creado correctamente.");
@@ -227,8 +278,8 @@ const NewProjectPage = () => {
                 const file = e.target.files[0];
                 if (file) {
                   setUploading(true);
-                  const url = await uploadToCloudinary(file);
-                  if (url) setImagenPortada(url);
+                  const result = await uploadToCloudinary(file);
+                  if (result?.url) setImagenPortada(result.url);
                   setUploading(false);
                 }
               }}
@@ -256,19 +307,48 @@ const NewProjectPage = () => {
               onChange={handleExtraImages}
               className="w-full border border-white/40 rounded-xl p-2 bg-transparent text-white"
             />
-            {uploading && <Loader2 className="animate-spin w-6 h-6 mt-2 text-pink-400" />}
             <div className="grid grid-cols-3 gap-3 mt-3">
               {imagenesExtras.map((img, i) => (
                 <div key={i} className="relative group">
-                  <img
-                    src={img}
-                    alt={`Extra ${i + 1}`}
-                    className="rounded-lg shadow-md"
-                  />
+                  <img src={img} alt={`Extra ${i + 1}`} className="rounded-lg shadow-md" />
                   <button
                     type="button"
                     onClick={() =>
                       setImagenesExtras((prev) => prev.filter((_, idx) => idx !== i))
+                    }
+                    className="absolute top-1 right-1 bg-white text-red-500 rounded-full p-1 shadow opacity-0 group-hover:opacity-100 transition"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 🎥 Videos adicionales */}
+          <div>
+            <label className="block text-white text-lg font-semibold mb-2">
+              Videos (opcionales)
+            </label>
+            <input
+              type="file"
+              accept="video/*"
+              multiple
+              onChange={handleExtraVideos}
+              className="w-full border border-white/40 rounded-xl p-2 bg-transparent text-white"
+            />
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              {videosExtras.map((vid, i) => (
+                <div key={i} className="relative group">
+                  <video
+                    src={vid}
+                    controls
+                    className="rounded-lg shadow-md w-full h-40 object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setVideosExtras((prev) => prev.filter((_, idx) => idx !== i))
                     }
                     className="absolute top-1 right-1 bg-white text-red-500 rounded-full p-1 shadow opacity-0 group-hover:opacity-100 transition"
                   >
