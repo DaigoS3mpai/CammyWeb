@@ -118,44 +118,36 @@ const CategoryPage = () => {
     setShowModal(true);
   };
 
-  // 🎨 Config visual con degradado oscuro animado
+  // 🎨 Config visual
   const config =
     {
       bitacora: {
         title: "Bitácora de Clases",
-        titleGradient: "from-sky-600 via-blue-600 to-cyan-500",
         description:
           "Aquí encontrarás el registro completo de todas las clases realizadas.",
-        textColor: "#8ED6FF",
-        icon: <BookOpenText className="w-12 h-12 text-blue-400" />,
+        icon: <BookOpenText className="w-12 h-12 text-blue-500" />,
         buttonText: "Nueva Clase",
         buttonRoute: "/new-class",
       },
       proyectos: {
         title: "Proyectos Realizados",
-        titleGradient: "from-purple-700 via-violet-700 to-fuchsia-600",
         description:
           "Explora todos los proyectos desarrollados durante las clases.",
-        textColor: "#C59BFF",
-        icon: <FlaskConical className="w-12 h-12 text-purple-400" />,
+        icon: <FlaskConical className="w-12 h-12 text-purple-500" />,
         buttonText: "Nuevo Proyecto",
         buttonRoute: "/newproject",
       },
       galeria: {
         title: "Galería Multimedia",
-        titleGradient: "from-pink-600 via-fuchsia-600 to-purple-700",
         description:
           "Disfruta de las imágenes y videos capturados de tus proyectos y clases.",
-        textColor: "#FF8DCB",
-        icon: <ImageIcon className="w-12 h-12 text-pink-400" />,
+        icon: <ImageIcon className="w-12 h-12 text-pink-500" />,
         buttonText: "Ver Galería Completa",
         buttonRoute: "/gallery",
       },
     }[categoryName] || {
       title: "Categoría no encontrada",
-      titleGradient: "from-gray-400 to-gray-500",
       description: "La sección que buscas no existe.",
-      textColor: "#DDD",
       icon: <FileText className="w-12 h-12 text-gray-500" />,
     };
 
@@ -177,8 +169,8 @@ const CategoryPage = () => {
           100% { background-position: 0% 50%; }
         }
         .animate-gradient {
-          background-size: 300% 300%;
-          animation: gradientFlow 4s linear infinite;
+          background-size: 200% 200%;
+          animation: gradientFlow 6s ease infinite;
         }
       `}</style>
 
@@ -192,22 +184,11 @@ const CategoryPage = () => {
           {config.icon}
         </div>
 
-        {/* Título animado */}
-        <h1
-          className={`text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r ${config.titleGradient} animate-gradient`}
-          style={{ textShadow: "0 3px 6px rgba(0,0,0,0.8)" }}
-        >
+        <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-fuchsia-400 to-purple-500 animate-gradient mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
           {config.title}
         </h1>
 
-        {/* Descripción */}
-        <p
-          className="max-w-2xl mx-auto text-lg text-center font-semibold"
-          style={{
-            color: "#9b0050ff",
-            textShadow: "0 1px 3px rgba(0,0,0,0.8)",
-          }}
-        >
+        <p className="text-gray-200 max-w-2xl mx-auto text-lg drop-shadow-sm">
           {config.description}
         </p>
       </motion.div>
@@ -253,7 +234,7 @@ const CategoryPage = () => {
               whileHover={{ scale: 1.02 }}
               onClick={() => handleOpenDetail(item)}
             >
-              {/* 🖼️ Imagen o 🎥 Video */}
+              {/* 🖼️ Imagen o 🎥 Video según categoría */}
               {categoryName === "proyectos" && item.imagen_portada && (
                 <img
                   src={item.imagen_portada}
@@ -284,27 +265,21 @@ const CategoryPage = () => {
                 </>
               )}
 
-              {/* 🔸 Título sin negrita ni borde */}
-              <h3
-                className="text-xl mb-2"
-                style={{ color: config.textColor, fontWeight: "400" }}
-              >
+              {/* Título */}
+              <h3 className="text-xl font-semibold text-white mb-2">
                 {item.titulo ||
                   item.proyecto_titulo ||
                   (item.video_url ? "Video" : "Sin título")}
               </h3>
 
-              {/* 🔸 Descripción sin borde */}
-              <p
-                className="mb-3 line-clamp-3"
-                style={{ color: config.textColor, fontWeight: "300" }}
-              >
+              {/* Descripción */}
+              <p className="text-gray-200 mb-3 line-clamp-3">
                 {item.descripcion || "Sin descripción"}
               </p>
 
               {/* Fecha */}
               {(item.fecha || item.fecha_inicio) && (
-                <div className="flex flex-wrap items-center text-sm text-gray-300 mb-1">
+                <div className="flex items-center text-sm text-gray-300 mb-1">
                   <Calendar className="w-4 h-4 mr-2" />
                   {new Date(
                     item.fecha || item.fecha_inicio
@@ -315,7 +290,7 @@ const CategoryPage = () => {
               {/* Proyecto vinculado (bitácora) */}
               {categoryName === "bitacora" &&
                 (item.proyecto_titulo || item.proyecto_id) && (
-                  <div className="flex items-center text-sm text-pink-200 italic mt-1">
+                  <div className="flex items-center text-sm text-pink-200 italic">
                     <Layers className="w-4 h-4 mr-2 text-pink-300" />
                     Vinculado a:{" "}
                     <button
@@ -336,13 +311,14 @@ const CategoryPage = () => {
               {categoryName === "proyectos" && (
                 <div className="flex items-center text-sm text-gray-200 space-x-4 mt-2">
                   <div className="flex items-center">
-                    <BookOpen className="w-4 h-4 mr-1 text-pink-300" />
+                    <BookOpen className="w-4 h-4 mr-1 text-blue-300" />
                     <span>{item.clase_count || 0} clases</span>
                   </div>
                   <div className="flex items-center">
-                    <Images className="w-4 h-4 mr-1 text-blue-300" />
+                    <Images className="w-4 h-4 mr-1 text-pink-300" />
                     <span>
-                      {(item.imagen_count || 0) + (item.video_count || 0)} multimedia
+                      {(item.imagen_count || 0) + (item.video_count || 0)}{" "}
+                      multimedia
                     </span>
                   </div>
                 </div>
