@@ -22,7 +22,7 @@ export const handler = async () => {
         b.titulo AS clase_titulo
       FROM galeria g
       LEFT JOIN proyectos p ON g.proyecto_id = p.id
-      LEFT JOIN bitacora b ON g.clase_id = b.id
+      LEFT JOIN bitacora c ON g.clase_id = c.id
       ORDER BY g.id DESC;
     `);
 
