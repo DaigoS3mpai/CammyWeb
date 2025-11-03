@@ -12,6 +12,7 @@ import {
   BookOpen,
   Layers,
   Images,
+  PlayCircle,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import DetailModalBook from "./DetailModalBook";
