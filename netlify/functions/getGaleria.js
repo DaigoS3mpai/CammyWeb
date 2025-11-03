@@ -19,10 +19,10 @@ export const handler = async () => {
         g.clase_id,
         g.tipo,
         p.titulo AS proyecto_titulo,
-        b.titulo AS clase_titulo
+        c.titulo AS clase_titulo   -- ✅ corregido alias
       FROM galeria g
       LEFT JOIN proyectos p ON g.proyecto_id = p.id
-      LEFT JOIN bitacora c ON g.clase_id = c.id
+      LEFT JOIN bitacora c ON g.clase_id = c.id   -- ✅ alias coincide
       ORDER BY g.id DESC;
     `);
 
