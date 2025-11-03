@@ -198,8 +198,11 @@ const CategoryPage = () => {
 
         {/* Descripción con mismo degradado, negrita y borde */}
         <p
-          className={`text-transparent bg-clip-text bg-gradient-to-r ${config.titleGradient} animate-gradient 
-          max-w-2xl mx-auto text-lg text-center font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,1)]`}
+          className="max-w-2xl mx-auto text-lg text-center font-semibold"
+          style={{
+            color: "#A60E5C",
+            textShadow: "0 1px 3px rgba(0,0,0,0.8)",
+          }}
         >
           {config.description}
         </p>
