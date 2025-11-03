@@ -123,7 +123,8 @@ const CategoryPage = () => {
     {
       bitacora: {
         title: "Bitácora de Clases",
-        descriptionColor: "text-blue-200",
+        descriptionColor:
+          "text-sky-100 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]",
         description:
           "Aquí encontrarás el registro completo de todas las clases realizadas.",
         icon: <BookOpenText className="w-12 h-12 text-blue-500" />,
@@ -132,7 +133,8 @@ const CategoryPage = () => {
       },
       proyectos: {
         title: "Proyectos Realizados",
-        descriptionColor: "text-fuchsia-200",
+        descriptionColor:
+          "text-emerald-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]",
         description:
           "Explora todos los proyectos desarrollados durante las clases.",
         icon: <FlaskConical className="w-12 h-12 text-purple-500" />,
@@ -141,7 +143,8 @@ const CategoryPage = () => {
       },
       galeria: {
         title: "Galería Multimedia",
-        descriptionColor: "text-pink-200",
+        descriptionColor:
+          "text-rose-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]",
         description:
           "Disfruta de las imágenes y videos capturados de tus proyectos y clases.",
         icon: <ImageIcon className="w-12 h-12 text-pink-500" />,
@@ -150,7 +153,8 @@ const CategoryPage = () => {
       },
     }[categoryName] || {
       title: "Categoría no encontrada",
-      descriptionColor: "text-gray-300",
+      descriptionColor:
+        "text-gray-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]",
       description: "La sección que buscas no existe.",
       icon: <FileText className="w-12 h-12 text-gray-500" />,
     };
@@ -165,6 +169,7 @@ const CategoryPage = () => {
         backgroundImage: "url('/bc.png')",
       }}
     >
+      {/* 🔹 Estilos de degradado animado */}
       <style>{`
         @keyframes gradientFlow {
           0% { background-position: 0% 50%; }
@@ -192,7 +197,7 @@ const CategoryPage = () => {
         </h1>
 
         <p
-          className={`${config.descriptionColor} max-w-2xl mx-auto text-lg drop-shadow-sm`}
+          className={`${config.descriptionColor} max-w-2xl mx-auto text-lg text-center`}
         >
           {config.description}
         </p>
