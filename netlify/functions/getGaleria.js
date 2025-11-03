@@ -13,22 +13,21 @@ export const handler = async () => {
     const result = await client.query(`
       SELECT 
         g.id,
-        g.imagen_url,
+        g.imagen_url,        -- miniatura o imagen principal
+        g.video_url,         -- ✅ nuevo campo para videos
         g.descripcion,
         g.proyecto_id,
         g.clase_id,
         g.tipo,
         p.titulo AS proyecto_titulo,
-        c.titulo AS clase_titulo   -- ✅ corregido alias
+        c.titulo AS clase_titulo
       FROM galeria g
       LEFT JOIN proyectos p ON g.proyecto_id = p.id
-      LEFT JOIN bitacora c ON g.clase_id = c.id   -- ✅ alias coincide
+      LEFT JOIN bitacora c ON g.clase_id = c.id
       ORDER BY g.id DESC;
     `);
 
     console.log("✅ Consulta completada. Filas:", result?.rows?.length || 0);
-
-    await client.end();
 
     return {
       statusCode: 200,
@@ -43,9 +42,7 @@ export const handler = async () => {
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        error: err.message,
-      }),
+      body: JSON.stringify({ error: err.message }),
     };
   } finally {
     try {
