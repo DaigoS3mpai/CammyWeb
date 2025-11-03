@@ -39,7 +39,7 @@ const HomePage = () => {
           transition={{ delay: 0.5, duration: 0.6 }}
         >
           Hola, soy{' '}
-          <span className="font-semibold text-pink-300">Camila Aguierre</span>, estudiante de
+          <span className="font-semibold text-pink-300">Camila Aguirre</span>, estudiante de
           <span className="italic"> Pedagogía en Educación Básica </span> de la Universidad de Chile.  
           Este es mi proyecto para la asignatura{' '}
           <span className="italic">Proyecto Tecnológico</span>, donde compartiré mis clases y los proyectos

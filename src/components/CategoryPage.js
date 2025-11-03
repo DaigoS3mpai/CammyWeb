@@ -118,12 +118,12 @@ const CategoryPage = () => {
     setShowModal(true);
   };
 
-  // 🎨 Config visual con descripción del mismo color que el título
+  // 🎨 Config visual con degradado oscuro animado
   const config =
     {
       bitacora: {
         title: "Bitácora de Clases",
-        titleGradient: "from-sky-400 via-blue-400 to-cyan-300",
+        titleGradient: "from-sky-600 via-blue-600 to-cyan-500",
         description:
           "Aquí encontrarás el registro completo de todas las clases realizadas.",
         icon: <BookOpenText className="w-12 h-12 text-blue-400" />,
@@ -132,7 +132,7 @@ const CategoryPage = () => {
       },
       proyectos: {
         title: "Proyectos Realizados",
-        titleGradient: "from-purple-400 via-violet-400 to-fuchsia-400",
+        titleGradient: "from-purple-700 via-violet-700 to-fuchsia-600",
         description:
           "Explora todos los proyectos desarrollados durante las clases.",
         icon: <FlaskConical className="w-12 h-12 text-purple-400" />,
@@ -141,7 +141,7 @@ const CategoryPage = () => {
       },
       galeria: {
         title: "Galería Multimedia",
-        titleGradient: "from-pink-400 via-fuchsia-400 to-purple-500",
+        titleGradient: "from-pink-600 via-fuchsia-600 to-purple-700",
         description:
           "Disfruta de las imágenes y videos capturados de tus proyectos y clases.",
         icon: <ImageIcon className="w-12 h-12 text-pink-400" />,
@@ -173,8 +173,8 @@ const CategoryPage = () => {
           100% { background-position: 0% 50%; }
         }
         .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradientFlow 6s ease infinite;
+          background-size: 300% 300%;
+          animation: gradientFlow 4s linear infinite;
         }
       `}</style>
 
@@ -188,16 +188,18 @@ const CategoryPage = () => {
           {config.icon}
         </div>
 
-        {/* Título */}
+        {/* Título animado con borde negro */}
         <h1
-          className={`text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r ${config.titleGradient} animate-gradient mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]`}
+          className={`text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r ${config.titleGradient} animate-gradient 
+          drop-shadow-[0_3px_6px_rgba(0,0,0,0.9)]`}
         >
           {config.title}
         </h1>
 
-        {/* Descripción con mismo color del título */}
+        {/* Descripción con mismo degradado, negrita y borde */}
         <p
-          className={`text-transparent bg-clip-text bg-gradient-to-r ${config.titleGradient} animate-gradient max-w-2xl mx-auto text-lg text-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]`}
+          className={`text-transparent bg-clip-text bg-gradient-to-r ${config.titleGradient} animate-gradient 
+          max-w-2xl mx-auto text-lg text-center font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,1)]`}
         >
           {config.description}
         </p>
@@ -275,15 +277,15 @@ const CategoryPage = () => {
                 </>
               )}
 
-              {/* Título */}
-              <h3 className="text-xl font-semibold text-white mb-2">
+              {/* Título con negrita + borde */}
+              <h3 className="text-xl font-bold text-white mb-2 drop-shadow-[0_2px_3px_rgba(0,0,0,1)]">
                 {item.titulo ||
                   item.proyecto_titulo ||
                   (item.video_url ? "Video" : "Sin título")}
               </h3>
 
               {/* Descripción */}
-              <p className="text-gray-200 mb-3 line-clamp-3">
+              <p className="text-gray-200 mb-3 line-clamp-3 font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                 {item.descripcion || "Sin descripción"}
               </p>
 
