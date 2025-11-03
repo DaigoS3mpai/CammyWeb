@@ -52,13 +52,13 @@ const DetailModalBook = ({ item, type, onClose }) => {
           if (Array.isArray(data)) {
             const relacionadas = data.filter((c) => c.proyecto_id === item.id);
             setLinkedClases(relacionadas);
-          } else setLinkedClases([]);
+          }
         })
         .catch(() => setLinkedClases([]));
     }
   }, [item, type]);
 
-  // 🔹 Cargar galería (siempre array)
+  // 🔹 Cargar galería
   useEffect(() => {
     if (!item?.id) return;
     fetch("/.netlify/functions/getGaleria")
@@ -92,13 +92,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
         })
       : null;
 
-  const bookVariants = {
-    hidden: { rotateY: 90, opacity: 0 },
-    visible: { rotateY: 0, opacity: 1 },
-    exit: { rotateY: -90, opacity: 0 },
-  };
-
-  // 🔼 Subida a Cloudinary
+  // 📤 Subir a Cloudinary
   const uploadToCloudinary = async (file) => {
     const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
@@ -122,8 +116,8 @@ const DetailModalBook = ({ item, type, onClose }) => {
   // 💾 Guardar cambios
   const handleSave = async () => {
     if (!titulo.trim()) return alert("El título no puede estar vacío.");
-
     setSaving(true);
+
     try {
       const endpoint =
         type === "proyectos"
@@ -176,10 +170,17 @@ const DetailModalBook = ({ item, type, onClose }) => {
     localStorage.setItem("reloadBitacora", "true");
     navigate("/category/bitacora");
   };
+
   const openLinkedProyecto = (id) => {
     localStorage.setItem("openProyectoId", id);
     localStorage.setItem("reloadProyectos", "true");
     navigate("/category/proyectos");
+  };
+
+  const openInGaleria = (mediaId) => {
+    localStorage.setItem("openGaleriaId", mediaId);
+    localStorage.setItem("reloadGaleria", "true");
+    navigate("/category/galeria");
   };
 
   return (
@@ -198,59 +199,16 @@ const DetailModalBook = ({ item, type, onClose }) => {
           >
             <motion.div
               className="relative shadow-2xl rounded-2xl w-full h-full flex flex-col md:flex-row overflow-hidden border border-[#b29d84]"
-              variants={bookVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
+              initial={{ rotateY: 90, opacity: 0 }}
+              animate={{ rotateY: 0, opacity: 1 }}
+              exit={{ rotateY: -90, opacity: 0 }}
               style={{
                 background: "linear-gradient(to right, #f9f5ef, #f8f3e9)",
                 boxShadow:
                   "0 0 30px rgba(0,0,0,0.3), inset 0 0 25px rgba(97,72,44,0.15)",
               }}
             >
-              {/* 📘 Encuadernado */}
-              <div className="absolute inset-y-0 left-1/2 w-[3px] bg-[#c8b49d] shadow-inner z-10 hidden md:block"></div>
-
-              {/* 🔹 Botones */}
-              <div className="absolute top-3 right-3 flex space-x-2 z-20">
-                {isAdmin() && !editMode && (
-                  <button
-                    onClick={() => setEditMode(true)}
-                    className="bg-amber-500 hover:bg-amber-600 text-white rounded-full p-2 shadow-md"
-                  >
-                    <Pencil className="w-5 h-5" />
-                  </button>
-                )}
-                {editMode && (
-                  <>
-                    <button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="bg-green-600 hover:bg-green-700 text-white rounded-full p-2 shadow-md"
-                    >
-                      {saving ? (
-                        <Loader2 className="animate-spin w-5 h-5" />
-                      ) : (
-                        <Save className="w-5 h-5" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setEditMode(false)}
-                      className="bg-gray-300 hover:bg-gray-400 rounded-full p-2 shadow-md"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => onClose(false)}
-                  className="bg-[#f0e9de] hover:bg-[#e9e0d2] rounded-full p-2"
-                >
-                  <X className="w-5 h-5 text-[#5a4633]" />
-                </button>
-              </div>
-
-              {/* 📄 Página izquierda */}
+              {/* 📘 Página izquierda */}
               <div className="md:w-1/2 p-6 md:p-8 bg-[#faf6f1] flex flex-col justify-between border-b md:border-b-0 md:border-r border-[#d9c6ab] overflow-y-auto">
                 <div>
                   <div className="flex items-center mb-6">
@@ -293,20 +251,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                           Proyecto vinculado
                         </h3>
                       </div>
-                      {editMode ? (
-                        <select
-                          value={proyectoId || ""}
-                          onChange={(e) => setProyectoId(e.target.value)}
-                          className="w-full border border-gray-400 text-black rounded-xl p-2 bg-white focus:ring-2 focus:ring-amber-600"
-                        >
-                          <option value="">Selecciona un proyecto...</option>
-                          {allProyectos.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.titulo}
-                            </option>
-                          ))}
-                        </select>
-                      ) : item.proyecto_titulo ? (
+                      {item.proyecto_titulo ? (
                         <button
                           onClick={() => openLinkedProyecto(item.proyecto_id)}
                           className="text-blue-700 hover:underline font-semibold"
@@ -357,70 +302,77 @@ const DetailModalBook = ({ item, type, onClose }) => {
                         Descripción
                       </h3>
                     </div>
-                    {editMode ? (
-                      <textarea
-                        value={descripcion}
-                        onChange={(e) => setDescripcion(e.target.value)}
-                        rows="12"
-                        className="w-full p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
-                      />
-                    ) : (
-                      <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] whitespace-pre-line">
-                        {descripcion || "Sin descripción disponible."}
-                      </div>
-                    )}
+                    <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed whitespace-pre-line">
+                      {descripcion || "Sin descripción disponible."}
+                    </div>
                   </>
                 ) : (
                   <>
                     <h3 className="text-lg font-semibold text-[#5b4532] mb-3 flex items-center">
-                      <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" /> Galería multimedia
+                      <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" />{" "}
+                      Galería multimedia
                     </h3>
 
-                    {editMode && (
-                      <div className="mb-4">
-                        <label className="block text-sm font-semibold text-[#5b4532] mb-1">
-                          Agregar archivos (imágenes{type === "proyectos" ? " o videos" : ""}):
-                        </label>
-                        <input
-                          type="file"
-                          accept={type === "proyectos" ? "image/*,video/*" : "image/*"}
-                          multiple
-                          onChange={(e) => setMediaFiles(Array.from(e.target.files))}
-                          className="border border-gray-300 rounded-lg p-2 w-full"
-                        />
-                      </div>
-                    )}
-
                     {paginatedMedia.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-3">
-                        {paginatedMedia.map((media) =>
-                          media.tipo === "video" ? (
-                            <motion.div
-                              key={media.id}
-                              className="relative rounded-lg overflow-hidden border border-[#d1bda1]"
-                              whileHover={{ scale: 1.05 }}
-                            >
-                              <video controls src={media.imagen_url} className="w-full h-40 object-cover rounded-lg" />
-                              <PlayCircle className="absolute top-2 left-2 text-white drop-shadow-md" />
-                            </motion.div>
-                          ) : (
-                            <motion.img
-                              key={media.id}
-                              src={media.imagen_url}
-                              alt={media.descripcion || "Imagen"}
-                              className="rounded-lg border border-[#d1bda1] object-cover h-40 w-full cursor-pointer"
-                              whileHover={{ scale: 1.05 }}
-                              onClick={() => {
-                                localStorage.setItem("openGaleriaId", media.id);
-                                localStorage.setItem("reloadGaleria", "true");
-                                navigate("/category/galeria");
-                              }}
-                            />
-                          )
-                        )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {paginatedMedia.map((media) => (
+                          <motion.div
+                            key={media.id}
+                            whileHover={{ scale: 1.04 }}
+                            className="relative group border border-[#d1bda1] rounded-xl overflow-hidden shadow-sm cursor-pointer"
+                            onClick={() => openInGaleria(media.id)}
+                          >
+                            {media.tipo === "video" ? (
+                              <div className="relative">
+                                <video
+                                  src={media.imagen_url}
+                                  className="w-full h-48 object-cover rounded-xl"
+                                  muted
+                                  loop
+                                />
+                                <PlayCircle className="absolute inset-0 m-auto text-white opacity-90 w-10 h-10 drop-shadow-lg" />
+                              </div>
+                            ) : (
+                              <img
+                                src={media.imagen_url}
+                                alt={media.descripcion || "Imagen"}
+                                className="w-full h-48 object-cover rounded-xl"
+                              />
+                            )}
+
+                            {/* 🔗 Proyecto o clase vinculado */}
+                            <div className="bg-[#fff9f3] text-center text-[#5b4532] text-sm font-medium py-2 border-t border-[#d1bda1]">
+                              {media.proyecto_titulo ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openLinkedProyecto(media.proyecto_id);
+                                  }}
+                                  className="text-blue-700 hover:underline"
+                                >
+                                  {media.proyecto_titulo}
+                                </button>
+                              ) : media.clase_titulo ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openLinkedClase(media.clase_id);
+                                  }}
+                                  className="text-blue-700 hover:underline"
+                                >
+                                  {media.clase_titulo}
+                                </button>
+                              ) : (
+                                "Sin vínculo"
+                              )}
+                            </div>
+                          </motion.div>
+                        ))}
                       </div>
                     ) : (
-                      <p className="text-[#9c8973] italic">Sin archivos multimedia.</p>
+                      <p className="text-[#9c8973] italic">
+                        Sin archivos multimedia.
+                      </p>
                     )}
                   </>
                 )}
@@ -431,7 +383,9 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page === 1}
                     className={`flex items-center text-sm font-semibold ${
-                      page === 1 ? "text-[#c7b9a7]" : "text-[#7a4e27] hover:underline"
+                      page === 1
+                        ? "text-[#c7b9a7]"
+                        : "text-[#7a4e27] hover:underline"
                     }`}
                   >
                     <ArrowLeftCircle className="w-5 h-5 mr-1" /> Anterior
@@ -440,10 +394,14 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     Página {page}/{totalPages}
                   </span>
                   <button
-                    onClick={() => setPage(Math.min(totalPages, page + 1))}
+                    onClick={() =>
+                      setPage(Math.min(totalPages, page + 1))
+                    }
                     disabled={page === totalPages}
                     className={`flex items-center text-sm font-semibold ${
-                      page === totalPages ? "text-[#c7b9a7]" : "text-[#7a4e27] hover:underline"
+                      page === totalPages
+                        ? "text-[#c7b9a7]"
+                        : "text-[#7a4e27] hover:underline"
                     }`}
                   >
                     Siguiente <ArrowRightCircle className="w-5 h-5 ml-1" />
