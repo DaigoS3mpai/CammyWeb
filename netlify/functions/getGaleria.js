@@ -13,8 +13,8 @@ export const handler = async () => {
     const result = await client.query(`
       SELECT 
         g.id,
-        g.imagen_url,        -- miniatura o imagen principal
-        g.video_url,         -- ✅ nuevo campo para videos
+        g.imagen_url,
+        g.video_url,          -- ✅ nuevo campo
         g.descripcion,
         g.proyecto_id,
         g.clase_id,
@@ -35,10 +35,7 @@ export const handler = async () => {
       body: JSON.stringify(result.rows || []),
     };
   } catch (err) {
-    console.error("❌ Error en getGaleria.js:");
-    console.error("Mensaje:", err.message);
-    console.error("Stack:", err.stack);
-
+    console.error("❌ Error en getGaleria.js:", err.message);
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
