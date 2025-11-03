@@ -48,11 +48,29 @@ const CategoryPage = () => {
           setLoading(false);
           return;
       }
+
       const res = await fetch(endpoint);
-      const data = await res.json();
-      setItems(data);
+      const text = await res.text();
+
+      // Intentamos parsear JSON de forma segura
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("⚠️ Respuesta no es JSON válido:", text);
+        data = [];
+      }
+
+      // Si viene un error del backend, o no es array, dejamos items vacío
+      if (!Array.isArray(data)) {
+        console.warn("⚠️ Respuesta inesperada:", data);
+        setItems([]);
+      } else {
+        setItems(data);
+      }
     } catch (err) {
       console.error("❌ Error al cargar datos:", err);
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -84,7 +102,8 @@ const CategoryPage = () => {
 
   // 🧭 Apertura automática de modales
   useEffect(() => {
-    if (loading || items.length === 0) return;
+    if (loading || !Array.isArray(items) || items.length === 0) return;
+
     const openClaseId = localStorage.getItem("openClaseId");
     const openProyectoId = localStorage.getItem("openProyectoId");
     const openGaleriaId = localStorage.getItem("openGaleriaId");
@@ -160,7 +179,6 @@ const CategoryPage = () => {
       transition={{ duration: 0.6 }}
       style={{ backgroundImage: "url('/bc.png')" }}
     >
-      {/* 🔹 Animación degradada */}
       <style>{`
         @keyframes gradientFlow {
           0% { background-position: 0% 50%; }
@@ -210,7 +228,7 @@ const CategoryPage = () => {
         <p className="text-center text-gray-300 mt-20 text-lg">
           Cargando contenido...
         </p>
-      ) : items.length === 0 ? (
+      ) : !Array.isArray(items) || items.length === 0 ? (
         <p className="text-center text-gray-300 mt-20 text-lg">
           No hay registros en esta categoría.
         </p>
@@ -231,7 +249,7 @@ const CategoryPage = () => {
               whileHover={{ scale: 1.02 }}
               onClick={() => handleOpenDetail(item)}
             >
-              {/* 🖼️ Imagen o 🎥 Video */}
+              {/* 🎥 o 🖼️ */}
               {categoryName === "galeria" && (
                 <>
                   {item.tipo === "video" ? (
@@ -254,7 +272,6 @@ const CategoryPage = () => {
                 </>
               )}
 
-              {/* 🧩 Imagen portada proyectos */}
               {categoryName === "proyectos" && item.imagen_portada && (
                 <img
                   src={item.imagen_portada}
@@ -263,7 +280,6 @@ const CategoryPage = () => {
                 />
               )}
 
-              {/* Título y descripción */}
               <h3 className="text-xl font-semibold text-white mb-2">
                 {item.titulo ||
                   item.proyecto_titulo ||
@@ -273,7 +289,6 @@ const CategoryPage = () => {
                 {item.descripcion || "Sin descripción"}
               </p>
 
-              {/* Fecha */}
               {(item.fecha || item.fecha_inicio) && (
                 <div className="flex items-center text-sm text-gray-300 mb-1">
                   <Calendar className="w-4 h-4 mr-2" />
@@ -282,49 +297,12 @@ const CategoryPage = () => {
                   ).toLocaleDateString("es-CL")}
                 </div>
               )}
-
-              {/* Vinculados */}
-              {categoryName === "bitacora" &&
-                (item.proyecto_titulo || item.proyecto_id) && (
-                  <div className="flex items-center text-sm text-pink-200 italic">
-                    <Layers className="w-4 h-4 mr-2 text-pink-300" />
-                    Vinculado a:{" "}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        localStorage.setItem("openProyectoId", item.proyecto_id);
-                        localStorage.setItem("reloadProyectos", "true");
-                        navigate("/category/proyectos");
-                      }}
-                      className="text-pink-100 hover:underline ml-1"
-                    >
-                      {item.proyecto_titulo || `Proyecto #${item.proyecto_id}`}
-                    </button>
-                  </div>
-                )}
-
-              {/* 📊 Estadísticas */}
-              {categoryName === "proyectos" && (
-                <div className="flex items-center text-sm text-gray-200 space-x-4 mt-2">
-                  <div className="flex items-center">
-                    <BookOpen className="w-4 h-4 mr-1 text-blue-300" />
-                    <span>{item.clase_count || 0} clases</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Images className="w-4 h-4 mr-1 text-pink-300" />
-                    <span>
-                      {(item.imagen_count || 0) + (item.video_count || 0)}{" "}
-                      multimedia
-                    </span>
-                  </div>
-                </div>
-              )}
             </motion.div>
           ))}
         </motion.div>
       )}
 
-      {/* 🔹 Modal tipo libro */}
+      {/* 🔹 Modal */}
       <AnimatePresence>
         {showModal && selectedItem && (
           <DetailModalBook
