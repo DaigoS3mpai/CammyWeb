@@ -118,43 +118,39 @@ const CategoryPage = () => {
     setShowModal(true);
   };
 
-  // 🎨 Config visual
+  // 🎨 Config visual con descripción del mismo color que el título
   const config =
     {
       bitacora: {
         title: "Bitácora de Clases",
-        descriptionColor:
-          "text-sky-100 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]",
+        titleGradient: "from-sky-400 via-blue-400 to-cyan-300",
         description:
           "Aquí encontrarás el registro completo de todas las clases realizadas.",
-        icon: <BookOpenText className="w-12 h-12 text-blue-500" />,
+        icon: <BookOpenText className="w-12 h-12 text-blue-400" />,
         buttonText: "Nueva Clase",
         buttonRoute: "/new-class",
       },
       proyectos: {
         title: "Proyectos Realizados",
-        descriptionColor:
-          "text-emerald-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]",
+        titleGradient: "from-purple-400 via-violet-400 to-fuchsia-400",
         description:
           "Explora todos los proyectos desarrollados durante las clases.",
-        icon: <FlaskConical className="w-12 h-12 text-purple-500" />,
+        icon: <FlaskConical className="w-12 h-12 text-purple-400" />,
         buttonText: "Nuevo Proyecto",
         buttonRoute: "/newproject",
       },
       galeria: {
         title: "Galería Multimedia",
-        descriptionColor:
-          "text-rose-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]",
+        titleGradient: "from-pink-400 via-fuchsia-400 to-purple-500",
         description:
           "Disfruta de las imágenes y videos capturados de tus proyectos y clases.",
-        icon: <ImageIcon className="w-12 h-12 text-pink-500" />,
+        icon: <ImageIcon className="w-12 h-12 text-pink-400" />,
         buttonText: "Ver Galería Completa",
         buttonRoute: "/gallery",
       },
     }[categoryName] || {
       title: "Categoría no encontrada",
-      descriptionColor:
-        "text-gray-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]",
+      titleGradient: "from-gray-400 to-gray-500",
       description: "La sección que buscas no existe.",
       icon: <FileText className="w-12 h-12 text-gray-500" />,
     };
@@ -192,12 +188,16 @@ const CategoryPage = () => {
           {config.icon}
         </div>
 
-        <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-fuchsia-400 to-purple-500 animate-gradient mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
+        {/* Título */}
+        <h1
+          className={`text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r ${config.titleGradient} animate-gradient mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]`}
+        >
           {config.title}
         </h1>
 
+        {/* Descripción con mismo color del título */}
         <p
-          className={`${config.descriptionColor} max-w-2xl mx-auto text-lg text-center`}
+          className={`text-transparent bg-clip-text bg-gradient-to-r ${config.titleGradient} animate-gradient max-w-2xl mx-auto text-lg text-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]`}
         >
           {config.description}
         </p>
