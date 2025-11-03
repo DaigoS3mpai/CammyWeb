@@ -12,7 +12,6 @@ import {
   BookOpen,
   Layers,
   Images,
-  PlayCircle,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import DetailModalBook from "./DetailModalBook";
@@ -48,29 +47,11 @@ const CategoryPage = () => {
           setLoading(false);
           return;
       }
-
       const res = await fetch(endpoint);
-      const text = await res.text();
-
-      // Intentamos parsear JSON de forma segura
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        console.error("⚠️ Respuesta no es JSON válido:", text);
-        data = [];
-      }
-
-      // Si viene un error del backend, o no es array, dejamos items vacío
-      if (!Array.isArray(data)) {
-        console.warn("⚠️ Respuesta inesperada:", data);
-        setItems([]);
-      } else {
-        setItems(data);
-      }
+      const data = await res.json();
+      setItems(data);
     } catch (err) {
       console.error("❌ Error al cargar datos:", err);
-      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -102,8 +83,7 @@ const CategoryPage = () => {
 
   // 🧭 Apertura automática de modales
   useEffect(() => {
-    if (loading || !Array.isArray(items) || items.length === 0) return;
-
+    if (loading || items.length === 0) return;
     const openClaseId = localStorage.getItem("openClaseId");
     const openProyectoId = localStorage.getItem("openProyectoId");
     const openGaleriaId = localStorage.getItem("openGaleriaId");
@@ -143,6 +123,7 @@ const CategoryPage = () => {
     {
       bitacora: {
         title: "Bitácora de Clases",
+        descriptionColor: "text-blue-200",
         description:
           "Aquí encontrarás el registro completo de todas las clases realizadas.",
         icon: <BookOpenText className="w-12 h-12 text-blue-500" />,
@@ -151,6 +132,7 @@ const CategoryPage = () => {
       },
       proyectos: {
         title: "Proyectos Realizados",
+        descriptionColor: "text-fuchsia-200",
         description:
           "Explora todos los proyectos desarrollados durante las clases.",
         icon: <FlaskConical className="w-12 h-12 text-purple-500" />,
@@ -159,6 +141,7 @@ const CategoryPage = () => {
       },
       galeria: {
         title: "Galería Multimedia",
+        descriptionColor: "text-pink-200",
         description:
           "Disfruta de las imágenes y videos capturados de tus proyectos y clases.",
         icon: <ImageIcon className="w-12 h-12 text-pink-500" />,
@@ -167,6 +150,7 @@ const CategoryPage = () => {
       },
     }[categoryName] || {
       title: "Categoría no encontrada",
+      descriptionColor: "text-gray-300",
       description: "La sección que buscas no existe.",
       icon: <FileText className="w-12 h-12 text-gray-500" />,
     };
@@ -177,7 +161,9 @@ const CategoryPage = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
-      style={{ backgroundImage: "url('/bc.png')" }}
+      style={{
+        backgroundImage: "url('/bc.png')",
+      }}
     >
       <style>{`
         @keyframes gradientFlow {
@@ -200,10 +186,14 @@ const CategoryPage = () => {
         <div className="inline-flex items-center justify-center mb-4 p-4 rounded-full border border-white/50 bg-black/40 backdrop-blur-sm shadow-lg">
           {config.icon}
         </div>
+
         <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-fuchsia-400 to-purple-500 animate-gradient mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
           {config.title}
         </h1>
-        <p className="text-gray-200 max-w-2xl mx-auto text-lg drop-shadow-sm">
+
+        <p
+          className={`${config.descriptionColor} max-w-2xl mx-auto text-lg drop-shadow-sm`}
+        >
           {config.description}
         </p>
       </motion.div>
@@ -228,7 +218,7 @@ const CategoryPage = () => {
         <p className="text-center text-gray-300 mt-20 text-lg">
           Cargando contenido...
         </p>
-      ) : !Array.isArray(items) || items.length === 0 ? (
+      ) : items.length === 0 ? (
         <p className="text-center text-gray-300 mt-20 text-lg">
           No hay registros en esta categoría.
         </p>
@@ -245,33 +235,11 @@ const CategoryPage = () => {
           {items.map((item, index) => (
             <motion.div
               key={item.id || index}
-              className="relative p-6 rounded-2xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all cursor-pointer"
+              className="p-6 rounded-2xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all cursor-pointer"
               whileHover={{ scale: 1.02 }}
               onClick={() => handleOpenDetail(item)}
             >
-              {/* 🎥 o 🖼️ */}
-              {categoryName === "galeria" && (
-                <>
-                  {item.tipo === "video" ? (
-                    <div className="relative">
-                      <video
-                        src={item.imagen_url}
-                        className="w-full h-64 object-cover rounded-lg mb-4"
-                        muted
-                        loop
-                      />
-                      <PlayCircle className="absolute top-2 left-2 text-white/90 w-8 h-8 drop-shadow-lg" />
-                    </div>
-                  ) : (
-                    <img
-                      src={item.imagen_url}
-                      alt={item.descripcion || "Imagen"}
-                      className="w-full h-64 object-cover rounded-lg mb-4"
-                    />
-                  )}
-                </>
-              )}
-
+              {/* 🖼️ Imagen o 🎥 Video según categoría */}
               {categoryName === "proyectos" && item.imagen_portada && (
                 <img
                   src={item.imagen_portada}
@@ -280,21 +248,84 @@ const CategoryPage = () => {
                 />
               )}
 
+              {categoryName === "galeria" && (
+                <>
+                  {item.video_url ? (
+                    <video
+                      src={item.video_url}
+                      className="w-full h-64 object-cover rounded-lg mb-4"
+                      muted
+                      autoPlay
+                      loop
+                    />
+                  ) : (
+                    item.imagen_url && (
+                      <img
+                        src={item.imagen_url}
+                        alt={item.descripcion || "Imagen"}
+                        className="w-full h-64 object-cover rounded-lg mb-4"
+                      />
+                    )
+                  )}
+                </>
+              )}
+
+              {/* Título */}
               <h3 className="text-xl font-semibold text-white mb-2">
                 {item.titulo ||
                   item.proyecto_titulo ||
-                  (item.tipo === "video" ? "Video" : "Sin título")}
+                  (item.video_url ? "Video" : "Sin título")}
               </h3>
+
+              {/* Descripción */}
               <p className="text-gray-200 mb-3 line-clamp-3">
                 {item.descripcion || "Sin descripción"}
               </p>
 
+              {/* Fecha */}
               {(item.fecha || item.fecha_inicio) && (
-                <div className="flex items-center text-sm text-gray-300 mb-1">
+                <div className="flex flex-wrap items-center text-sm text-gray-300 mb-1">
                   <Calendar className="w-4 h-4 mr-2" />
                   {new Date(
                     item.fecha || item.fecha_inicio
                   ).toLocaleDateString("es-CL")}
+                </div>
+              )}
+
+              {/* Proyecto vinculado (bitácora) */}
+              {categoryName === "bitacora" &&
+                (item.proyecto_titulo || item.proyecto_id) && (
+                  <div className="flex items-center text-sm text-pink-200 italic mt-1">
+                    <Layers className="w-4 h-4 mr-2 text-pink-300" />
+                    Vinculado a:{" "}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        localStorage.setItem("openProyectoId", item.proyecto_id);
+                        localStorage.setItem("reloadProyectos", "true");
+                        navigate("/category/proyectos");
+                      }}
+                      className="text-pink-100 hover:underline ml-1"
+                    >
+                      {item.proyecto_titulo || `Proyecto #${item.proyecto_id}`}
+                    </button>
+                  </div>
+                )}
+
+              {/* Estadísticas (proyectos) */}
+              {categoryName === "proyectos" && (
+                <div className="flex items-center text-sm text-gray-200 space-x-4 mt-2">
+                  <div className="flex items-center">
+                    <BookOpen className="w-4 h-4 mr-1 text-pink-300" />
+                    <span>{item.clase_count || 0} clases</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Images className="w-4 h-4 mr-1 text-blue-300" />
+                    <span>
+                      {(item.imagen_count || 0) + (item.video_count || 0)}{" "}
+                      multimedia
+                    </span>
+                  </div>
                 </div>
               )}
             </motion.div>
@@ -302,7 +333,7 @@ const CategoryPage = () => {
         </motion.div>
       )}
 
-      {/* 🔹 Modal */}
+      {/* 🔹 Modal tipo libro */}
       <AnimatePresence>
         {showModal && selectedItem && (
           <DetailModalBook
