@@ -244,36 +244,38 @@ const CategoryPage = () => {
               )}
 
               {categoryName === "galeria" && (
-                <>
-                  {item.video_url ? (
-                    <div className="relative">
-                      <video
-                        src={item.video_url}
-                        className="w-full h-64 object-cover rounded-lg mb-4"
-                        muted
-                        playsInline
-                        preload="metadata"
-                        onLoadedMetadata={(e) => {
-                          e.target.currentTime = 0.1; // fuerza mostrar frame inicial
-                        }}
-                        onError={() => console.warn("⚠️ Error al cargar el video:", item.video_url)}
-                      />
-                      {/* 🔹 Ícono de play si el video no se reproduce */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <PlayCircle className="w-14 h-14 text-white/90 drop-shadow-lg" />
-                      </div>
+              <>
+                {item.video_url ? (
+                  <div className="relative">
+                    <video
+                      src={item.video_url}
+                      poster={
+                        item.imagen_url
+                          ? item.imagen_url
+                          : "/default-thumbnail.jpg" // 🔹 cambia esta ruta si tienes otra imagen por defecto
+                      }
+                      className="w-full h-64 object-cover rounded-lg mb-4"
+                      muted
+                      playsInline
+                      preload="metadata"
+                    />
+                    {/* 🔹 Ícono Play semitransparente encima */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <PlayCircle className="w-16 h-16 text-white/80 drop-shadow-xl" />
                     </div>
-                  ) : (
-                    item.imagen_url && (
-                      <img
-                        src={item.imagen_url}
-                        alt={item.descripcion || "Imagen"}
-                        className="w-full h-64 object-cover rounded-lg mb-4"
-                      />
-                    )
-                  )}
-                </>
-              )}
+                  </div>
+                ) : (
+                  item.imagen_url && (
+                    <img
+                      src={item.imagen_url}
+                      alt={item.descripcion || "Imagen"}
+                      className="w-full h-64 object-cover rounded-lg mb-4"
+                    />
+                  )
+                )}
+              </>
+            )}
+
 
 
               {/* Título */}
