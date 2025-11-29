@@ -26,28 +26,42 @@ const DetailModalBook = ({ item, type, onClose }) => {
   const [editMode, setEditMode] = useState(false);
   const [titulo, setTitulo] = useState(item?.titulo || "");
   const [descripcion, setDescripcion] = useState(item?.descripcion || "");
+  const [imagenPortada, setImagenPortada] = useState(
+    item?.imagen_portada || ""
+  );
   const [page, setPage] = useState(1);
   const [saving, setSaving] = useState(false);
   const [allProyectos, setAllProyectos] = useState([]);
   const [proyectoId, setProyectoId] = useState(item?.proyecto_id || "");
-  const [nuevasImagenes, setNuevasImagenes] = useState([]); // ← se mantiene por compatibilidad
+  const [nuevasImagenes, setNuevasImagenes] = useState([]); // compatibilidad
   const [zoomed, setZoomed] = useState(false);
 
-  // 🔸 multimedia (imagenes + videos) y subida
+  // multimedia (imagenes + videos) y subida
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaList, setMediaList] = useState([]);
 
-  // 🔹 Cargar lista de proyectos (solo si estamos en clase)
+  // Si cambia el item, sincronizar estados básicos
+  useEffect(() => {
+    if (!item) return;
+    setTitulo(item.titulo || "");
+    setDescripcion(item.descripcion || "");
+    setProyectoId(item.proyecto_id || "");
+    setImagenPortada(item.imagen_portada || "");
+  }, [item]);
+
+  // Cargar lista de proyectos (solo si estamos en clase)
   useEffect(() => {
     if (type === "bitacora") {
       fetch("/.netlify/functions/getProyectos")
         .then((res) => res.json())
-        .then((data) => (Array.isArray(data) ? setAllProyectos(data) : setAllProyectos([])))
+        .then((data) =>
+          Array.isArray(data) ? setAllProyectos(data) : setAllProyectos([])
+        )
         .catch(() => setAllProyectos([]));
     }
   }, [type]);
 
-  // 🔹 Cargar clases vinculadas al proyecto
+  // Cargar clases vinculadas al proyecto
   useEffect(() => {
     if (type === "proyectos" && item?.id) {
       fetch("/.netlify/functions/getClases")
@@ -61,7 +75,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
     }
   }, [item, type]);
 
-  // 🔹 Cargar galería asociada (imagenes y videos) para paginar
+  // Cargar galería asociada (imagenes y videos) para paginar
   useEffect(() => {
     if (!item?.id) return;
     fetch("/.netlify/functions/getGaleria")
@@ -77,7 +91,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
       .catch(() => setMediaList([]));
   }, [item, type]);
 
-  // 🆕 Al entrar en modo edición de una CLASE, pasar automáticamente a la página 2
+  // Al entrar en modo edición de una CLASE, pasar automáticamente a la página 2
   useEffect(() => {
     if (editMode && type === "bitacora") {
       setPage(2);
@@ -104,10 +118,14 @@ const DetailModalBook = ({ item, type, onClose }) => {
     exit: { rotateY: -90, opacity: 0, scale: 0.9 },
   };
 
-  // 🔼 Subida a Cloudinary (imagen o video)
+  // Subida a Cloudinary (imagen o video)
   const uploadToCloudinary = async (file) => {
-    const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
+    const cloudName =
+      process.env.REACT_APP_CLOUDINARY_CLOUD_NAME ||
+      process.env.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset =
+      process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET ||
+      process.env.CLOUDINARY_UPLOAD_PRESET;
     if (!cloudName || !uploadPreset) return null;
 
     const isVideo = file.type?.startsWith("video/");
@@ -125,10 +143,14 @@ const DetailModalBook = ({ item, type, onClose }) => {
     return { url: data.secure_url, tipo: isVideo ? "video" : "imagen" };
   };
 
-  // (compatibilidad) subida de solo imagen para el flujo antiguo de proyectos
+  // Subida solo imagen (flujo antiguo)
   const uploadImageOnly = async (file) => {
-    const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
+    const cloudName =
+      process.env.REACT_APP_CLOUDINARY_CLOUD_NAME ||
+      process.env.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset =
+      process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET ||
+      process.env.CLOUDINARY_UPLOAD_PRESET;
     if (!cloudName || !uploadPreset) return null;
 
     const formData = new FormData();
@@ -140,6 +162,47 @@ const DetailModalBook = ({ item, type, onClose }) => {
     );
     const data = await res.json();
     return data.secure_url;
+  };
+
+  // Subir nueva imagen de portada
+  const handleCoverUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const cloudName =
+      process.env.REACT_APP_CLOUDINARY_CLOUD_NAME ||
+      process.env.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset =
+      process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET ||
+      process.env.CLOUDINARY_UPLOAD_PRESET;
+    if (!cloudName || !uploadPreset) {
+      alert("Faltan variables de entorno de Cloudinary.");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", uploadPreset);
+
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: "POST", body: formData }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error?.message || "Error al subir portada");
+      }
+      setImagenPortada(data.secure_url);
+    } catch (err) {
+      console.error(err);
+      alert("❌ Error al subir la imagen de portada.");
+    }
+  };
+
+  // Seleccionar portada desde la galería existente
+  const handleSelectCoverFromGallery = (url) => {
+    setImagenPortada(url);
   };
 
   const handleSave = async () => {
@@ -157,8 +220,19 @@ const DetailModalBook = ({ item, type, onClose }) => {
 
       const payload =
         type === "bitacora"
-          ? { id: item.id, titulo, descripcion, proyecto_id: proyectoId }
-          : { id: item.id, titulo, descripcion };
+          ? {
+              id: item.id,
+              titulo,
+              descripcion,
+              proyecto_id: proyectoId,
+              imagen_portada: imagenPortada,
+            }
+          : {
+              id: item.id,
+              titulo,
+              descripcion,
+              imagen_portada: imagenPortada,
+            };
 
       const res = await fetch(endpoint, {
         method: "PUT",
@@ -168,7 +242,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
 
       if (!res.ok) throw new Error("Error al guardar");
 
-      // Compatibilidad: si usas el input antiguo (nuevasImagenes) en proyectos
+      // Compatibilidad: flujo antiguo de imágenes en proyectos
       if (type === "proyectos" && nuevasImagenes.length > 0) {
         for (const file of nuevasImagenes) {
           const url = await uploadImageOnly(file);
@@ -193,7 +267,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
         for (const file of mediaFiles) {
           const uploaded = await uploadToCloudinary(file);
           if (uploaded?.url) {
-            // 🆕 Blindaje: si es clase y resultó ser video, se ignora
+            // Si es clase y es video, ignorar
             if (type === "bitacora" && uploaded.tipo === "video") continue;
 
             await fetch("/.netlify/functions/addImagen", {
@@ -222,24 +296,24 @@ const DetailModalBook = ({ item, type, onClose }) => {
     }
   };
 
-  // 🔗 Navegar a clase desde proyecto
+  // Navegar a clase desde proyecto
   const openLinkedClase = (claseId) => {
     localStorage.setItem("openClaseId", claseId);
     localStorage.setItem("reloadBitacora", "true");
     navigate("/category/bitacora");
   };
 
-  // 🔗 Navegar a proyecto desde clase o galería
+  // Navegar a proyecto desde clase o galería
   const openLinkedProyecto = (proyectoId) => {
     localStorage.setItem("openProyectoId", proyectoId);
     localStorage.setItem("reloadProyectos", "true");
     navigate("/category/proyectos");
   };
 
-  // 🧮 Paginación dinámica
+  // Paginación dinámica
   const mediaPerPage = 5;
 
-  // 🆕 Si es CLASE y estás editando, asegura al menos 2 páginas (Descripción y Galería)
+  // Si es CLASE y estás editando, asegura al menos 2 páginas
   const totalPages =
     type === "bitacora" && editMode
       ? Math.max(2, 1 + Math.ceil(mediaList.length / mediaPerPage))
@@ -276,12 +350,12 @@ const DetailModalBook = ({ item, type, onClose }) => {
                   "0 0 30px rgba(0,0,0,0.3), inset 0 0 25px rgba(97,72,44,0.15)",
               }}
             >
-              {/* 📘 Encuadernado */}
+              {/* Encuadernado */}
               <div className="absolute inset-y-0 left-1/2 w-[3px] bg-[#c8b49d] shadow-inner z-10"></div>
 
-              {/* 🔹 Botones superiores */}
+              {/* Botones superiores */}
               <div className="absolute top-4 right-4 flex space-x-2 z-20">
-                {isAdmin() && !editMode && (
+                {isAdmin && !editMode && (
                   <button
                     onClick={() => setEditMode(true)}
                     className="bg-amber-500 hover:bg-amber-600 text-white rounded-full p-2 shadow-md"
@@ -318,9 +392,9 @@ const DetailModalBook = ({ item, type, onClose }) => {
                 </button>
               </div>
 
-              {/* 🔹 Página izquierda */}
+              {/* Página izquierda */}
               <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-between border-r border-[#d9c6ab]">
-                {/* 🖼️ Si el modal viene de galería, mostrar imagen grande y vínculo */}
+                {/* Si viene de galería */}
                 {type === "galeria" ? (
                   <div className="flex flex-col items-center text-center space-y-4">
                     {item.imagen_url ? (
@@ -348,10 +422,12 @@ const DetailModalBook = ({ item, type, onClose }) => {
                         />
                       )
                     ) : (
-                      <p className="text-gray-500 italic">Sin multimedia disponible.</p>
+                      <p className="text-gray-500 italic">
+                        Sin multimedia disponible.
+                      </p>
                     )}
 
-                    {/* Vínculo al proyecto o clase debajo del media */}
+                    {/* Vínculo al proyecto o clase */}
                     <div className="text-sm">
                       {item.proyecto_id && item.proyecto_titulo && (
                         <button
@@ -430,7 +506,9 @@ const DetailModalBook = ({ item, type, onClose }) => {
                             </select>
                           ) : item.proyecto_titulo ? (
                             <button
-                              onClick={() => openLinkedProyecto(item.proyecto_id)}
+                              onClick={() =>
+                                openLinkedProyecto(item.proyecto_id)
+                              }
                               className="text-blue-700 hover:underline font-semibold"
                             >
                               {item.proyecto_titulo}
@@ -468,15 +546,81 @@ const DetailModalBook = ({ item, type, onClose }) => {
                       )}
                     </div>
 
-                    {/* Imagen principal */}
+                    {/* Imagen principal (editable) */}
                     <div className="mt-6">
                       <h3 className="text-lg font-semibold text-[#5b4532] flex items-center mb-2">
                         <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" />{" "}
                         Imagen principal
                       </h3>
-                      {item.imagen_portada ? (
+
+                      {editMode ? (
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-[#5b4532] mb-1">
+                              Subir nueva imagen de portada
+                            </label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleCoverUpload}
+                              className="border border-gray-300 rounded-xl p-2 w-full bg-white"
+                            />
+                          </div>
+
+                          {imagenPortada && (
+                            <div>
+                              <p className="text-xs text-[#7a6a57] mb-1">
+                                Vista previa de la portada seleccionada:
+                              </p>
+                              <img
+                                src={imagenPortada}
+                                alt={titulo}
+                                className="w-full rounded-xl shadow-md border border-[#d1bda1] object-cover max-h-[300px]"
+                              />
+                            </div>
+                          )}
+
+                          {mediaList.length > 0 && (
+                            <div>
+                              <p className="text-sm font-medium text-[#5b4532] mb-2">
+                                O seleccionar una imagen existente de la galería
+                                como portada:
+                              </p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {mediaList
+                                  .filter((m) => m.tipo !== "video")
+                                  .map((media) => (
+                                    <button
+                                      key={media.id}
+                                      type="button"
+                                      onClick={() =>
+                                        handleSelectCoverFromGallery(
+                                          media.imagen_url
+                                        )
+                                      }
+                                      className={`relative rounded-xl overflow-hidden border-2 ${
+                                        imagenPortada === media.imagen_url
+                                          ? "border-[#a5754a]"
+                                          : "border-transparent"
+                                      }`}
+                                    >
+                                      <img
+                                        src={media.imagen_url}
+                                        alt={media.descripcion || "Imagen"}
+                                        className="w-full h-24 object-cover"
+                                      />
+                                      <span className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-[10px] py-1 text-center">
+                                        Usar como portada
+                                      </span>
+                                    </button>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : imagenPortada ? (
                         <img
-                          src={item.imagen_portada}
+                          src={imagenPortada}
                           alt={titulo}
                           className="w-full rounded-xl shadow-md border border-[#d1bda1] object-cover max-h-[300px]"
                         />
@@ -520,23 +664,33 @@ const DetailModalBook = ({ item, type, onClose }) => {
                       Galería completa
                     </h3>
 
-                    {/* Input de subida unificado (clases: solo imagen | proyectos: imagen+video) */}
+                    {/* Input de subida unificado */}
                     {editMode && (
                       <div className="mb-4">
                         <label className="block text-sm font-semibold text-[#5b4532] mb-1">
-                          Agregar archivos ({type === "proyectos" ? "imágenes o videos" : "imágenes"}):
+                          Agregar archivos (
+                          {type === "proyectos"
+                            ? "imágenes o videos"
+                            : "imágenes"}
+                          ):
                         </label>
                         <input
                           type="file"
-                          accept={type === "proyectos" ? "image/*,video/*" : "image/*"}
+                          accept={
+                            type === "proyectos"
+                              ? "image/*,video/*"
+                              : "image/*"
+                          }
                           multiple
-                          onChange={(e) => setMediaFiles(Array.from(e.target.files))}
+                          onChange={(e) =>
+                            setMediaFiles(Array.from(e.target.files))
+                          }
                           className="border border-gray-300 rounded-lg p-2 w-full"
                         />
                       </div>
                     )}
 
-                    {/* (compatibilidad) input anterior de solo imágenes para proyectos */}
+                    {/* (compatibilidad) input anterior solo imágenes para proyectos */}
                     {type === "proyectos" && editMode && (
                       <div className="mb-2">
                         <label className="block text-xs text-[#6b5a47] mb-1">
@@ -546,13 +700,15 @@ const DetailModalBook = ({ item, type, onClose }) => {
                           type="file"
                           accept="image/*"
                           multiple
-                          onChange={(e) => setNuevasImagenes(Array.from(e.target.files))}
+                          onChange={(e) =>
+                            setNuevasImagenes(Array.from(e.target.files))
+                          }
                           className="border border-gray-300 rounded-lg p-2 w-full"
                         />
                       </div>
                     )}
 
-                    {/* Grid de multimedia paginado */}
+                    {/* Grid multimedia paginado */}
                     {paginatedMedia.length > 0 ? (
                       <div className="grid grid-cols-2 gap-3">
                         {paginatedMedia.map((media) =>
@@ -563,7 +719,10 @@ const DetailModalBook = ({ item, type, onClose }) => {
                               whileHover={{ scale: 1.03 }}
                               onClick={() => {
                                 localStorage.setItem("openGaleriaId", media.id);
-                                localStorage.setItem("reloadGaleria", "true");
+                                localStorage.setItem(
+                                  "reloadGaleria",
+                                  "true"
+                                );
                                 navigate("/category/galeria");
                               }}
                               initial={{ opacity: 0 }}
@@ -577,7 +736,6 @@ const DetailModalBook = ({ item, type, onClose }) => {
                                 loop
                               />
                               <PlayCircle className="absolute top-2 left-2 text-white drop-shadow-md" />
-                              {/* vínculo bajo el card */}
                               <div className="px-2 py-1 bg-[#fffaf3] text-[#4e3c2b] text-xs">
                                 {media.proyecto_id && media.proyecto_titulo ? (
                                   <button
@@ -609,7 +767,10 @@ const DetailModalBook = ({ item, type, onClose }) => {
                               whileHover={{ scale: 1.03 }}
                               onClick={() => {
                                 localStorage.setItem("openGaleriaId", media.id);
-                                localStorage.setItem("reloadGaleria", "true");
+                                localStorage.setItem(
+                                  "reloadGaleria",
+                                  "true"
+                                );
                                 navigate("/category/galeria");
                               }}
                               initial={{ opacity: 0 }}
@@ -648,18 +809,22 @@ const DetailModalBook = ({ item, type, onClose }) => {
                         )}
                       </div>
                     ) : (
-                      <p className="text-[#9c8973] italic">Sin archivos multimedia.</p>
+                      <p className="text-[#9c8973] italic">
+                        Sin archivos multimedia.
+                      </p>
                     )}
                   </>
                 )}
 
-                {/* 📖 Control de páginas */}
+                {/* Control de páginas */}
                 <div className="flex justify-center mt-6 space-x-6">
                   <button
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page === 1}
                     className={`flex items-center text-sm font-semibold ${
-                      page === 1 ? "text-[#c7b9a7]" : "text-[#7a4e27] hover:underline"
+                      page === 1
+                        ? "text-[#c7b9a7]"
+                        : "text-[#7a4e27] hover:underline"
                     }`}
                   >
                     <ArrowLeftCircle className="w-5 h-5 mr-1" /> Anterior
@@ -670,7 +835,9 @@ const DetailModalBook = ({ item, type, onClose }) => {
                   <button
                     onClick={() => setPage(Math.min(totalPages, page + 1))}
                     className={`flex items-center text-sm font-semibold ${
-                      page === totalPages ? "text-[#c7b9a7]" : "text-[#7a4e27] hover:underline"
+                      page === totalPages
+                        ? "text-[#c7b9a7]"
+                        : "text-[#7a4e27] hover:underline"
                     }`}
                   >
                     Siguiente <ArrowRightCircle className="w-5 h-5 ml-1" />
