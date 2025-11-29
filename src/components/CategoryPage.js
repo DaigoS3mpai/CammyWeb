@@ -5,7 +5,6 @@ import {
   BookOpenText,
   FlaskConical,
   Image as ImageIcon,
-  Video,
   PlusCircle,
   Calendar,
   FileText,
@@ -15,6 +14,7 @@ import {
   PlayCircle,
   SortAsc,
   SortDesc,
+  Folder,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import DetailModalBook from "./DetailModalBook";
@@ -30,6 +30,7 @@ const CategoryPage = () => {
   const [selectedType, setSelectedType] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
+  // orden asc / desc por fecha
   const [sortOrder, setSortOrder] = useState("desc");
 
   const toggleSortOrder = () => {
@@ -45,6 +46,7 @@ const CategoryPage = () => {
     });
   };
 
+  // cargar datos
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -66,7 +68,10 @@ const CategoryPage = () => {
       }
       const res = await fetch(endpoint);
       const data = await res.json();
-      const sortedData = sortItemsByDate(data, sortOrder);
+      const sortedData =
+        categoryName === "galeria"
+          ? data // en galería el orden lo vamos a manejar por álbumes
+          : sortItemsByDate(data, sortOrder);
       setItems(sortedData);
     } catch (err) {
       console.error("❌ Error al cargar datos:", err);
@@ -79,6 +84,7 @@ const CategoryPage = () => {
     fetchData();
   }, [categoryName, sortOrder]);
 
+  // recarga por localStorage
   useEffect(() => {
     const reloadFlags = {
       bitacora: "reloadBitacora",
@@ -98,6 +104,7 @@ const CategoryPage = () => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [categoryName]);
 
+  // apertura automática de modales
   useEffect(() => {
     if (loading || items.length === 0) return;
     const openClaseId = localStorage.getItem("openClaseId");
@@ -134,6 +141,7 @@ const CategoryPage = () => {
     setShowModal(true);
   };
 
+  // 🔸 CONFIG CABECERA
   const config =
     {
       bitacora: {
@@ -155,7 +163,7 @@ const CategoryPage = () => {
       galeria: {
         title: "Galería Multimedia",
         description:
-          "Disfruta de las imágenes y videos capturados de tus proyectos y clases.",
+          "Aquí verás álbumes por clase y proyecto con todas sus imágenes y videos vinculados.",
         icon: <ImageIcon className="w-12 h-12 text-pink-500" />,
         buttonText: "Ver Galería Completa",
         buttonRoute: "/gallery",
@@ -165,6 +173,81 @@ const CategoryPage = () => {
       description: "La sección que buscas no existe.",
       icon: <FileText className="w-12 h-12 text-gray-500" />,
     };
+
+  // 🔸 AGRUPAR GALERÍA EN "CARPETAS" (álbumes)
+  const galleryAlbums =
+    categoryName === "galeria"
+      ? (() => {
+          const map = new Map();
+
+          items.forEach((media) => {
+            let key, label, tipo, targetId;
+
+            if (media.proyecto_id) {
+              key = `proyecto-${media.proyecto_id}`;
+              label =
+                media.proyecto_titulo || `Proyecto #${media.proyecto_id}`;
+              tipo = "proyecto";
+              targetId = media.proyecto_id;
+            } else if (media.clase_id) {
+              key = `clase-${media.clase_id}`;
+              label = media.clase_titulo || `Clase #${media.clase_id}`;
+              tipo = "clase";
+              targetId = media.clase_id;
+            } else {
+              key = "otros-0";
+              label = "Multimedia sin vincular";
+              tipo = "otros";
+              targetId = null;
+            }
+
+            if (!map.has(key)) {
+              map.set(key, {
+                key,
+                label,
+                tipo,
+                targetId,
+                coverImage: media.imagen_url || null,
+                total: 0,
+                images: 0,
+                videos: 0,
+              });
+            }
+
+            const album = map.get(key);
+            album.total += 1;
+            if (media.tipo === "video") album.videos += 1;
+            else album.images += 1;
+
+            if (!album.coverImage && media.imagen_url) {
+              album.coverImage = media.imagen_url;
+            }
+          });
+
+          return Array.from(map.values());
+        })()
+      : [];
+
+  // abrir álbum de galería → ir a la clase/proyecto y mostrar su libro
+  const handleOpenGalleryAlbum = (album) => {
+    if (album.tipo === "proyecto" && album.targetId) {
+      localStorage.setItem("openProyectoId", album.targetId);
+      localStorage.setItem("reloadProyectos", "true");
+      navigate("/category/proyectos");
+    } else if (album.tipo === "clase" && album.targetId) {
+      localStorage.setItem("openClaseId", album.targetId);
+      localStorage.setItem("reloadBitacora", "true");
+      navigate("/category/bitacora");
+    } else {
+      // multimedia sin vincular: abre simplemente el primer elemento
+      const first = items.find(
+        (m) => !m.proyecto_id && !m.clase_id
+      );
+      if (first) {
+        handleOpenDetail(first, "galeria");
+      }
+    }
+  };
 
   return (
     <motion.div
@@ -176,6 +259,7 @@ const CategoryPage = () => {
         backgroundImage: "url('/bc.png')",
       }}
     >
+      {/* estilos de gradiente */}
       <style>{`
         @keyframes gradientFlow {
           0% { background-position: 0% 50%; }
@@ -188,7 +272,7 @@ const CategoryPage = () => {
         }
       `}</style>
 
-      {/* Encabezado */}
+      {/* encabezado */}
       <motion.div
         className="text-center mb-10"
         initial={{ y: -20, opacity: 0 }}
@@ -207,7 +291,7 @@ const CategoryPage = () => {
         </p>
       </motion.div>
 
-      {/* Botones */}
+      {/* botones */}
       <div className="flex flex-wrap justify-center gap-4 mb-8">
         {isAdmin() && categoryName !== "galeria" && (
           <motion.button
@@ -221,34 +305,103 @@ const CategoryPage = () => {
           </motion.button>
         )}
 
-        <motion.button
-          onClick={toggleSortOrder}
-          className="flex items-center px-6 py-3 rounded-xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all text-white font-semibold"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          {sortOrder === "asc" ? (
-            <>
-              <SortAsc className="w-5 h-5 mr-2 text-green-300" /> Ordenar ↑
-            </>
-          ) : (
-            <>
-              <SortDesc className="w-5 h-5 mr-2 text-blue-300" /> Ordenar ↓
-            </>
-          )}
-        </motion.button>
+        {categoryName !== "galeria" && (
+          <motion.button
+            onClick={toggleSortOrder}
+            className="flex items-center px-6 py-3 rounded-xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all text-white font-semibold"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {sortOrder === "asc" ? (
+              <>
+                <SortAsc className="w-5 h-5 mr-2 text-green-300" /> Ordenar ↑
+              </>
+            ) : (
+              <>
+                <SortDesc className="w-5 h-5 mr-2 text-blue-300" /> Ordenar ↓
+              </>
+            )}
+          </motion.button>
+        )}
       </div>
 
-      {/* Contenido */}
+      {/* contenido */}
       {loading ? (
         <p className="text-center text-gray-300 mt-20 text-lg">
           Cargando contenido...
         </p>
+      ) : categoryName === "galeria" ? (
+        // 🔸 VISTA DE ÁLBUMES DE GALERÍA
+        galleryAlbums.length === 0 ? (
+          <p className="text-center text-gray-300 mt-20 text-lg">
+            No hay imágenes ni videos en la galería.
+          </p>
+        ) : (
+          <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: { staggerChildren: 0.1 },
+              },
+            }}
+          >
+            {galleryAlbums.map((album) => (
+              <motion.div
+                key={album.key}
+                className="p-6 rounded-2xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all cursor-pointer flex flex-col justify-between"
+                whileHover={{ scale: 1.02 }}
+                onClick={() => handleOpenGalleryAlbum(album)}
+              >
+                <div>
+                  <div className="flex items-center mb-2">
+                    <Folder className="w-5 h-5 text-yellow-300 mr-2" />
+                    <h3 className="text-xl font-semibold text-white">
+                      {album.label}
+                    </h3>
+                  </div>
+
+                  <p className="text-gray-200 text-sm mb-3">
+                    {album.images} imágenes
+                    {album.videos > 0 && ` · ${album.videos} videos`}
+                  </p>
+
+                  {album.tipo === "proyecto" && (
+                    <div className="flex items-center text-xs text-purple-200 mb-2">
+                      <FlaskConical className="w-4 h-4 mr-1 text-purple-300" />
+                      Proyecto
+                    </div>
+                  )}
+                  {album.tipo === "clase" && (
+                    <div className="flex items-center text-xs text-blue-200 mb-2">
+                      <BookOpen className="w-4 h-4 mr-1 text-blue-300" />
+                      Clase / Bitácora
+                    </div>
+                  )}
+                </div>
+
+                {album.coverImage && (
+                  <div className="mt-4">
+                    <img
+                      src={album.coverImage}
+                      alt={album.label}
+                      className="w-full h-32 object-cover rounded-xl border border-white/20 shadow-md"
+                    />
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </motion.div>
+        )
       ) : items.length === 0 ? (
         <p className="text-center text-gray-300 mt-20 text-lg">
           No hay registros en esta categoría.
         </p>
       ) : (
+        // 🔸 TARJETAS NORMALES (BITÁCORA / PROYECTOS)
         <motion.div
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           initial="hidden"
@@ -266,19 +419,19 @@ const CategoryPage = () => {
               onClick={() => handleOpenDetail(item)}
             >
               <div>
-                {/* Título */}
+                {/* título */}
                 <h3 className="text-xl font-semibold text-white mb-2">
                   {item.titulo ||
                     item.proyecto_titulo ||
-                    (item.video_url ? "Video" : "Sin título")}
+                    "Sin título"}
                 </h3>
 
-                {/* Descripción */}
+                {/* descripción */}
                 <p className="text-gray-200 mb-3 line-clamp-3">
                   {item.descripcion || "Sin descripción"}
                 </p>
 
-                {/* Fecha */}
+                {/* fecha */}
                 {(item.fecha || item.fecha_inicio) && (
                   <div className="flex items-center text-sm text-gray-300 mb-1">
                     <Calendar className="w-4 h-4 mr-2" />
@@ -288,7 +441,7 @@ const CategoryPage = () => {
                   </div>
                 )}
 
-                {/* Proyecto vinculado (bitácora) */}
+                {/* proyecto vinculado (bitácora) */}
                 {categoryName === "bitacora" &&
                   (item.proyecto_titulo || item.proyecto_id) && (
                     <div className="flex items-center text-sm text-pink-200 italic">
@@ -312,7 +465,7 @@ const CategoryPage = () => {
                     </div>
                   )}
 
-                {/* Estadísticas (proyectos) */}
+                {/* estadísticas (proyectos) */}
                 {categoryName === "proyectos" && (
                   <div className="flex items-center text-sm text-gray-200 space-x-4 mt-2">
                     <div className="flex items-center">
@@ -322,14 +475,16 @@ const CategoryPage = () => {
                     <div className="flex items-center">
                       <Images className="w-4 h-4 mr-1 text-pink-300" />
                       <span>
-                        {(item.imagen_count || 0) + (item.video_count || 0)} multimedia
+                        {(item.imagen_count || 0) +
+                          (item.video_count || 0)}{" "}
+                        multimedia
                       </span>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* 🔻 Mini-banner de portada abajo (bitácora y proyectos) */}
+              {/* mini banner de portada abajo */}
               {(categoryName === "bitacora" ||
                 categoryName === "proyectos") &&
                 item.imagen_portada && (
@@ -340,47 +495,13 @@ const CategoryPage = () => {
                       className="w-full max-h-48 object-contain rounded-xl border border-white/20 shadow-md bg-black/40"
                     />
                   </div>
-                )
-                }
-                
-              {/* Vista galería (se mantiene arriba, porque es el contenido principal) */}
-              {categoryName === "galeria" && (
-                <div className="mt-4">
-                  {item.video_url ? (
-                    <div className="relative">
-                      <video
-                        src={item.video_url}
-                        poster={
-                          item.imagen_url
-                            ? item.imagen_url
-                            : "/default-thumbnail.jpg"
-                        }
-                        className="w-full h-64 object-cover rounded-lg mb-1"
-                        muted
-                        playsInline
-                        preload="metadata"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <PlayCircle className="w-16 h-16 text-white/80 drop-shadow-xl" />
-                      </div>
-                    </div>
-                  ) : (
-                    item.imagen_url && (
-                      <img
-                        src={item.imagen_url}
-                        alt={item.descripcion || "Imagen"}
-                        className="w-full h-64 object-cover rounded-lg mb-1"
-                      />
-                    )
-                  )}
-                </div>
-              )}
+                )}
             </motion.div>
           ))}
         </motion.div>
       )}
 
-      {/* Modal tipo libro */}
+      {/* modal libro */}
       <AnimatePresence>
         {showModal && selectedItem && (
           <DetailModalBook
