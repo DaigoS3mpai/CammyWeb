@@ -5,10 +5,15 @@ export const handler = async (event) => {
     return { statusCode: 405, body: "Método no permitido" };
   }
 
-  const { id, titulo, descripcion, fecha_inicio, imagen_portada } = JSON.parse(event.body || "{}");
+  const { id, titulo, descripcion, fecha_inicio, imagen_portada } = JSON.parse(
+    event.body || "{}"
+  );
 
   if (!id) {
-    return { statusCode: 400, body: JSON.stringify({ error: "Falta el ID del proyecto" }) };
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Falta el ID del proyecto" }),
+    };
   }
 
   const client = new Client({
@@ -34,7 +39,10 @@ export const handler = async (event) => {
     );
 
     if (result.rows.length === 0) {
-      return { statusCode: 404, body: JSON.stringify({ error: "Proyecto no encontrado" }) };
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: "Proyecto no encontrado" }),
+      };
     }
 
     const updatedProyecto = result.rows[0];

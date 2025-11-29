@@ -5,7 +5,14 @@ export const handler = async (event) => {
     return { statusCode: 405, body: "Método no permitido" };
   }
 
-  const { id, titulo, descripcion, fecha, proyecto_id } = JSON.parse(event.body || "{}");
+  const {
+    id,
+    titulo,
+    descripcion,
+    fecha,
+    proyecto_id,
+    imagen_portada,
+  } = JSON.parse(event.body || "{}");
 
   if (!id) {
     return {
@@ -23,18 +30,22 @@ export const handler = async (event) => {
     await client.connect();
 
     // 🔹 Obtener proyecto anterior (para actualizar conteos si cambió)
-    const prev = await client.query(`SELECT proyecto_id FROM bitacora WHERE id = $1`, [id]);
+    const prev = await client.query(
+      `SELECT proyecto_id FROM bitacora WHERE id = $1`,
+      [id]
+    );
     const prevProyectoId = prev.rows[0]?.proyecto_id || null;
 
-    // 🔹 Actualizar clase
+    // 🔹 Actualizar clase (bitácora) incluyendo imagen_portada
     const updateQuery = `
       UPDATE bitacora
       SET
         titulo = COALESCE($1, titulo),
         descripcion = COALESCE($2, descripcion),
         fecha = COALESCE($3, fecha),
-        proyecto_id = $4
-      WHERE id = $5
+        imagen_portada = COALESCE($4, imagen_portada),
+        proyecto_id = $5
+      WHERE id = $6
       RETURNING *;
     `;
 
@@ -42,13 +53,17 @@ export const handler = async (event) => {
       titulo || null,
       descripcion || null,
       fecha || null,
+      imagen_portada || null,
       proyecto_id === "" ? null : proyecto_id,
       id,
     ];
 
     const result = await client.query(updateQuery, values);
     if (result.rows.length === 0) {
-      return { statusCode: 404, body: JSON.stringify({ error: "Clase no encontrada" }) };
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: "Clase no encontrada" }),
+      };
     }
 
     const updatedClass = result.rows[0];
@@ -66,23 +81,29 @@ export const handler = async (event) => {
     // 🔹 Recalcular conteos si cambió el proyecto
     if (prevProyectoId !== updatedClass.proyecto_id) {
       if (prevProyectoId) {
-        await client.query(`
+        await client.query(
+          `
           UPDATE proyectos p
           SET clase_count = (
             SELECT COUNT(*) FROM bitacora b WHERE b.proyecto_id = p.id
           )
           WHERE p.id = $1;
-        `, [prevProyectoId]);
+        `,
+          [prevProyectoId]
+        );
       }
 
       if (updatedClass.proyecto_id) {
-        await client.query(`
+        await client.query(
+          `
           UPDATE proyectos p
           SET clase_count = (
             SELECT COUNT(*) FROM bitacora b WHERE b.proyecto_id = p.id
           )
           WHERE p.id = $1;
-        `, [updatedClass.proyecto_id]);
+        `,
+          [updatedClass.proyecto_id]
+        );
       }
     }
 

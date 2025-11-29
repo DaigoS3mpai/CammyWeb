@@ -10,7 +10,6 @@ export const handler = async () => {
   try {
     await client.connect();
 
-    // ✅ Consulta principal mejorada
     const result = await client.query(`
       SELECT 
         p.id,
@@ -33,7 +32,6 @@ export const handler = async () => {
           '[]'
         ) AS imagenes,
 
-        -- 🔹 Lista de clases vinculadas
         COALESCE(
           JSON_AGG(
             DISTINCT JSONB_BUILD_OBJECT(
@@ -51,7 +49,6 @@ export const handler = async () => {
       GROUP BY p.id
       ORDER BY p.fecha_inicio DESC;
     `);
-
 
     await client.end();
 
