@@ -42,10 +42,11 @@ const GalleryPage = () => {
   // ☁️ Subir imagen a Cloudinary
   const uploadToCloudinary = async (file) => {
     const cloudName =
-      import.meta.env.VITE_CLOUDINARY_CLOUD_NAME ||
+      process.env.REACT_APP_CLOUDINARY_CLOUD_NAME ||
       process.env.CLOUDINARY_CLOUD_NAME;
+
     const uploadPreset =
-      import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ||
+      process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET ||
       process.env.CLOUDINARY_UPLOAD_PRESET;
 
     const formData = new FormData();
