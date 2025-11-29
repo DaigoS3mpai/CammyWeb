@@ -13,8 +13,8 @@ import {
   Layers,
   Images,
   PlayCircle,
-  SortAsc, // 🆕 Importado
-  SortDesc, // 🆕 Importado
+  SortAsc,
+  SortDesc,
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import DetailModalBook from "./DetailModalBook";
@@ -30,15 +30,12 @@ const CategoryPage = () => {
   const [selectedType, setSelectedType] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  // 🆕 Nuevo estado para orden asc/desc
   const [sortOrder, setSortOrder] = useState("desc");
 
-  // 🆕 Función para alternar el orden
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
-  // 🆕 Función para ordenar los elementos por fecha o fecha_inicio
   const sortItemsByDate = (data, order) => {
     if (!Array.isArray(data)) return [];
     return [...data].sort((a, b) => {
@@ -48,7 +45,6 @@ const CategoryPage = () => {
     });
   };
 
-  // 🔹 Cargar datos
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -70,8 +66,6 @@ const CategoryPage = () => {
       }
       const res = await fetch(endpoint);
       const data = await res.json();
-
-      // 🆕 Aplicar orden automáticamente después de cargar
       const sortedData = sortItemsByDate(data, sortOrder);
       setItems(sortedData);
     } catch (err) {
@@ -83,9 +77,8 @@ const CategoryPage = () => {
 
   useEffect(() => {
     fetchData();
-  }, [categoryName, sortOrder]); // 🆕 Reordenar al cambiar el tipo o el orden
+  }, [categoryName, sortOrder]);
 
-  // 🔁 Recarga desde localStorage
   useEffect(() => {
     const reloadFlags = {
       bitacora: "reloadBitacora",
@@ -105,7 +98,6 @@ const CategoryPage = () => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [categoryName]);
 
-  // 🧭 Apertura automática de modales
   useEffect(() => {
     if (loading || items.length === 0) return;
     const openClaseId = localStorage.getItem("openClaseId");
@@ -142,7 +134,6 @@ const CategoryPage = () => {
     setShowModal(true);
   };
 
-  // 🎨 Config visual
   const config =
     {
       bitacora: {
@@ -185,7 +176,6 @@ const CategoryPage = () => {
         backgroundImage: "url('/bc.png')",
       }}
     >
-      {/* 🔹 Estilos de degradado animado */}
       <style>{`
         @keyframes gradientFlow {
           0% { background-position: 0% 50%; }
@@ -198,7 +188,7 @@ const CategoryPage = () => {
         }
       `}</style>
 
-      {/* 🔹 Encabezado */}
+      {/* Encabezado */}
       <motion.div
         className="text-center mb-10"
         initial={{ y: -20, opacity: 0 }}
@@ -217,7 +207,7 @@ const CategoryPage = () => {
         </p>
       </motion.div>
 
-      {/* 🔹 Botones: Admin + Ordenar */}
+      {/* Botones */}
       <div className="flex flex-wrap justify-center gap-4 mb-8">
         {isAdmin() && categoryName !== "galeria" && (
           <motion.button
@@ -231,7 +221,6 @@ const CategoryPage = () => {
           </motion.button>
         )}
 
-        {/* 🆕 Botón de ordenar */}
         <motion.button
           onClick={toggleSortOrder}
           className="flex items-center px-6 py-3 rounded-xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all text-white font-semibold"
@@ -250,7 +239,7 @@ const CategoryPage = () => {
         </motion.button>
       </div>
 
-      {/* 🔹 Contenido original intacto */}
+      {/* Contenido */}
       {loading ? (
         <p className="text-center text-gray-300 mt-20 text-lg">
           Cargando contenido...
@@ -272,21 +261,90 @@ const CategoryPage = () => {
           {items.map((item, index) => (
             <motion.div
               key={item.id || index}
-              className="p-6 rounded-2xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all cursor-pointer"
+              className="p-6 rounded-2xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg hover:bg-black/60 transition-all cursor-pointer flex flex-col justify-between"
               whileHover={{ scale: 1.02 }}
               onClick={() => handleOpenDetail(item)}
             >
-              {/* 🖼️ Imagen o 🎥 Video según categoría */}
-              {categoryName === "proyectos" && item.imagen_portada && (
-                <img
-                  src={item.imagen_portada}
-                  alt={item.titulo}
-                  className="w-full h-48 object-cover rounded-lg mb-4"
-                />
-              )}
+              <div>
+                {/* Título */}
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  {item.titulo ||
+                    item.proyecto_titulo ||
+                    (item.video_url ? "Video" : "Sin título")}
+                </h3>
 
+                {/* Descripción */}
+                <p className="text-gray-200 mb-3 line-clamp-3">
+                  {item.descripcion || "Sin descripción"}
+                </p>
+
+                {/* Fecha */}
+                {(item.fecha || item.fecha_inicio) && (
+                  <div className="flex items-center text-sm text-gray-300 mb-1">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    {new Date(
+                      item.fecha || item.fecha_inicio
+                    ).toLocaleDateString("es-CL")}
+                  </div>
+                )}
+
+                {/* Proyecto vinculado (bitácora) */}
+                {categoryName === "bitacora" &&
+                  (item.proyecto_titulo || item.proyecto_id) && (
+                    <div className="flex items-center text-sm text-pink-200 italic">
+                      <Layers className="w-4 h-4 mr-2 text-pink-300" />
+                      Vinculado a:{" "}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          localStorage.setItem(
+                            "openProyectoId",
+                            item.proyecto_id
+                          );
+                          localStorage.setItem("reloadProyectos", "true");
+                          navigate("/category/proyectos");
+                        }}
+                        className="text-pink-100 hover:underline ml-1"
+                      >
+                        {item.proyecto_titulo ||
+                          `Proyecto #${item.proyecto_id}`}
+                      </button>
+                    </div>
+                  )}
+
+                {/* Estadísticas (proyectos) */}
+                {categoryName === "proyectos" && (
+                  <div className="flex items-center text-sm text-gray-200 space-x-4 mt-2">
+                    <div className="flex items-center">
+                      <BookOpen className="w-4 h-4 mr-1 text-blue-300" />
+                      <span>{item.clase_count || 0} clases</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Images className="w-4 h-4 mr-1 text-pink-300" />
+                      <span>
+                        {(item.imagen_count || 0) + (item.video_count || 0)} multimedia
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 🔻 Mini-banner de portada abajo (bitácora y proyectos) */}
+              {(categoryName === "bitacora" ||
+                categoryName === "proyectos") &&
+                item.imagen_portada && (
+                  <div className="mt-4">
+                    <img
+                      src={item.imagen_portada}
+                      alt={item.titulo || "Portada"}
+                      className="w-full h-28 object-cover rounded-xl border border-white/20 shadow-md"
+                    />
+                  </div>
+                )}
+
+              {/* Vista galería (se mantiene arriba, porque es el contenido principal) */}
               {categoryName === "galeria" && (
-                <>
+                <div className="mt-4">
                   {item.video_url ? (
                     <div className="relative">
                       <video
@@ -296,7 +354,7 @@ const CategoryPage = () => {
                             ? item.imagen_url
                             : "/default-thumbnail.jpg"
                         }
-                        className="w-full h-64 object-cover rounded-lg mb-4"
+                        className="w-full h-64 object-cover rounded-lg mb-1"
                         muted
                         playsInline
                         preload="metadata"
@@ -310,68 +368,10 @@ const CategoryPage = () => {
                       <img
                         src={item.imagen_url}
                         alt={item.descripcion || "Imagen"}
-                        className="w-full h-64 object-cover rounded-lg mb-4"
+                        className="w-full h-64 object-cover rounded-lg mb-1"
                       />
                     )
                   )}
-                </>
-              )}
-
-              {/* Título */}
-              <h3 className="text-xl font-semibold text-white mb-2">
-                {item.titulo ||
-                  item.proyecto_titulo ||
-                  (item.video_url ? "Video" : "Sin título")}
-              </h3>
-
-              {/* Descripción */}
-              <p className="text-gray-200 mb-3 line-clamp-3">
-                {item.descripcion || "Sin descripción"}
-              </p>
-
-              {/* Fecha */}
-              {(item.fecha || item.fecha_inicio) && (
-                <div className="flex items-center text-sm text-gray-300 mb-1">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  {new Date(
-                    item.fecha || item.fecha_inicio
-                  ).toLocaleDateString("es-CL")}
-                </div>
-              )}
-
-              {/* Proyecto vinculado (bitácora) */}
-              {categoryName === "bitacora" &&
-                (item.proyecto_titulo || item.proyecto_id) && (
-                  <div className="flex items-center text-sm text-pink-200 italic">
-                    <Layers className="w-4 h-4 mr-2 text-pink-300" />
-                    Vinculado a:{" "}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        localStorage.setItem("openProyectoId", item.proyecto_id);
-                        localStorage.setItem("reloadProyectos", "true");
-                        navigate("/category/proyectos");
-                      }}
-                      className="text-pink-100 hover:underline ml-1"
-                    >
-                      {item.proyecto_titulo || `Proyecto #${item.proyecto_id}`}
-                    </button>
-                  </div>
-                )}
-
-              {/* Estadísticas (proyectos) */}
-              {categoryName === "proyectos" && (
-                <div className="flex items-center text-sm text-gray-200 space-x-4 mt-2">
-                  <div className="flex items-center">
-                    <BookOpen className="w-4 h-4 mr-1 text-blue-300" />
-                    <span>{item.clase_count || 0} clases</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Images className="w-4 h-4 mr-1 text-pink-300" />
-                    <span>
-                      {(item.imagen_count || 0) + (item.video_count || 0)} multimedia
-                    </span>
-                  </div>
                 </div>
               )}
             </motion.div>
@@ -379,7 +379,7 @@ const CategoryPage = () => {
         </motion.div>
       )}
 
-      {/* 🔹 Modal tipo libro */}
+      {/* Modal tipo libro */}
       <AnimatePresence>
         {showModal && selectedItem && (
           <DetailModalBook
