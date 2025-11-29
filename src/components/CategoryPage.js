@@ -337,11 +337,12 @@ const CategoryPage = () => {
                     <img
                       src={item.imagen_portada}
                       alt={item.titulo || "Portada"}
-                      className="w-full h-28 object-cover rounded-xl border border-white/20 shadow-md"
+                      className="w-full max-h-48 object-contain rounded-xl border border-white/20 shadow-md bg-black/40"
                     />
                   </div>
-                )}
-
+                )
+                }
+                
               {/* Vista galería (se mantiene arriba, porque es el contenido principal) */}
               {categoryName === "galeria" && (
                 <div className="mt-4">
