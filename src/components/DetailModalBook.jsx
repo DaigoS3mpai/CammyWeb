@@ -102,7 +102,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
   }, [editMode, type]);
 
   const fecha =
-    item.fecha_inicio || item.fecha
+    item?.fecha_inicio || item?.fecha
       ? new Date(item.fecha_inicio || item.fecha).toLocaleDateString("es-CL", {
           year: "numeric",
           month: "long",
@@ -121,7 +121,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
     exit: { rotateY: -90, opacity: 0, scale: 0.9 },
   };
 
-  // 🔼 Cloudinary genérico
+  // 🔼 Cloudinary genérico (IMAGEN + VIDEO) usando resource_type "auto"
   const uploadToCloudinary = async (file) => {
     const cloudName =
       process.env.REACT_APP_CLOUDINARY_CLOUD_NAME ||
@@ -129,21 +129,37 @@ const DetailModalBook = ({ item, type, onClose }) => {
     const uploadPreset =
       process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET ||
       process.env.CLOUDINARY_UPLOAD_PRESET;
-    if (!cloudName || !uploadPreset) return null;
+
+    if (!cloudName || !uploadPreset) {
+      console.error("❌ Faltan variables de entorno de Cloudinary.");
+      return null;
+    }
 
     const isVideo = file.type?.startsWith("video/");
-    const resourceType = isVideo ? "video" : "image";
 
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", uploadPreset);
 
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
-      { method: "POST", body: formData }
-    );
-    const data = await res.json();
-    return { url: data.secure_url, tipo: isVideo ? "video" : "imagen" };
+    try {
+      // 👇 "auto" deja que Cloudinary detecte si es imagen o video
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+        { method: "POST", body: formData }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("❌ Error Cloudinary:", data);
+        return null;
+      }
+
+      return { url: data.secure_url, tipo: isVideo ? "video" : "imagen" };
+    } catch (err) {
+      console.error("❌ Error de red subiendo a Cloudinary:", err);
+      return null;
+    }
   };
 
   // 🔼 solo imagen (flujo antiguo)
@@ -164,6 +180,10 @@ const DetailModalBook = ({ item, type, onClose }) => {
       { method: "POST", body: formData }
     );
     const data = await res.json();
+    if (!res.ok) {
+      console.error("❌ Error Cloudinary (imagen-only):", data);
+      return null;
+    }
     return data.secure_url;
   };
 
@@ -194,6 +214,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
       );
       const data = await res.json();
       if (!res.ok) {
+        console.error("❌ Error Cloudinary portada:", data);
         throw new Error(data.error?.message || "Error al subir portada");
       }
       setImagenPortada(data.secure_url);
@@ -247,7 +268,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
 
       if (!res.ok) throw new Error("Error al guardar");
 
-      // flujo antiguo extra de imágenes
+      // flujo antiguo extra de imágenes (solo imágenes)
       if (type === "proyectos" && nuevasImagenes.length > 0) {
         for (const file of nuevasImagenes) {
           const url = await uploadImageOnly(file);
@@ -267,11 +288,12 @@ const DetailModalBook = ({ item, type, onClose }) => {
         }
       }
 
-      // subida mediaFiles (galería)
+      // subida mediaFiles (galería) -> ahora acepta video también
       if (mediaFiles.length > 0) {
         for (const file of mediaFiles) {
           const uploaded = await uploadToCloudinary(file);
           if (uploaded?.url) {
+            // en bitácora seguimos bloqueando video si quieres mantener esa regla
             if (type === "bitacora" && uploaded.tipo === "video") continue;
 
             await fetch("/.netlify/functions/addImagen", {
@@ -280,7 +302,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
               body: JSON.stringify({
                 imagen_url: uploaded.url,
                 descripcion: `Archivo agregado a ${titulo}`,
-                tipo: uploaded.tipo,
+                tipo: uploaded.tipo, // "video" o "imagen"
                 proyecto_id: type === "proyectos" ? item.id : null,
                 clase_id: type === "bitacora" ? item.id : null,
               }),
@@ -336,7 +358,8 @@ const DetailModalBook = ({ item, type, onClose }) => {
         <>
           <div className="mb-3">
             <label className="block text-sm font-semibold text-[#5b4532] mb-1">
-              Agregar archivos ({type === "proyectos" ? "imágenes o videos" : "imágenes"}):
+              Agregar archivos (
+              {type === "proyectos" ? "imágenes o videos" : "imágenes"}):
             </label>
             <input
               type="file"
@@ -367,7 +390,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
       {paginatedMedia.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 mt-2">
           {paginatedMedia.map((media) =>
-            media.tipo === "video" ? (
+            (media.tipo || "").toLowerCase() === "video" ? (
               <motion.div
                 key={media.id}
                 className="group relative rounded-lg overflow-hidden border border-[#d1bda1] cursor-pointer"
@@ -489,9 +512,9 @@ const DetailModalBook = ({ item, type, onClose }) => {
               <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-between border-r border-[#d9c6ab]">
                 {type === "galeria" ? (
                   // modo galería (sin cambios aquí)
-                  <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="flex flex-col items-center textcenter space-y-4">
                     {item.imagen_url ? (
-                      item.tipo === "video" ? (
+                      (item.tipo || "").toLowerCase() === "video" ? (
                         <motion.video
                           key={item.id}
                           src={item.imagen_url}
@@ -586,9 +609,11 @@ const DetailModalBook = ({ item, type, onClose }) => {
                             <select
                               value={proyectoId || ""}
                               onChange={(e) => setProyectoId(e.target.value)}
-                              className="w-full border border-gray-400 text-black rounded-xl p-2 bg-white focus:ring-2 focus:ring-amber-600"
+                              className="w-full border border-gray-400 textblack rounded-xl p-2 bg-white focus:ring-2 focus:ring-amber-600"
                             >
-                              <option value="">Selecciona un proyecto...</option>
+                              <option value="">
+                                Selecciona un proyecto...
+                              </option>
                               {allProyectos.map((p) => (
                                 <option key={p.id} value={p.id}>
                                   {p.titulo}
@@ -678,7 +703,10 @@ const DetailModalBook = ({ item, type, onClose }) => {
                               </p>
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {mediaList
-                                  .filter((m) => m.tipo !== "video")
+                                  .filter(
+                                    (m) =>
+                                      (m.tipo || "").toLowerCase() !== "video"
+                                  )
                                   .map((media) => (
                                     <button
                                       key={media.id}

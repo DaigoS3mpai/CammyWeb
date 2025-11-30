@@ -30,23 +30,43 @@ export const handler = async (event) => {
     };
   }
 
-  // ✅ Validar que la URL sea de Cloudinary
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  const validUrlPattern = new RegExp(`https://res\\.cloudinary\\.com/${cloudName}/`, "i");
+  // ✅ Validar que la URL sea de Cloudinary (más robusto)
+  const envCloudName =
+    process.env.CLOUDINARY_CLOUD_NAME ||
+    process.env.REACT_APP_CLOUDINARY_CLOUD_NAME ||
+    process.env.REACT_APP_CLOUDINARY_CLOUDNAME; // por si acaso
+
+  let validUrlPattern;
+
+  if (envCloudName) {
+    // ejemplo: https://res.cloudinary.com/tuCloudName/...
+    validUrlPattern = new RegExp(
+      `^https://res\\.cloudinary\\.com/${envCloudName}/`,
+      "i"
+    );
+  } else {
+    // si no tenemos cloudName en el backend, al menos validamos dominio
+    validUrlPattern = /^https:\/\/res\.cloudinary\.com\//i;
+  }
 
   if (!validUrlPattern.test(imagen_url)) {
+    console.error("❌ URL rechazada por validación:", imagen_url);
     return {
       statusCode: 400,
       body: JSON.stringify({
-        error: "La URL no pertenece a Cloudinary o es inválida.",
+        error:
+          "La URL no pertenece a Cloudinary o es inválida (revisar CLOUDINARY_CLOUD_NAME en Netlify).",
       }),
     };
   }
 
-  // ✅ Detección automática del tipo de archivo (imagen o video)
+  // ✅ Detección del tipo de archivo (imagen o video)
   const fileType =
-    tipo ||
-    (/\.(mp4|webm|mov|avi|mkv)$/i.test(imagen_url) ? "video" : "imagen");
+    tipo === "video" || tipo === "imagen"
+      ? tipo
+      : /\.(mp4|webm|mov|avi|mkv)$/i.test(imagen_url)
+      ? "video"
+      : "imagen";
 
   const client = new Client({
     connectionString: process.env.NETLIFY_DATABASE_URL,
@@ -77,7 +97,8 @@ export const handler = async (event) => {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        message: "✅ Archivo multimedia guardado correctamente en la base de datos.",
+        message:
+          "✅ Archivo multimedia guardado correctamente en la base de datos.",
         multimedia: nuevoRegistro,
       }),
     };
@@ -86,14 +107,19 @@ export const handler = async (event) => {
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Error interno al guardar el archivo multimedia." }),
+      body: JSON.stringify({
+        error: "Error interno al guardar el archivo multimedia.",
+      }),
     };
   } finally {
     // 🔹 Cerrar conexión siempre
     try {
       await client.end();
     } catch (closeErr) {
-      console.warn("⚠️ Error al cerrar conexión con la base de datos:", closeErr.message);
+      console.warn(
+        "⚠️ Error al cerrar conexión con la base de datos:",
+        closeErr.message
+      );
     }
   }
 };
