@@ -221,13 +221,14 @@ const DetailModalBook = ({ item, type, onClose }) => {
           ? "/.netlify/functions/updateProyecto"
           : "/.netlify/functions/updateClase";
 
+      // 🔴 IMPORTANTE: solo mandamos `reflexion` al backend de clases (bitácora)
       const payload =
         type === "bitacora"
           ? {
               id: item.id,
               titulo,
               descripcion,
-              reflexion, // 🆕
+              reflexion, // 🆕 solo para bitácora
               proyecto_id: proyectoId,
               imagen_portada: imagenPortada,
             }
@@ -235,7 +236,6 @@ const DetailModalBook = ({ item, type, onClose }) => {
               id: item.id,
               titulo,
               descripcion,
-              reflexion, // 🆕 también en proyectos si quieres
               imagen_portada: imagenPortada,
             };
 
@@ -412,9 +412,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
           )}
         </div>
       ) : (
-        <p className="text-[#9c8973] italic mt-2">
-          Sin archivos multimedia.
-        </p>
+        <p className="text-[#9c8973] italic mt-2">Sin archivos multimedia.</p>
       )}
     </>
   );
