@@ -1,83 +1,44 @@
-import { Client } from "pg";
+import cloudinary from "cloudinary";
+
+cloudinary.v2.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export const handler = async (event) => {
-  if (event.httpMethod !== "PUT") {
+  if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Método no permitido" };
   }
 
-  let bodyData = {};
   try {
-    bodyData = JSON.parse(event.body || "{}");
-  } catch (err) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Cuerpo JSON inválido en la solicitud." }),
-    };
-  }
+    const data = JSON.parse(event.body);
+    const { imageBase64 } = data;
 
-  const { id, titulo, descripcion } = bodyData;
-
-  if (!id) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Falta el 'id' de la imagen." }),
-    };
-  }
-
-  const client = new Client({
-    connectionString: process.env.NETLIFY_DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-  });
-
-  try {
-    await client.connect();
-
-    const query = `
-      UPDATE galeria
-      SET
-        titulo = $1,
-        descripcion = $2
-      WHERE id = $3
-      RETURNING id, titulo, descripcion, imagen_url, proyecto_id, clase_id, tipo;
-    `;
-
-    const values = [titulo || null, descripcion || null, id];
-
-    const result = await client.query(query, values);
-    const updated = result.rows?.[0] || null;
-
-    if (!updated) {
+    if (!imageBase64) {
       return {
-        statusCode: 404,
-        body: JSON.stringify({ error: "Imagen no encontrada." }),
+        statusCode: 400,
+        body: JSON.stringify({ error: "Falta la imagen." }),
       };
     }
 
+    const uploadRes = await cloudinary.v2.uploader.upload(imageBase64, {
+      folder: "camyweby/proyectos",
+      transformation: [{ width: 1280, crop: "limit" }],
+    });
+
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        message: "✅ Imagen actualizada correctamente.",
-        imagen: updated,
+        message: "✅ Imagen subida correctamente",
+        url: uploadRes.secure_url,
       }),
     };
   } catch (err) {
-    console.error("❌ Error al actualizar imagen:", err.message);
+    console.error("Error al subir imagen:", err);
     return {
       statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        error: "Error interno al actualizar la imagen.",
-      }),
+      body: JSON.stringify({ error: err.message }),
     };
-  } finally {
-    try {
-      await client.end();
-    } catch (closeErr) {
-      console.warn(
-        "⚠️ Error al cerrar conexión con la base de datos:",
-        closeErr.message
-      );
-    }
   }
 };

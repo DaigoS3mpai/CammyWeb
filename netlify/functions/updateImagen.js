@@ -5,9 +5,13 @@ export const handler = async (event) => {
     return { statusCode: 405, body: "Método no permitido" };
   }
 
-  const { id, descripcion } = JSON.parse(event.body || "{}");
+  const { id, titulo, descripcion } = JSON.parse(event.body || "{}");
+
   if (!id) {
-    return { statusCode: 400, body: JSON.stringify({ error: "Falta el ID de la imagen" }) };
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Falta el ID de la imagen" }),
+    };
   }
 
   const client = new Client({
@@ -17,19 +21,27 @@ export const handler = async (event) => {
 
   try {
     await client.connect();
+
     const result = await client.query(
       `
       UPDATE galeria
-      SET descripcion = COALESCE($1, descripcion)
-      WHERE id = $2
+      SET 
+        titulo = COALESCE($1, titulo),
+        descripcion = COALESCE($2, descripcion)
+      WHERE id = $3
       RETURNING *;
     `,
-      [descripcion || null, id]
+      [titulo || null, descripcion || null, id]
     );
 
     await client.end();
-    if (result.rows.length === 0)
-      return { statusCode: 404, body: JSON.stringify({ error: "Imagen no encontrada" }) };
+
+    if (result.rows.length === 0) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: "Imagen no encontrada" }),
+      };
+    }
 
     return {
       statusCode: 200,
@@ -39,7 +51,10 @@ export const handler = async (event) => {
       }),
     };
   } catch (err) {
-    console.error("Error:", err);
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    console.error("Error en updateImagen:", err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message }),
+    };
   }
 };
