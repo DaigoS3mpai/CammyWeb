@@ -12,6 +12,7 @@ export const handler = async (event) => {
     fecha,
     proyecto_id,
     imagen_portada,
+    reflexion,          // 🆕 NUEVO CAMPO
   } = JSON.parse(event.body || "{}");
 
   if (!id) {
@@ -36,16 +37,17 @@ export const handler = async (event) => {
     );
     const prevProyectoId = prev.rows[0]?.proyecto_id || null;
 
-    // 🔹 Actualizar clase (bitácora) incluyendo imagen_portada
+    // 🔹 Actualizar clase (bitácora) incluyendo imagen_portada y reflexion
     const updateQuery = `
       UPDATE bitacora
       SET
-        titulo = COALESCE($1, titulo),
-        descripcion = COALESCE($2, descripcion),
-        fecha = COALESCE($3, fecha),
+        titulo         = COALESCE($1, titulo),
+        descripcion    = COALESCE($2, descripcion),
+        fecha          = COALESCE($3, fecha),
         imagen_portada = COALESCE($4, imagen_portada),
-        proyecto_id = $5
-      WHERE id = $6
+        proyecto_id    = $5,
+        reflexion      = COALESCE($6, reflexion)
+      WHERE id = $7
       RETURNING *;
     `;
 
@@ -55,6 +57,7 @@ export const handler = async (event) => {
       fecha || null,
       imagen_portada || null,
       proyecto_id === "" ? null : proyecto_id,
+      reflexion || null,
       id,
     ];
 

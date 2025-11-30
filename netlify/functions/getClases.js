@@ -17,7 +17,8 @@ export const handler = async () => {
         b.descripcion,
         b.fecha,
         b.proyecto_id,
-        b.imagen_portada,      -- 🆕 portada de la clase / bitácora
+        b.imagen_portada,
+        b.reflexion,           -- 🆕 devolvemos la reflexión
         p.titulo AS proyecto_titulo
       FROM bitacora b
       LEFT JOIN proyectos p ON b.proyecto_id = p.id
