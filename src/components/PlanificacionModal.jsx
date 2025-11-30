@@ -47,8 +47,9 @@ const PlanificacionModal = ({ item, onUpdated }) => {
       return;
     }
 
+    setSaving(true);
     try {
-      setSaving(true);
+      // 1) Guardar planificación en la BD
       const res = await fetch("/.netlify/functions/updatePlanificacion", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -59,10 +60,24 @@ const PlanificacionModal = ({ item, onUpdated }) => {
         }),
       });
 
-      if (!res.ok) throw new Error("Error al guardar planificación.");
+      if (!res.ok) {
+        const msg = await res.text().catch(() => "");
+        console.error("updatePlanificacion ERROR:", res.status, msg);
+        throw new Error("Error al guardar planificación.");
+      }
 
+      // 2) Salir de modo edición
       setEditMode(false);
-      if (onUpdated) await onUpdated();
+
+      // 3) Intentar refrescar la lista, pero si falla NO mostrar error de guardado
+      if (onUpdated) {
+        try {
+          await onUpdated();
+        } catch (err) {
+          console.warn("Error al refrescar planificaciones:", err);
+        }
+      }
+
       alert("✅ Planificación actualizada");
     } catch (err) {
       console.error(err);
@@ -71,6 +86,7 @@ const PlanificacionModal = ({ item, onUpdated }) => {
       setSaving(false);
     }
   };
+
 
   // 🔹 subir archivo PDF/PPT/DOC usando uploadPlanFile + addArchivoPlanificacion
   const handleFileChange = async (e) => {
