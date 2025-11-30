@@ -205,7 +205,8 @@ const CategoryPage = () => {
                 label,
                 tipo,
                 targetId,
-                coverImage: media.imagen_url || null,
+                coverImage: null, // 👈 ahora se decide bien
+                coverType: null,  // "imagen" o "video"
                 total: 0,
                 images: 0,
                 videos: 0,
@@ -213,12 +214,27 @@ const CategoryPage = () => {
             }
 
             const album = map.get(key);
+            const isVideo = (media.tipo || "").toLowerCase() === "video";
+
             album.total += 1;
-            if (media.tipo === "video") album.videos += 1;
+            if (isVideo) album.videos += 1;
             else album.images += 1;
 
+            // 🔍 Lógica de portada:
+            // 1) Si no hay portada aún, usamos lo que venga.
+            // 2) Si la portada actual es video y encontramos una imagen, la reemplazamos.
             if (!album.coverImage && media.imagen_url) {
               album.coverImage = media.imagen_url;
+              album.coverType = isVideo ? "video" : "imagen";
+            } else if (
+              album.coverImage &&
+              album.coverType === "video" &&
+              !isVideo &&
+              media.imagen_url
+            ) {
+              // Preferimos una imagen sobre un video
+              album.coverImage = media.imagen_url;
+              album.coverType = "imagen";
             }
           });
 
@@ -379,11 +395,21 @@ const CategoryPage = () => {
                   {album.coverImage && !isOpen && (
                     <div className="px-6 pb-4">
                       <div className="w-full h-32 bg-black/40 rounded-xl border border-white/20 shadow-md flex items-center justify-center overflow-hidden">
-                        <img
-                          src={album.coverImage}
-                          alt={album.label}
-                          className="max-h-full max-w-full object-contain"
-                        />
+                        {album.coverType === "video" ? (
+                          <video
+                            src={album.coverImage}
+                            className="w-full h-full object-cover"
+                            muted
+                            playsInline
+                            loop
+                          />
+                        ) : (
+                          <img
+                            src={album.coverImage}
+                            alt={album.label}
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        )}
                       </div>
                     </div>
                   )}
@@ -398,7 +424,7 @@ const CategoryPage = () => {
                       ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-3">
                           {mediaForAlbum.map((media) =>
-                            media.tipo === "video" ? (
+                            (media.tipo || "").toLowerCase() === "video" ? (
                               <motion.div
                                 key={media.id}
                                 className="relative rounded-lg overflow-hidden border border-white/25 cursor-pointer bg-black/40 flex items-center justify-center h-32"
