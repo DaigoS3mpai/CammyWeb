@@ -358,16 +358,16 @@ const DetailModalBook = ({ item, type, onClose }) => {
         <>
           <div className="mb-3">
             <label className="block text-sm font-semibold text-[#5b4532] mb-1">
-              Agregar archivos (
-              {type === "proyectos" ? "imágenes o videos" : "imágenes"}):
+              Agregar archivos (imágenes o videos):
             </label>
             <input
               type="file"
-              accept={type === "proyectos" ? "image/*,video/*" : "image/*"}
+              accept="image/*,video/*"          // 👈 ahora permite videos también
               multiple
               onChange={(e) => setMediaFiles(Array.from(e.target.files))}
               className="border border-gray-300 rounded-lg p-2 w-full"
             />
+
           </div>
 
           {type === "proyectos" && (
