@@ -19,7 +19,7 @@ import NewProjectPage from "./components/NewProjectPage";
 
 import { AuthProvider, useAuth } from "./components/AuthContext";
 
-import CategoryPlanificacion from "./CategoryPlanificacion"; // 🆕 PLANIFICACIÓN
+import CategoryPlanificacion from "./components/CategoryPlanificacion"; // 🆕 PLANIFICACIÓN
 
 
 // 🔹 Rutas con animación
