@@ -41,11 +41,13 @@ export const handler = async (event) => {
 
     return {
       statusCode: 200,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: "Archivo agregado",
-        data: result.rows[0]
-      })
+        data: result.rows[0],
+      }),
     };
+
   } catch (err) {
     console.error(err);
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };

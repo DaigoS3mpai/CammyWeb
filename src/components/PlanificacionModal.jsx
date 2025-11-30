@@ -1,11 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  FileText,
-  BookOpen,
-  UploadCloud,
-  Paperclip,
-} from "lucide-react";
+import { FileText, BookOpen, UploadCloud, Paperclip } from "lucide-react";
 import { useAuth } from "./AuthContext";
 
 const PlanificacionModal = ({ item, onUpdated }) => {
@@ -21,14 +16,11 @@ const PlanificacionModal = ({ item, onUpdated }) => {
   // 🔹 cargar archivos adjuntos
   const fetchArchivos = async () => {
     try {
-      const res = await fetch(
-        "/.netlify/functions/getPlanificacionArchivos",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ planificacion_id: item.id }),
-        }
-      );
+      const res = await fetch("/.netlify/functions/getPlanificacionArchivos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planificacion_id: item.id }),
+      });
       const data = await res.json();
       if (Array.isArray(data)) {
         setArchivos(data);
@@ -80,31 +72,43 @@ const PlanificacionModal = ({ item, onUpdated }) => {
     }
   };
 
-  // 🔹 subir archivo PDF/PPT
+  // 🔹 subir archivo PDF/PPT/DOC usando uploadPlanFile + addArchivoPlanificacion
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const input = e.target;
+
     try {
       setSubiendo(true);
 
-      // 1) Subir archivo al storage (Cloudinary u otro)
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const uploadRes = await fetch("/.netlify/functions/uploadPlanFile", {
-        method: "POST",
-        body: formData,
+      // 1) Leer archivo como Base64 (incluye el prefijo data:...)
+      const fileBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
 
-      const uploadData = await uploadRes.json();
+      // 2) Subir a Cloudinary vía uploadPlanFile
+      const uploadRes = await fetch("/.netlify/functions/uploadPlanFile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileBase64,
+          filename: file.name,
+        }),
+      });
+
+      const uploadData = await uploadRes.json().catch(() => ({}));
       if (!uploadRes.ok || !uploadData.url) {
-        throw new Error("Error al subir archivo.");
+        console.error("❌ uploadPlanFile error:", uploadData);
+        throw new Error(uploadData.error || "Error al subir archivo.");
       }
 
       const archivoUrl = uploadData.url;
 
-      // 2) Guardar registro en BD
+      // 3) Guardar registro en BD
       const addRes = await fetch(
         "/.netlify/functions/addArchivoPlanificacion",
         {
@@ -115,23 +119,30 @@ const PlanificacionModal = ({ item, onUpdated }) => {
             archivo_url: archivoUrl,
             tipo_archivo: file.type || "application/octet-stream",
             titulo: file.name,
+            descripcion: null,
           }),
         }
       );
 
+      const addData = await addRes.json().catch(() => ({}));
       if (!addRes.ok) {
-        throw new Error("Error al registrar el archivo en la BD.");
+        console.error("❌ addArchivoPlanificacion error:", addData);
+        throw new Error(
+          addData.error || "Error al registrar el archivo en la BD."
+        );
       }
 
+      // 4) Recargar archivos y notificar al padre
       await fetchArchivos();
       if (onUpdated) await onUpdated();
+
       alert("✅ Archivo adjuntado correctamente.");
     } catch (err) {
-      console.error(err);
+      console.error("Error adjuntando archivo:", err);
       alert("❌ No se pudo adjuntar el archivo.");
     } finally {
       setSubiendo(false);
-      e.target.value = ""; // limpiar input
+      if (input) input.value = "";
     }
   };
 
