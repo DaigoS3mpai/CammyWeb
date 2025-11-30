@@ -9,6 +9,7 @@ import {
   LogIn,
   FlaskConical,
   Image,
+  FileText,   // 👈 NUEVO ICONO
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 
@@ -93,7 +94,21 @@ const Navbar = () => {
             <Image className="w-5 h-5 mr-1" /> Galería
           </NavLink>
 
-          {/* 🔒 Solo para administradores */}
+          {/* 🆕 NUEVA CATEGORÍA — PLANIFICACIÓN */}
+          <NavLink
+            to="/category/planificacion"
+            className={({ isActive }) =>
+              `flex items-center px-3 py-2 rounded-md font-semibold transition duration-300 ${
+                isActive
+                  ? "bg-white text-yellow-600"
+                  : "text-white hover:bg-white hover:text-yellow-600"
+              }`
+            }
+          >
+            <FileText className="w-5 h-5 mr-1" /> Planificación
+          </NavLink>
+
+          {/* 🔒 Solo para admin */}
           {isAdmin() && (
             <NavLink
               to="/new-class"
@@ -126,14 +141,12 @@ const Navbar = () => {
             </button>
           </>
         ) : (
-          <>
-            <NavLink
-              to="/login"
-              className="flex items-center px-3 py-2 font-semibold border-2 rounded-md text-white border-white hover:bg-white hover:text-blue-600 transition duration-300"
-            >
-              <LogIn className="w-5 h-5 mr-1" /> Iniciar Sesión
-            </NavLink>
-          </>
+          <NavLink
+            to="/login"
+            className="flex items-center px-3 py-2 font-semibold border-2 rounded-md text-white border-white hover:bg-white hover:text-blue-600 transition duration-300"
+          >
+            <LogIn className="w-5 h-5 mr-1" /> Iniciar Sesión
+          </NavLink>
         )}
       </div>
     </motion.nav>
