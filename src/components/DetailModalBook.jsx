@@ -356,9 +356,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
       : 2;
 
   const paginatedMedia =
-    page === 2
-      ? mediaList.slice(0, mediaList.length)
-      : [];
+    page === 2 ? mediaList.slice(0, mediaList.length) : [];
 
   // bloque de galería (para usar en la página 2 izquierda)
   const GalleryBlock = () => (
@@ -521,10 +519,10 @@ const DetailModalBook = ({ item, type, onClose }) => {
               </div>
 
               {/* PÁGINA IZQUIERDA */}
-              <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-between border-r border-[#d9c6ab]">
+              <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-start gap-6 border-r border-[#d9c6ab]">
                 {type === "galeria" ? (
                   // modo galería
-                  <div className="flex flex-col items-center textcenter space-y-4">
+                  <div className="flex flex-col items-center text-center space-y-4">
                     {item.imagen_url ? (
                       (item.tipo || "").toLowerCase() === "video" ? (
                         <motion.video
@@ -770,7 +768,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
               {/* PÁGINA DERECHA */}
               <div className="w-1/2 p-8 bg-[#fefbf6] flex flex-col justify-between">
                 {type === "galeria" ? (
-                  // 🆕 Derecha para galería: título + descripción
+                  // Derecha para galería: título + descripción
                   <>
                     <div className="flex items-center mb-3">
                       <FileText className="w-5 h-5 text-[#795548] mr-2" />
@@ -778,6 +776,13 @@ const DetailModalBook = ({ item, type, onClose }) => {
                         Detalle del archivo
                       </h3>
                     </div>
+
+                    {/* título visible cuando NO editas */}
+                    {!editMode && (
+                      <h2 className="text-2xl font-bold text-[#4e3c2b] mb-4 text-center">
+                        {titulo || "Sin título"}
+                      </h2>
+                    )}
 
                     {editMode && (
                       <div className="mb-3">

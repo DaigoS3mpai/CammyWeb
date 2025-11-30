@@ -14,7 +14,8 @@ export const handler = async () => {
       SELECT 
         g.id,
         g.imagen_url,
-        g.video_url,          -- ✅ nuevo campo
+        g.video_url,          -- sigue disponible si lo usas
+        g.titulo,             -- ✅ nuevo campo: título de la imagen/video
         g.descripcion,
         g.proyecto_id,
         g.clase_id,
