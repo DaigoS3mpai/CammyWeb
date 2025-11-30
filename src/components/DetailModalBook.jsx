@@ -290,26 +290,24 @@ const DetailModalBook = ({ item, type, onClose }) => {
 
       // subida mediaFiles (galería) -> ahora acepta video también
       if (mediaFiles.length > 0) {
-        for (const file of mediaFiles) {
-          const uploaded = await uploadToCloudinary(file);
-          if (uploaded?.url) {
-            // en bitácora seguimos bloqueando video si quieres mantener esa regla
-            if (type === "bitacora" && uploaded.tipo === "video") continue;
-
-            await fetch("/.netlify/functions/addImagen", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                imagen_url: uploaded.url,
-                descripcion: `Archivo agregado a ${titulo}`,
-                tipo: uploaded.tipo, // "video" o "imagen"
-                proyecto_id: type === "proyectos" ? item.id : null,
-                clase_id: type === "bitacora" ? item.id : null,
-              }),
-            });
-          }
+      for (const file of mediaFiles) {
+        const uploaded = await uploadToCloudinary(file);
+        if (uploaded?.url) {
+          await fetch("/.netlify/functions/addImagen", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              imagen_url: uploaded.url,
+              descripcion: `Archivo agregado a ${titulo}`,
+              tipo: uploaded.tipo,           // "video" o "imagen"
+              proyecto_id: type === "proyectos" ? item.id : null,
+              clase_id: type === "bitacora" ? item.id : null,
+            }),
+          });
         }
       }
+    }
+
 
       alert("✅ Cambios guardados correctamente");
       setEditMode(false);
