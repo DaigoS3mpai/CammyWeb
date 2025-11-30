@@ -267,6 +267,7 @@ const PlanificacionModal = ({ item, onUpdated }) => {
                         href={a.archivo_url}
                         target="_blank"
                         rel="noreferrer"
+                        download={a.titulo || "archivo"}
                         className="text-xs text-blue-700 hover:underline"
                       >
                         Ver / descargar
