@@ -7,6 +7,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+
 import Navbar from "./components/Navbar";
 import HomePage from "./components/HomePage";
 import LoginPage from "./components/LoginPage";
@@ -15,7 +16,11 @@ import NewClassPage from "./components/NewClassPage";
 import CategoryPage from "./components/CategoryPage";
 import GalleryPage from "./components/GalleryPage";
 import NewProjectPage from "./components/NewProjectPage";
+
 import { AuthProvider, useAuth } from "./components/AuthContext";
+
+import CategoryPlanificacion from "./CategoryPlanificacion"; // 🆕 PLANIFICACIÓN
+
 
 // 🔹 Rutas con animación
 const AnimatedRoutes = () => {
@@ -25,13 +30,23 @@ const AnimatedRoutes = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
+
         {/* 🔓 Rutas públicas */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
         {/* 🌍 Rutas visibles para todos */}
+
+        {/* 🆕 RUTA EXCLUSIVA DE PLANIFICACIÓN */}
+        <Route
+          path="/category/planificacion"
+          element={<CategoryPlanificacion />}
+        />
+
+        {/* 🧭 Categorías normales (bitacora, proyectos, galeria, etc.) */}
         <Route path="/category/:categoryName" element={<CategoryPage />} />
+
         <Route path="/gallery" element={<GalleryPage />} />
 
         {/* 👑 Solo para administradores */}
@@ -42,7 +57,7 @@ const AnimatedRoutes = () => {
           </>
         )}
 
-        {/* 🚫 Protección: redirigir si no está autenticado */}
+        {/* 🚫 Protección: redirigir si NO está autenticado */}
         {!isAuthenticated() && (
           <>
             <Route
@@ -63,11 +78,12 @@ const AnimatedRoutes = () => {
   );
 };
 
+
 // 🔹 Layout principal sin fondo global
 const AppContent = () => {
   return (
     <div className="flex flex-col min-h-screen bg-transparent">
-      {/* ✅ Navbar siempre visible */}
+      {/* Navbar siempre visible */}
       <Navbar />
       <main className="flex-1">
         <AnimatedRoutes />
@@ -75,6 +91,7 @@ const AppContent = () => {
     </div>
   );
 };
+
 
 // 🔹 App raíz
 const App = () => (
