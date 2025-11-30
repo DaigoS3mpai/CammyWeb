@@ -31,7 +31,7 @@ const CategoryPage = () => {
   const [showModal, setShowModal] = useState(false);
 
   const [sortOrder, setSortOrder] = useState("desc");
-  const [expandedAlbum, setExpandedAlbum] = useState(null); // 🆕 álbum abierto en galería
+  const [expandedAlbum, setExpandedAlbum] = useState(null); // álbum abierto en galería
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -69,9 +69,7 @@ const CategoryPage = () => {
       const res = await fetch(endpoint);
       const data = await res.json();
       const sortedData =
-        categoryName === "galeria"
-          ? data
-          : sortItemsByDate(data, sortOrder);
+        categoryName === "galeria" ? data : sortItemsByDate(data, sortOrder);
       setItems(sortedData);
     } catch (err) {
       console.error("❌ Error al cargar datos:", err);
@@ -104,7 +102,7 @@ const CategoryPage = () => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [categoryName]);
 
-  // apertura automática de modales (bitácora/proyectos/galería simple)
+  // apertura automática de modales
   useEffect(() => {
     if (loading || items.length === 0) return;
     const openClaseId = localStorage.getItem("openClaseId");
@@ -326,7 +324,7 @@ const CategoryPage = () => {
           Cargando contenido...
         </p>
       ) : categoryName === "galeria" ? (
-        // VISTA DE ÁLBUMES DE GALERÍA
+        // VISTA ÁLBUMES GALERÍA
         galleryAlbums.length === 0 ? (
           <p className="text-center text-gray-300 mt-20 text-lg">
             No hay imágenes ni videos en la galería.
@@ -354,7 +352,7 @@ const CategoryPage = () => {
                   className="rounded-2xl border border-white/40 bg-black/40 backdrop-blur-sm shadow-lg overflow-hidden"
                   variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
                 >
-                  {/* cabecera del álbum */}
+                  {/* cabecera Álbum */}
                   <button
                     type="button"
                     onClick={() => toggleAlbum(album.key)}
@@ -377,14 +375,16 @@ const CategoryPage = () => {
                     </span>
                   </button>
 
-                  {/* preview de portada */}
+                  {/* preview portada cuando está cerrado */}
                   {album.coverImage && !isOpen && (
                     <div className="px-6 pb-4">
-                      <img
-                        src={album.coverImage}
-                        alt={album.label}
-                        className="w-full h-32 object-cover rounded-xl border border-white/20 shadow-md"
-                      />
+                      <div className="w-full h-32 bg-black/40 rounded-xl border border-white/20 shadow-md flex items-center justify-center overflow-hidden">
+                        <img
+                          src={album.coverImage}
+                          alt={album.label}
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      </div>
                     </div>
                   )}
 
@@ -401,7 +401,7 @@ const CategoryPage = () => {
                             media.tipo === "video" ? (
                               <motion.div
                                 key={media.id}
-                                className="relative rounded-lg overflow-hidden border border-white/25 cursor-pointer"
+                                className="relative rounded-lg overflow-hidden border border-white/25 cursor-pointer bg-black/40 flex items-center justify-center h-32"
                                 whileHover={{ scale: 1.03 }}
                                 onClick={() =>
                                   handleOpenDetail(media, "galeria")
@@ -409,7 +409,7 @@ const CategoryPage = () => {
                               >
                                 <video
                                   src={media.imagen_url}
-                                  className="w-full h-28 object-cover"
+                                  className="max-h-full max-w-full object-contain"
                                   muted
                                   playsInline
                                   loop
@@ -419,7 +419,7 @@ const CategoryPage = () => {
                             ) : (
                               <motion.div
                                 key={media.id}
-                                className="rounded-lg overflow-hidden border border-white/25 cursor-pointer"
+                                className="rounded-lg overflow-hidden border border-white/25 cursor-pointer bg-black/40 flex items-center justify-center h-32"
                                 whileHover={{ scale: 1.03 }}
                                 onClick={() =>
                                   handleOpenDetail(media, "galeria")
@@ -428,7 +428,7 @@ const CategoryPage = () => {
                                 <img
                                   src={media.imagen_url}
                                   alt={media.descripcion || "Imagen"}
-                                  className="w-full h-28 object-cover"
+                                  className="max-h-full max-w-full object-contain"
                                 />
                               </motion.div>
                             )
