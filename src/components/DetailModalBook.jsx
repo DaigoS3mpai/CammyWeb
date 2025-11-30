@@ -27,7 +27,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
 
   const [titulo, setTitulo] = useState(item?.titulo || "");
   const [descripcion, setDescripcion] = useState(item?.descripcion || "");
-  const [reflexion, setReflexion] = useState(item?.reflexion || ""); // 🆕
+  const [reflexion, setReflexion] = useState(item?.reflexion || "");
   const [imagenPortada, setImagenPortada] = useState(
     item?.imagen_portada || ""
   );
@@ -142,7 +142,6 @@ const DetailModalBook = ({ item, type, onClose }) => {
     formData.append("upload_preset", uploadPreset);
 
     try {
-      // 👇 "auto" deja que Cloudinary detecte si es imagen o video
       const res = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
         { method: "POST", body: formData }
@@ -237,77 +236,91 @@ const DetailModalBook = ({ item, type, onClose }) => {
 
     setSaving(true);
     try {
-      const endpoint =
-        type === "proyectos"
-          ? "/.netlify/functions/updateProyecto"
-          : "/.netlify/functions/updateClase";
+      // 🆕 Caso especial: galería
+      if (type === "galeria") {
+        const res = await fetch("/.netlify/functions/updateImagen", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: item.id,
+            titulo,
+            descripcion,
+          }),
+        });
 
-      // 🔴 IMPORTANTE: solo mandamos `reflexion` al backend de clases (bitácora)
-      const payload =
-        type === "bitacora"
-          ? {
-              id: item.id,
-              titulo,
-              descripcion,
-              reflexion, // 🆕 solo para bitácora
-              proyecto_id: proyectoId,
-              imagen_portada: imagenPortada,
+        if (!res.ok) throw new Error("Error al guardar imagen de galería.");
+      } else {
+        // proyectos / bitácora (clases)
+        const endpoint =
+          type === "proyectos"
+            ? "/.netlify/functions/updateProyecto"
+            : "/.netlify/functions/updateClase";
+
+        const payload =
+          type === "bitacora"
+            ? {
+                id: item.id,
+                titulo,
+                descripcion,
+                reflexion,
+                proyecto_id: proyectoId,
+                imagen_portada: imagenPortada,
+              }
+            : {
+                id: item.id,
+                titulo,
+                descripcion,
+                imagen_portada: imagenPortada,
+              };
+
+        const res = await fetch(endpoint, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) throw new Error("Error al guardar");
+
+        // flujo antiguo extra de imágenes (solo imágenes)
+        if (type === "proyectos" && nuevasImagenes.length > 0) {
+          for (const file of nuevasImagenes) {
+            const url = await uploadImageOnly(file);
+            if (url) {
+              await fetch("/.netlify/functions/addImagen", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  imagen_url: url,
+                  descripcion: `Imagen agregada a ${titulo}`,
+                  tipo: "imagen",
+                  proyecto_id: item.id,
+                  clase_id: null,
+                }),
+              });
             }
-          : {
-              id: item.id,
-              titulo,
-              descripcion,
-              imagen_portada: imagenPortada,
-            };
+          }
+        }
 
-      const res = await fetch(endpoint, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error("Error al guardar");
-
-      // flujo antiguo extra de imágenes (solo imágenes)
-      if (type === "proyectos" && nuevasImagenes.length > 0) {
-        for (const file of nuevasImagenes) {
-          const url = await uploadImageOnly(file);
-          if (url) {
-            await fetch("/.netlify/functions/addImagen", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                imagen_url: url,
-                descripcion: `Imagen agregada a ${titulo}`,
-                tipo: "imagen",
-                proyecto_id: item.id,
-                clase_id: null,
-              }),
-            });
+        // subida mediaFiles (galería) -> ahora acepta video también
+        if (mediaFiles.length > 0) {
+          for (const file of mediaFiles) {
+            const uploaded = await uploadToCloudinary(file);
+            if (uploaded?.url) {
+              await fetch("/.netlify/functions/addImagen", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  imagen_url: uploaded.url,
+                  descripcion: `Archivo agregado a ${titulo}`,
+                  tipo: uploaded.tipo, // "video" o "imagen"
+                  proyecto_id: type === "proyectos" ? item.id : null,
+                  clase_id: type === "bitacora" ? item.id : null,
+                }),
+              });
+            }
           }
         }
       }
-
-      // subida mediaFiles (galería) -> ahora acepta video también
-      if (mediaFiles.length > 0) {
-      for (const file of mediaFiles) {
-        const uploaded = await uploadToCloudinary(file);
-        if (uploaded?.url) {
-          await fetch("/.netlify/functions/addImagen", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              imagen_url: uploaded.url,
-              descripcion: `Archivo agregado a ${titulo}`,
-              tipo: uploaded.tipo,           // "video" o "imagen"
-              proyecto_id: type === "proyectos" ? item.id : null,
-              clase_id: type === "bitacora" ? item.id : null,
-            }),
-          });
-        }
-      }
-    }
-
 
       alert("✅ Cambios guardados correctamente");
       setEditMode(false);
@@ -336,13 +349,15 @@ const DetailModalBook = ({ item, type, onClose }) => {
   // paginación
   const mediaPerPage = 5;
   const totalPages =
-    type === "bitacora" && editMode
+    type === "galeria"
+      ? 1
+      : type === "bitacora" && editMode
       ? Math.max(2, 1 + Math.ceil(mediaList.length / mediaPerPage))
-      : 2; // siempre 2 páginas en este diseño
+      : 2;
 
   const paginatedMedia =
     page === 2
-      ? mediaList.slice(0, mediaList.length) // mostramos todas en la página 2 izquierda
+      ? mediaList.slice(0, mediaList.length)
       : [];
 
   // bloque de galería (para usar en la página 2 izquierda)
@@ -360,12 +375,11 @@ const DetailModalBook = ({ item, type, onClose }) => {
             </label>
             <input
               type="file"
-              accept="image/*,video/*"          // 👈 ahora permite videos también
+              accept="image/*,video/*"
               multiple
               onChange={(e) => setMediaFiles(Array.from(e.target.files))}
               className="border border-gray-300 rounded-lg p-2 w-full"
             />
-
           </div>
 
           {type === "proyectos" && (
@@ -509,7 +523,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
               {/* PÁGINA IZQUIERDA */}
               <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-between border-r border-[#d9c6ab]">
                 {type === "galeria" ? (
-                  // modo galería (sin cambios aquí)
+                  // modo galería
                   <div className="flex flex-col items-center textcenter space-y-4">
                     {item.imagen_url ? (
                       (item.tipo || "").toLowerCase() === "video" ? (
@@ -755,7 +769,44 @@ const DetailModalBook = ({ item, type, onClose }) => {
 
               {/* PÁGINA DERECHA */}
               <div className="w-1/2 p-8 bg-[#fefbf6] flex flex-col justify-between">
-                {page === 1 ? (
+                {type === "galeria" ? (
+                  // 🆕 Derecha para galería: título + descripción
+                  <>
+                    <div className="flex items-center mb-3">
+                      <FileText className="w-5 h-5 text-[#795548] mr-2" />
+                      <h3 className="text-2xl font-semibold text-[#4e3c2b]">
+                        Detalle del archivo
+                      </h3>
+                    </div>
+
+                    {editMode && (
+                      <div className="mb-3">
+                        <label className="block text-sm font-semibold text-[#5b4532] mb-1">
+                          Título del archivo
+                        </label>
+                        <input
+                          type="text"
+                          value={titulo}
+                          onChange={(e) => setTitulo(e.target.value)}
+                          className="w-full border border-[#d3c2aa] rounded-xl p-2 bg-[#fffdf9] text-[#4e3c2b] focus:ring-2 focus:ring-amber-600"
+                        />
+                      </div>
+                    )}
+
+                    {editMode ? (
+                      <textarea
+                        value={descripcion}
+                        onChange={(e) => setDescripcion(e.target.value)}
+                        rows="15"
+                        className="w-full h-[350px] p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
+                      />
+                    ) : (
+                      <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] max-h-[450px] overflow-y-auto whitespace-pre-line">
+                        {descripcion || "Sin descripción disponible."}
+                      </div>
+                    )}
+                  </>
+                ) : page === 1 ? (
                   // 📖 Página 1 derecha: Descripción
                   <>
                     <div className="flex items-center mb-3">
@@ -801,33 +852,35 @@ const DetailModalBook = ({ item, type, onClose }) => {
                   </>
                 )}
 
-                {/* paginación */}
-                <div className="flex justify-center mt-6 space-x-6">
-                  <button
-                    onClick={() => setPage(Math.max(1, page - 1))}
-                    disabled={page === 1}
-                    className={`flex items-center text-sm font-semibold ${
-                      page === 1
-                        ? "text-[#c7b9a7]"
-                        : "text-[#7a4e27] hover:underline"
-                    }`}
-                  >
-                    <ArrowLeftCircle className="w-5 h-5 mr-1" /> Anterior
-                  </button>
-                  <span className="text-[#5b4532] font-semibold">
-                    Página {page}/{totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage(Math.min(totalPages, page + 1))}
-                    className={`flex items-center text-sm font-semibold ${
-                      page === totalPages
-                        ? "text-[#c7b9a7]"
-                        : "text-[#7a4e27] hover:underline"
-                    }`}
-                  >
-                    Siguiente <ArrowRightCircle className="w-5 h-5 ml-1" />
-                  </button>
-                </div>
+                {/* paginación (solo para proyectos/bitácora) */}
+                {type !== "galeria" && (
+                  <div className="flex justify-center mt-6 space-x-6">
+                    <button
+                      onClick={() => setPage(Math.max(1, page - 1))}
+                      disabled={page === 1}
+                      className={`flex items-center text-sm font-semibold ${
+                        page === 1
+                          ? "text-[#c7b9a7]"
+                          : "text-[#7a4e27] hover:underline"
+                      }`}
+                    >
+                      <ArrowLeftCircle className="w-5 h-5 mr-1" /> Anterior
+                    </button>
+                    <span className="text-[#5b4532] font-semibold">
+                      Página {page}/{totalPages}
+                    </span>
+                    <button
+                      onClick={() => setPage(Math.min(totalPages, page + 1))}
+                      className={`flex items-center text-sm font-semibold ${
+                        page === totalPages
+                          ? "text-[#c7b9a7]"
+                          : "text-[#7a4e27] hover:underline"
+                      }`}
+                    >
+                      Siguiente <ArrowRightCircle className="w-5 h-5 ml-1" />
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
