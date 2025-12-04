@@ -206,13 +206,13 @@ const CategoryPlanificacion = () => {
               </div>
 
               {/* Imagen decorativa en el espacio que marcaste */}
-              <div className="hidden lg:block mt-4">
-                <img
-                  src="/chibi-profesora.png" // 🔁 cambia el nombre si tu imagen es otra
-                  alt="Ilustración de planificación"
-                  className="w-full rounded-2xl shadow-xl object-contain opacity-95"
-                />
-              </div>
+              <div className="hidden lg:flex justify-center mt-4">
+              <img
+                src="/chibi-profesora.png"
+                alt="Ilustración de planificación"
+                className="w-3/4 max-w-xs rounded-2xl shadow-xl object-contain opacity-95"
+              />
+            </div>
             </div>
 
             {/* Columna derecha: detalle en la misma página */}
