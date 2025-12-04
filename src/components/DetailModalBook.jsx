@@ -236,10 +236,8 @@ const DetailModalBook = ({ item, type, onClose }) => {
 
     setSaving(true);
     try {
-      // 🆕 Caso especial: galería
       if (type === "galeria") {
-        // AHORA ya no se debería poder llegar aquí porque no hay botón de editar,
-        // pero dejo el código por si acaso.
+        // en teoría ya no debería llamarse para galería
         const res = await fetch("/.netlify/functions/updateImagen", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -349,7 +347,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
   };
 
   // paginación
-  const mediaPerPage = 5; // (lo mantengo por si en el futuro quieres paginar de verdad)
+  const mediaPerPage = 5;
   const totalPages =
     type === "galeria"
       ? 1
@@ -357,15 +355,12 @@ const DetailModalBook = ({ item, type, onClose }) => {
       ? Math.max(2, 1 + Math.ceil(mediaList.length / mediaPerPage))
       : 2;
 
-  // en la página 2 mostramos TODO el listado (y sobre eso dividimos en 2 si es proyecto)
   const paginatedMedia = page === 2 ? mediaList.slice(0, mediaList.length) : [];
 
-  // 👉 división en 2 partes para proyectos
   const mitad = Math.ceil(paginatedMedia.length / 2);
   const leftMedia = paginatedMedia.slice(0, mitad);
   const rightMedia = paginatedMedia.slice(mitad);
 
-  // bloque de galería
   const GalleryBlock = ({ media, title, showUpload = true }) => (
     <>
       <h3 className="text-lg font-semibold text-[#5b4532] mb-1 flex items-center">
@@ -486,8 +481,10 @@ const DetailModalBook = ({ item, type, onClose }) => {
                   "0 0 30px rgba(0,0,0,0.3), inset 0 0 25px rgba(97,72,44,0.15)",
               }}
             >
-              {/* encuadernado */}
-              <div className="absolute inset-y-0 left-1/2 w-[3px] bg-[#c8b49d] shadow-inner z-10"></div>
+              {/* encuadernado SOLO si no es galería */}
+              {type !== "galeria" && (
+                <div className="absolute inset-y-0 left-1/2 w-[3px] bg-[#c8b49d] shadow-inner z-10"></div>
+              )}
 
               {/* botones superiores */}
               <div className="absolute top-4 right-4 flex space-x-2 z-20">
@@ -529,7 +526,13 @@ const DetailModalBook = ({ item, type, onClose }) => {
               </div>
 
               {/* PÁGINA IZQUIERDA */}
-              <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-start gap-6 border-r border-[#d9c6ab]">
+              <div
+                className={`${
+                  type === "galeria"
+                    ? "w-full"
+                    : "w-1/2 border-r border-[#d9c6ab]"
+                } p-8 bg-[#faf6f1] flex flex-col justify-start gap-6`}
+              >
                 {type === "galeria" ? (
                   // modo galería SOLO LECTURA: solo multimedia + vinculación
                   <div className="flex flex-col items-center text-center space-y-4">
@@ -791,71 +794,68 @@ const DetailModalBook = ({ item, type, onClose }) => {
                 )}
               </div>
 
-              {/* PÁGINA DERECHA */}
-              <div className="w-1/2 p-8 bg-[#fefbf6] flex flex-col justify-between">
-                {type === "galeria" ? (
-                  // Para galería no mostramos nada editable ni datos extra
-                  <div className="w-full h-full" />
-                ) : page === 1 ? (
-                  // 📖 Página 1 derecha: Descripción
-                  <>
-                    <div className="flex items-center mb-3">
-                      <FileText className="w-5 h-5 text-[#795548] mr-2" />
-                      <h3 className="text-2xl font-semibold text-[#4e3c2b]">
-                        Descripción
-                      </h3>
-                    </div>
-                    {editMode ? (
-                      <textarea
-                        value={descripcion}
-                        onChange={(e) => setDescripcion(e.target.value)}
-                        rows="15"
-                        className="w-full h-[350px] p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
-                      />
-                    ) : (
-                      <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] max-h-[450px] overflow-y-auto whitespace-pre-line">
-                        {descripcion || "Sin descripción disponible."}
+              {/* PÁGINA DERECHA: solo si no es galería */}
+              {type !== "galeria" && (
+                <div className="w-1/2 p-8 bg-[#fefbf6] flex flex-col justify-between">
+                  {page === 1 ? (
+                    // 📖 Página 1 derecha: Descripción
+                    <>
+                      <div className="flex items-center mb-3">
+                        <FileText className="w-5 h-5 text-[#795548] mr-2" />
+                        <h3 className="text-2xl font-semibold text-[#4e3c2b]">
+                          Descripción
+                        </h3>
                       </div>
-                    )}
-                  </>
-                ) : (
-                  // Página 2 derecha: depende del type
-                  <>
-                    {type === "bitacora" && (
-                      <>
-                        <div className="flex items-center mb-3">
-                          <FileText className="w-5 h-5 text-[#795548] mr-2" />
-                          <h3 className="text-2xl font-semibold text-[#4e3c2b]">
-                            Reflexión
-                          </h3>
+                      {editMode ? (
+                        <textarea
+                          value={descripcion}
+                          onChange={(e) => setDescripcion(e.target.value)}
+                          rows="15"
+                          className="w-full h-[350px] p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
+                        />
+                      ) : (
+                        <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] max-h-[450px] overflow-y-auto whitespace-pre-line">
+                          {descripcion || "Sin descripción disponible."}
                         </div>
-                        {editMode ? (
-                          <textarea
-                            value={reflexion}
-                            onChange={(e) => setReflexion(e.target.value)}
-                            rows="15"
-                            className="w-full h-[350px] p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
-                          />
-                        ) : (
-                          <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] max-h-[450px] overflow-y-auto whitespace-pre-line">
-                            {reflexion || "Sin reflexión registrada."}
+                      )}
+                    </>
+                  ) : (
+                    // Página 2 derecha: depende del type
+                    <>
+                      {type === "bitacora" && (
+                        <>
+                          <div className="flex items-center mb-3">
+                            <FileText className="w-5 h-5 text-[#795548] mr-2" />
+                            <h3 className="text-2xl font-semibold text-[#4e3c2b]">
+                              Reflexión
+                            </h3>
                           </div>
-                        )}
-                      </>
-                    )}
+                          {editMode ? (
+                            <textarea
+                              value={reflexion}
+                              onChange={(e) => setReflexion(e.target.value)}
+                              rows="15"
+                              className="w-full h-[350px] p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
+                            />
+                          ) : (
+                            <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] max-h-[450px] overflow-y-auto whitespace-pre-line">
+                              {reflexion || "Sin reflexión registrada."}
+                            </div>
+                          )}
+                        </>
+                      )}
 
-                    {type === "proyectos" && (
-                      <GalleryBlock
-                        media={rightMedia}
-                        title="Galería (parte 2)"
-                        showUpload={false}
-                      />
-                    )}
-                  </>
-                )}
+                      {type === "proyectos" && (
+                        <GalleryBlock
+                          media={rightMedia}
+                          title="Galería (parte 2)"
+                          showUpload={false}
+                        />
+                      )}
+                    </>
+                  )}
 
-                {/* paginación (solo para proyectos/bitácora) */}
-                {type !== "galeria" && (
+                  {/* paginación (solo para proyectos/bitácora) */}
                   <div className="flex justify-center mt-6 space-x-6">
                     <button
                       onClick={() => setPage(Math.max(1, page - 1))}
@@ -882,8 +882,8 @@ const DetailModalBook = ({ item, type, onClose }) => {
                       Siguiente <ArrowRightCircle className="w-5 h-5 ml-1" />
                     </button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         </motion.div>
