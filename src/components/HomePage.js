@@ -30,13 +30,15 @@ const HomePage = () => {
       <img
         src="/sticker1.png"
         alt="Decoración izquierda"
-        className="hidden md:block pointer-events-none select-none absolute left-[-40px] top-32 w-64 opacity-90"
+        className="hidden md:block pointer-events-none select-none absolute left-[-40px] top-32 w-64"
       />
+
       <img
         src="/sticker3.png"
         alt="Decoración derecha"
-        className="hidden md:block pointer-events-none select-none absolute right-[-40px] top-24 w-64 opacity-90"
+        className="hidden md:block pointer-events-none select-none absolute right-[-40px] top-24 w-64"
       />
+
 
       {/* Contenido principal */}
       <div className="relative z-10 flex flex-col items-center">
