@@ -172,6 +172,15 @@ const CategoryPage = () => {
       icon: <FileText className="w-12 h-12 text-gray-500" />,
     };
 
+  // 🔹 imágenes decorativas por categoría
+  const decorImages = {
+    bitacora: "/decor-bitacora.png",
+    proyectos: "/decor-proyectos.png",
+    galeria: "/decor-galeria.png",
+  };
+
+  const decorSrc = decorImages[categoryName] || "/decor-right.png";
+
   // AGRUPAR GALERÍA EN "CARPETAS" (álbumes)
   const galleryAlbums =
     categoryName === "galeria"
@@ -265,12 +274,14 @@ const CategoryPage = () => {
         backgroundImage: "url('/bc.png')",
       }}
     >
-      {/* ⭐ Imagen decorativa esquina superior derecha */}
-      <img
-        src="/decor-right.png"
-        alt="Decoración"
-        className="hidden md:block pointer-events-none select-none absolute right-[-40px] top-16 w-72 opacity-90"
-      />
+      {/* ⭐ Imagen decorativa esquina superior derecha (cambia según categoría) */}
+      {decorSrc && (
+        <img
+          src={decorSrc}
+          alt={`Decoración ${categoryName || ""}`}
+          className="hidden md:block pointer-events-none select-none absolute right-[-40px] top-16 w-72 opacity-90"
+        />
+      )}
 
       {/* Todo el contenido por encima de la decoración */}
       <div className="relative z-10">
@@ -340,7 +351,7 @@ const CategoryPage = () => {
           )}
         </div>
 
-        {/* contenido (todo igual que antes) */}
+        {/* contenido */}
         {loading ? (
           <p className="text-center text-gray-300 mt-20 text-lg">
             Cargando contenido...
@@ -436,7 +447,7 @@ const CategoryPage = () => {
                               (media.tipo || "").toLowerCase() === "video" ? (
                                 <motion.div
                                   key={media.id}
-                                  className="relative rounded-lg overflow-hidden border border:white/25 cursor-pointer bg-black/40 flex items-center justify-center h-32"
+                                  className="relative rounded-lg overflow-hidden border border-white/25 cursor-pointer bg-black/40 flex items-center justify-center h-32"
                                   whileHover={{ scale: 1.03 }}
                                   onClick={() =>
                                     handleOpenDetail(media, "galeria")
