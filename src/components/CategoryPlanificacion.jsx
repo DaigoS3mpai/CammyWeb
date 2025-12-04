@@ -210,7 +210,7 @@ const CategoryPlanificacion = () => {
               <img
                 src="/chibi-profesora.png"
                 alt="Ilustración de planificación"
-                className="w-[180px] rounded-2xl shadow-xl object-contain opacity-95"
+                className="w-[210px] rounded-2xl shadow-xl object-contain opacity-95"
               />
             </div>
             </div>
