@@ -1,12 +1,8 @@
-// ⚠️ IMPORTANTE:
-// Usa el MISMO helper de conexión que en addPlanificacion.js.
-// Si en tu proyecto usas `const { getClient } = require("./db");` deja esto tal cual.
-// Si usas `pool` directamente, cambia getClient() por pool.
+// src/netlify/functions/updatePlanificacion.js
+import { Client } from "pg";
 
-const { getClient } = require("./db");
-
-exports.handler = async (event) => {
-  // Solo permitimos POST
+export const handler = async (event, context) => {
+  // Solo aceptamos POST
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -29,10 +25,18 @@ exports.handler = async (event) => {
       };
     }
 
-    const client = await getClient(); // si usas pool, cambia esta línea
+    // Igual que en tu db.js
+    const client = new Client({
+      connectionString: process.env.NETLIFY_DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false, // necesario para Neon
+      },
+    });
 
-    // Tabla y columnas según tu screenshot:
-    // TABLE public.planificacion (id, titulo, descripcion, fecha, imagen_portada, proyecto_id)
+    await client.connect();
+
+    // Tabla y columnas según tu captura:
+    // public.planificacion (id, titulo, descripcion, fecha, imagen_portada, proyecto_id)
     const query = `
       UPDATE planificacion
       SET titulo = $1,
@@ -43,7 +47,8 @@ exports.handler = async (event) => {
     const values = [titulo, descripcion || null, id];
 
     const result = await client.query(query, values);
-    client.release?.(); // si usas pool con connect(), esto libera el cliente
+
+    await client.end();
 
     if (result.rowCount === 0) {
       return {
@@ -58,13 +63,13 @@ exports.handler = async (event) => {
       statusCode: 200,
       body: JSON.stringify(result.rows[0]),
     };
-  } catch (err) {
-    console.error("❌ Error en updatePlanificacion:", err);
+  } catch (error) {
+    console.error("❌ Error en updatePlanificacion:", error);
     return {
       statusCode: 500,
       body: JSON.stringify({
         message: "Error al actualizar planificación.",
-        error: err.message,
+        error: error.message,
       }),
     };
   }
