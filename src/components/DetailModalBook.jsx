@@ -238,6 +238,8 @@ const DetailModalBook = ({ item, type, onClose }) => {
     try {
       // 🆕 Caso especial: galería
       if (type === "galeria") {
+        // AHORA ya no se debería poder llegar aquí porque no hay botón de editar,
+        // pero dejo el código por si acaso.
         const res = await fetch("/.netlify/functions/updateImagen", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -489,7 +491,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
 
               {/* botones superiores */}
               <div className="absolute top-4 right-4 flex space-x-2 z-20">
-                {isAdmin() && !editMode && (
+                {isAdmin() && !editMode && type !== "galeria" && (
                   <button
                     onClick={() => setEditMode(true)}
                     className="bg-amber-500 hover:bg-amber-600 text-white rounded-full p-2 shadow-md"
@@ -497,7 +499,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     <Pencil className="w-5 h-5" />
                   </button>
                 )}
-                {editMode && (
+                {editMode && type !== "galeria" && (
                   <>
                     <button
                       onClick={handleSave}
@@ -529,7 +531,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
               {/* PÁGINA IZQUIERDA */}
               <div className="w-1/2 p-8 bg-[#faf6f1] flex flex-col justify-start gap-6 border-r border-[#d9c6ab]">
                 {type === "galeria" ? (
-                  // modo galería
+                  // modo galería SOLO LECTURA: solo multimedia + vinculación
                   <div className="flex flex-col items-center text-center space-y-4">
                     {item.imagen_url ? (
                       (item.tipo || "").toLowerCase() === "video" ? (
@@ -792,49 +794,8 @@ const DetailModalBook = ({ item, type, onClose }) => {
               {/* PÁGINA DERECHA */}
               <div className="w-1/2 p-8 bg-[#fefbf6] flex flex-col justify-between">
                 {type === "galeria" ? (
-                  // Derecha para galería: título + descripción
-                  <>
-                    <div className="flex items-center mb-3">
-                      <FileText className="w-5 h-5 text-[#795548] mr-2" />
-                      <h3 className="text-2xl font-semibold text-[#4e3c2b]">
-                        Detalle del archivo
-                      </h3>
-                    </div>
-
-                    {/* título visible cuando NO editas */}
-                    {!editMode && (
-                      <h2 className="text-2xl font-bold text-[#4e3c2b] mb-4 text-center">
-                        {titulo || "Sin título"}
-                      </h2>
-                    )}
-
-                    {editMode && (
-                      <div className="mb-3">
-                        <label className="block text-sm font-semibold text-[#5b4532] mb-1">
-                          Título del archivo
-                        </label>
-                        <input
-                          type="text"
-                          value={titulo}
-                          onChange={(e) => setTitulo(e.target.value)}
-                          className="w-full border border-[#d3c2aa] rounded-xl p-2 bg-[#fffdf9] text-[#4e3c2b] focus:ring-2 focus:ring-amber-600"
-                        />
-                      </div>
-                    )}
-
-                    {editMode ? (
-                      <textarea
-                        value={descripcion}
-                        onChange={(e) => setDescripcion(e.target.value)}
-                        rows="15"
-                        className="w-full h-[350px] p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
-                      />
-                    ) : (
-                      <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] max-h-[450px] overflow-y-auto whitespace-pre-line">
-                        {descripcion || "Sin descripción disponible."}
-                      </div>
-                    )}
-                  </>
+                  // Para galería no mostramos nada editable ni datos extra
+                  <div className="w-full h-full" />
                 ) : page === 1 ? (
                   // 📖 Página 1 derecha: Descripción
                   <>
