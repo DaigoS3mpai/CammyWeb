@@ -51,7 +51,7 @@ const PlanificacionModal = ({ item, onUpdated }) => {
     try {
       // 1) Guardar planificación en la BD
       const res = await fetch("/.netlify/functions/updatePlanificacion", {
-        method: "PUT",
+        method: "POST", // 🔹 CORREGIDO: antes estaba en PUT
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: item.id,
@@ -60,16 +60,16 @@ const PlanificacionModal = ({ item, onUpdated }) => {
         }),
       });
 
+      const text = await res.text().catch(() => "");
       if (!res.ok) {
-        const msg = await res.text().catch(() => "");
-        console.error("updatePlanificacion ERROR:", res.status, msg);
+        console.error("updatePlanificacion ERROR:", res.status, text);
         throw new Error("Error al guardar planificación.");
       }
 
       // 2) Salir de modo edición
       setEditMode(false);
 
-      // 3) Intentar refrescar la lista, pero si falla NO mostrar error de guardado
+      // 3) Refrescar lista (si falla, solo se avisa por consola)
       if (onUpdated) {
         try {
           await onUpdated();
@@ -87,7 +87,6 @@ const PlanificacionModal = ({ item, onUpdated }) => {
     }
   };
 
-
   // 🔹 subir archivo PDF/PPT/DOC usando uploadPlanFile + addArchivoPlanificacion
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -98,7 +97,6 @@ const PlanificacionModal = ({ item, onUpdated }) => {
     try {
       setSubiendo(true);
 
-      // 1) Leer archivo como Base64 (incluye el prefijo data:...)
       const fileBase64 = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
@@ -106,7 +104,6 @@ const PlanificacionModal = ({ item, onUpdated }) => {
         reader.readAsDataURL(file);
       });
 
-      // 2) Subir a Cloudinary vía uploadPlanFile
       const uploadRes = await fetch("/.netlify/functions/uploadPlanFile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -124,7 +121,6 @@ const PlanificacionModal = ({ item, onUpdated }) => {
 
       const archivoUrl = uploadData.url;
 
-      // 3) Guardar registro en BD
       const addRes = await fetch(
         "/.netlify/functions/addArchivoPlanificacion",
         {
@@ -148,7 +144,6 @@ const PlanificacionModal = ({ item, onUpdated }) => {
         );
       }
 
-      // 4) Recargar archivos y notificar al padre
       await fetchArchivos();
       if (onUpdated) await onUpdated();
 
