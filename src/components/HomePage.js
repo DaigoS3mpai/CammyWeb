@@ -28,12 +28,12 @@ const HomePage = () => {
     >
       {/* ⭐ Imágenes decorativas laterales */}
       <img
-        src="/decor-left.png"
+        src="/sticker1.png"
         alt="Decoración izquierda"
         className="hidden md:block pointer-events-none select-none absolute left-[-40px] top-32 w-64 opacity-90"
       />
       <img
-        src="/decor-right.png"
+        src="/sticker3.png"
         alt="Decoración derecha"
         className="hidden md:block pointer-events-none select-none absolute right-[-40px] top-24 w-64 opacity-90"
       />
