@@ -49,9 +49,8 @@ const PlanificacionModal = ({ item, onUpdated }) => {
 
     setSaving(true);
     try {
-      // 1) Guardar planificación en la BD
       const res = await fetch("/.netlify/functions/updatePlanificacion", {
-        method: "POST", // 🔹 CORREGIDO: antes estaba en PUT
+        method: "POST", // ✅ coincide con la función Netlify
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: item.id,
@@ -66,10 +65,8 @@ const PlanificacionModal = ({ item, onUpdated }) => {
         throw new Error("Error al guardar planificación.");
       }
 
-      // 2) Salir de modo edición
       setEditMode(false);
 
-      // 3) Refrescar lista (si falla, solo se avisa por consola)
       if (onUpdated) {
         try {
           await onUpdated();
