@@ -279,7 +279,7 @@ const CategoryPage = () => {
         <img
           src={decorSrc}
           alt={`Decoración ${categoryName || ""}`}
-          className="hidden md:block pointer-events-none select-none absolute right-[-40px] top-16 w-72 opacity-90"
+          className="hidden md:block pointer-events-none select-none absolute right-8 top-24 w-64 drop-shadow-xl"
         />
       )}
 
