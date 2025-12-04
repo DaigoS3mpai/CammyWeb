@@ -347,7 +347,7 @@ const DetailModalBook = ({ item, type, onClose }) => {
   };
 
   // paginación
-  const mediaPerPage = 5;
+  const mediaPerPage = 5; // (lo mantengo por si en el futuro quieres paginar de verdad)
   const totalPages =
     type === "galeria"
       ? 1
@@ -355,17 +355,25 @@ const DetailModalBook = ({ item, type, onClose }) => {
       ? Math.max(2, 1 + Math.ceil(mediaList.length / mediaPerPage))
       : 2;
 
-  const paginatedMedia =
-    page === 2 ? mediaList.slice(0, mediaList.length) : [];
+  // en la página 2 mostramos TODO el listado (y sobre eso dividimos en 2 si es proyecto)
+  const paginatedMedia = page === 2 ? mediaList.slice(0, mediaList.length) : [];
 
-  // bloque de galería (para usar en la página 2 izquierda)
-  const GalleryBlock = () => (
+  // 👉 división en 2 partes para proyectos
+  const mitad = Math.ceil(paginatedMedia.length / 2);
+  const leftMedia = paginatedMedia.slice(0, mitad);
+  const rightMedia = paginatedMedia.slice(mitad);
+
+  // bloque de galería
+  const GalleryBlock = ({ media, title, showUpload = true }) => (
     <>
-      <h3 className="text-lg font-semibold text-[#5b4532] mb-3 flex items-center">
-        <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" /> Galería completa
+      <h3 className="text-lg font-semibold text-[#5b4532] mb-1 flex items-center">
+        <ImageIcon className="w-5 h-5 text-[#a5754a] mr-2" /> {title}
       </h3>
+      <p className="text-xs text-[#7a6a57] mb-2">
+        {media.length} resultado{media.length === 1 ? "" : "s"}
+      </p>
 
-      {editMode && (
+      {editMode && showUpload && (
         <>
           <div className="mb-3">
             <label className="block text-sm font-semibold text-[#5b4532] mb-1">
@@ -397,9 +405,9 @@ const DetailModalBook = ({ item, type, onClose }) => {
         </>
       )}
 
-      {paginatedMedia.length > 0 ? (
+      {media.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 mt-2">
-          {paginatedMedia.map((media) =>
+          {media.map((media) =>
             (media.tipo || "").toLowerCase() === "video" ? (
               <motion.div
                 key={media.id}
@@ -760,8 +768,24 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     </div>
                   </>
                 ) : (
-                  // 📷 Página 2 izquierda: Galería completa
-                  <GalleryBlock />
+                  // Página 2 izquierda
+                  <>
+                    {type === "bitacora" && (
+                      <GalleryBlock
+                        media={paginatedMedia}
+                        title="Galería completa"
+                        showUpload={true}
+                      />
+                    )}
+
+                    {type === "proyectos" && (
+                      <GalleryBlock
+                        media={leftMedia}
+                        title="Galería (parte 1)"
+                        showUpload={true}
+                      />
+                    )}
+                  </>
                 )}
               </div>
 
@@ -834,25 +858,37 @@ const DetailModalBook = ({ item, type, onClose }) => {
                     )}
                   </>
                 ) : (
-                  // ✍ Página 2 derecha: Reflexión
+                  // Página 2 derecha: depende del type
                   <>
-                    <div className="flex items-center mb-3">
-                      <FileText className="w-5 h-5 text-[#795548] mr-2" />
-                      <h3 className="text-2xl font-semibold text-[#4e3c2b]">
-                        Reflexión
-                      </h3>
-                    </div>
-                    {editMode ? (
-                      <textarea
-                        value={reflexion}
-                        onChange={(e) => setReflexion(e.target.value)}
-                        rows="15"
-                        className="w-full h-[350px] p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
+                    {type === "bitacora" && (
+                      <>
+                        <div className="flex items-center mb-3">
+                          <FileText className="w-5 h-5 text-[#795548] mr-2" />
+                          <h3 className="text-2xl font-semibold text-[#4e3c2b]">
+                            Reflexión
+                          </h3>
+                        </div>
+                        {editMode ? (
+                          <textarea
+                            value={reflexion}
+                            onChange={(e) => setReflexion(e.target.value)}
+                            rows="15"
+                            className="w-full h-[350px] p-3 border border-[#d3c2aa] rounded-xl focus:ring-2 focus:ring-amber-600 resize-none bg-[#fffdf9] text-[#4e3c2b]"
+                          />
+                        ) : (
+                          <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] max-h-[450px] overflow-y-auto whitespace-pre-line">
+                            {reflexion || "Sin reflexión registrada."}
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {type === "proyectos" && (
+                      <GalleryBlock
+                        media={rightMedia}
+                        title="Galería (parte 2)"
+                        showUpload={false}
                       />
-                    ) : (
-                      <div className="bg-[#fffdf9] border border-[#e5d5bc] shadow-inner rounded-xl p-5 text-[#4e3c2b] leading-relaxed min-h-[350px] max-h-[450px] overflow-y-auto whitespace-pre-line">
-                        {reflexion || "Sin reflexión registrada."}
-                      </div>
                     )}
                   </>
                 )}
