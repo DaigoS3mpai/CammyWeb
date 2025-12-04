@@ -153,54 +153,66 @@ const CategoryPlanificacion = () => {
 
           {/* Contenido principal: lista + detalle */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Columna izquierda: tarjetas */}
-            <div className="lg:col-span-1 space-y-4">
-              {loading ? (
-                <p className="text-white/90">Cargando planificaciones...</p>
-              ) : planificaciones.length === 0 ? (
-                <p className="text-white/90 italic">
-                  No hay planificaciones registradas.
-                </p>
-              ) : (
-                planificaciones.map((plan) => {
-                  const fecha = plan.fecha
-                    ? new Date(plan.fecha).toLocaleDateString("es-CL", {
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit",
-                      })
-                    : null;
+            {/* Columna izquierda: tarjetas + imagen */}
+            <div className="lg:col-span-1 flex flex-col space-y-4">
+              {/* Lista de planificaciones */}
+              <div className="space-y-4">
+                {loading ? (
+                  <p className="text-white/90">Cargando planificaciones...</p>
+                ) : planificaciones.length === 0 ? (
+                  <p className="text-white/90 italic">
+                    No hay planificaciones registradas.
+                  </p>
+                ) : (
+                  planificaciones.map((plan) => {
+                    const fecha = plan.fecha
+                      ? new Date(plan.fecha).toLocaleDateString("es-CL", {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                        })
+                      : null;
 
-                  return (
-                    <motion.button
-                      key={plan.id}
-                      onClick={() => setSelected(plan)}
-                      className={`w-full text-left rounded-2xl p-4 shadow-lg border transition transform hover:-translate-y-1 ${
-                        selected?.id === plan.id
-                          ? "bg-white text-[#4b3826] border-amber-500"
-                          : "bg-white/90 text-[#4b3826] border-white/60 hover:border-amber-400"
-                      }`}
-                      whileHover={{ scale: 1.01 }}
-                    >
-                      <h3 className="font-bold text-lg mb-1">
-                        {plan.titulo || "Sin título"}
-                      </h3>
-                      {fecha && (
-                        <div className="flex items-center text-xs text-gray-600 mb-1">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          {fecha}
+                    return (
+                      <motion.button
+                        key={plan.id}
+                        onClick={() => setSelected(plan)}
+                        className={`w-full text-left rounded-2xl p-4 shadow-lg border transition transform hover:-translate-y-1 ${
+                          selected?.id === plan.id
+                            ? "bg-white text-[#4b3826] border-amber-500"
+                            : "bg-white/90 text-[#4b3826] border-white/60 hover:border-amber-400"
+                        }`}
+                        whileHover={{ scale: 1.01 }}
+                      >
+                        <h3 className="font-bold text-lg mb-1">
+                          {plan.titulo || "Sin título"}
+                        </h3>
+                        {fecha && (
+                          <div className="flex items-center text-xs text-gray-600 mb-1">
+                            <Calendar className="w-4 h-4 mr-1" />
+                            {fecha}
+                          </div>
+                        )}
+                        <div className="flex items-center text-xs text-gray-600 mt-1">
+                          <Paperclip className="w-4 h-4 mr-1" />
+                          {plan.total_archivos
+                            ? `${plan.total_archivos} archivos adjuntos`
+                            : "Archivos adjuntos"}
                         </div>
-                      )}
-                      <div className="flex items-center text-xs text-gray-600 mt-1">
-                        <Paperclip className="w-4 h-4 mr-1" />
-                        {plan.total_archivos
-                          ? `${plan.total_archivos} archivos adjuntos`
-                          : "Archivos adjuntos"}
-                      </div>
-                    </motion.button>
-                  );
-                })
-              )}
+                      </motion.button>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Imagen decorativa en el espacio que marcaste */}
+              <div className="hidden lg:block mt-4">
+                <img
+                  src="/chibi-profesora.png" // 🔁 cambia el nombre si tu imagen es otra
+                  alt="Ilustración de planificación"
+                  className="w-full rounded-2xl shadow-xl object-contain opacity-95"
+                />
+              </div>
             </div>
 
             {/* Columna derecha: detalle en la misma página */}
