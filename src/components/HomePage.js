@@ -34,7 +34,7 @@ const HomePage = () => {
       />
 
       <img
-        src="/stiker3.png"
+        src="/sticker3.png"
         alt="Decoración derecha"
         className="hidden md:block pointer-events-none select-none absolute right-10 top-24 w-64"
       />
